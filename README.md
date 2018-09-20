@@ -5,7 +5,7 @@ It is recommened that you install the JQ package to automatically format the JSO
 
 ## Usage
 
-```
+```bash
 tronyx@suladan:~# ./uptimerobot_monitor_utility.sh
     Usage: uptimerobot_monitor_utility.sh -[OPTION] (ARGUMENT)...
 
@@ -29,7 +29,8 @@ tronyx@suladan:~# ./uptimerobot_monitor_utility.sh
 ## Examples
 ### List all monitors
 
-```tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -l
+```json
+tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
