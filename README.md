@@ -3,6 +3,30 @@ A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via t
 
 It is recommened that you install the JQ package to automatically format the JSON output into a much more human-readable and colorized output.
 
+## Setting it up
+
+To get the script working you will need to download it onto your preferred machine:
+
+```bash
+tronyx@suladan:~# wget https://raw.githubusercontent.com/christronyxyocum/uptimerobot-monitor-utility/master/uptimerobot_monitor_utility.sh
+--2018-09-20 17:32:58--  https://raw.githubusercontent.com/christronyxyocum/uptimerobot-monitor-utility/master/uptimerobot_monitor_utility.sh
+Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 151.101.20.133
+Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|151.101.20.133|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 8339 (8.1K) [text/plain]
+Saving to: ‘uptimerobot_monitor_utility.sh’
+
+uptimerobot_monitor_utility.sh                              100%[========================================================================================================================================>]   8.14K  --.-KB/s    in 0s
+
+2018-09-20 17:32:58 (39.2 MB/s) - ‘uptimerobot_monitor_utility.sh’ saved [8339/8339]
+```
+
+Then just make it executable:
+
+```bash
+tronyx@suladan:~# chmod a+x uptimerobot_monitor_utility.sh
+```
+
 ## Usage
 
 ```bash
