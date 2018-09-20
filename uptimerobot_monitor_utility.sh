@@ -124,7 +124,7 @@ function display_all_monitors {
 function get_paused_monitors {
   > /tmp/paused_monitors.txt
   for monitor in $(cat /tmp/ur_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":"[A-Z]*|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
+    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     status=$(grep status /tmp/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = '0' ]; then
@@ -158,7 +158,7 @@ function unpause_prompt {
 # Pause all monitors
 function pause_all_monitors {
   for monitor in $(cat /tmp/ur_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":"[A-Z]*|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
+    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
@@ -170,7 +170,7 @@ function pause_all_monitors {
 function pause_specified_monitors {
   echo "${pauseType}" |tr , '\n' > /tmp/specified_monitors.txt
   for monitor in $(cat /tmp/specified_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":"[A-Z]*|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
+    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
@@ -181,7 +181,7 @@ function pause_specified_monitors {
 # Unpause all monitors
 function unpause_all_monitors {
   for monitor in $(cat /tmp/ur_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":"[A-Z]*|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
+    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
@@ -193,7 +193,7 @@ function unpause_all_monitors {
 function unpause_specified_monitors {
   echo "${unpauseType}" |tr , '\n' > /tmp/specified_monitors.txt
   for monitor in $(cat /tmp/specified_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":"[A-Z]*|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
+    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/"${monitor}".txt > /tmp/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
