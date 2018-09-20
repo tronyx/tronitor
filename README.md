@@ -3,6 +3,26 @@ A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via t
 
 It is recommened that you install the JQ package to automatically format the JSON output into a much more human-readable and colorized output.
 
+```bash
+tronyx@suladan:~# apt install jq
+Reading package lists... Done
+Building dependency tree
+Reading state information... Done
+The following NEW packages will be installed:
+  jq
+0 upgraded, 1 newly installed, 0 to remove and 7 not upgraded.
+Need to get 45.6 kB of archives.
+After this operation, 90.1 kB of additional disk space will be used.
+Get:1 http://archive.ubuntu.com/ubuntu bionic/universe amd64 jq amd64 1.5+dfsg-2 [45.6 kB]
+Fetched 45.6 kB in 0s (123 kB/s)
+Selecting previously unselected package jq.
+(Reading database ... 107503 files and directories currently installed.)
+Preparing to unpack .../jq_1.5+dfsg-2_amd64.deb ...
+Unpacking jq (1.5+dfsg-2) ...
+Setting up jq (1.5+dfsg-2) ...
+Processing triggers for man-db (2.8.3-2) ...
+```
+
 ## Setting it up
 
 To get the script working you will need to download it onto your preferred machine:
