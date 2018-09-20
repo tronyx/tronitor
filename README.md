@@ -21,11 +21,13 @@ uptimerobot_monitor_utility.sh                              100%[===============
 2018-09-20 17:32:58 (39.2 MB/s) - ‘uptimerobot_monitor_utility.sh’ saved [8339/8339]
 ```
 
-Then just make it executable:
+Then make it executable:
 
 ```bash
 tronyx@suladan:~# chmod a+x uptimerobot_monitor_utility.sh
 ```
+
+Finally, open the script with your favorite text editor and add your UptimeRobot API key.
 
 ## Usage
 
