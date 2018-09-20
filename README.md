@@ -1,5 +1,5 @@
 # UptimeRobot Monitor Utility
-A bash script to work with UptimeRobot monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
+A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
 
 It is recommened that you install the JQ package to automatically format the JSON output into a much more human-readable and colorized output.
 
