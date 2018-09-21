@@ -228,8 +228,7 @@ function send_notification {
   else
     if [ -s /tmp/uptimerobot_monitor_utility/paused_monitors.txt ]; then
       pausedTests=$(paste -s -d, /tmp/uptimerobot_monitor_utility/paused_monitors.txt)
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:"}' ${webhookUrl}
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "'"${pausedTests}"'"}' ${webhookUrl}
+      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
     elif [ "${notifyAll}" = "true" ]; then
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
     fi

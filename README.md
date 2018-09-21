@@ -214,3 +214,9 @@ Unpausing Radarr:
   }
 }
 ```
+
+### Discord alert for paused monitors
+
+Using the `-a` option will check for any paused monitors and, if there are any, send an alert to the specified Discord webhook like below:
+
+![Discord Notification](/Images/webhook.png)
