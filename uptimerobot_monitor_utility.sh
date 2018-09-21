@@ -221,7 +221,7 @@ elif [ "${find}" = "true" ]; then
     else
       unpause_prompt
         if [[ "$unpausePrompt" =~ ^(yes|y)$ ]]; then
-          for monitor in $(cat /tmp/paused_monitors.txt |awk '{print $3}' |tr -d ')'); do
+          for monitor in $(cat /tmp/paused_monitors.txt |awk -F: '{print $2}' |tr -d ')' |tr -d ' '); do
             friendlyName=$(cat /tmp/paused_monitors.txt |awk '{print $1}')
             echo "Unpausing ${friendlyName}:"
             curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
