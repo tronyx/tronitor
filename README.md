@@ -47,7 +47,7 @@ Then make it executable:
 tronyx@suladan:~# chmod a+x uptimerobot_monitor_utility.sh
 ```
 
-Finally, open the script with your favorite text editor and add your UptimeRobot API key.
+Finally, open the script with your favorite text editor and add your UptimeRobot API key. If you use the alert option, be sure to also enter in your Discord webhook URL.
 
 ## Usage
 
@@ -59,6 +59,9 @@ tronyx@suladan:~# ./uptimerobot_monitor_utility.sh
     -f          Find all paused UptimeRobot monitors.
     -n          Find all paused UptimeRobot monitors
                 without an unpause prompt.
+    -a          Find all paused UptimeRobot monitors
+                without an unpause prompt and send
+                an alert via Discord webhook.
     -p VALUE    Pause specified UptimeRobot monitors.
                 Option accepts arguments in the form of "all"
                 or a comma-separated list of monitors, IE:
