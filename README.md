@@ -1,7 +1,7 @@
 # UptimeRobot Monitor Utility
 A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
 
-It is recommened that you install the JQ package to automatically format the JSON output into a much more human-readable and colorized output.
+It is recommened that you install the JQ package as the script uses it to automatically format the JSON output into a much more human-readable and colorized output. If you do not install you will see errors about the `jq` command not being found and it may impact the functionality of the script.
 
 ```bash
 tronyx@suladan:~# apt install jq
@@ -36,7 +36,7 @@ HTTP request sent, awaiting response... 200 OK
 Length: 8339 (8.1K) [text/plain]
 Saving to: ‘uptimerobot_monitor_utility.sh’
 
-uptimerobot_monitor_utility.sh                              100%[========================================================================================================================================>]   8.14K  --.-KB/s    in 0s
+uptimerobot_monitor_utility.sh          100%[===================================================================>]   8.14K  --.-KB/s    in 0s
 
 2018-09-20 17:32:58 (39.2 MB/s) - ‘uptimerobot_monitor_utility.sh’ saved [8339/8339]
 ```
