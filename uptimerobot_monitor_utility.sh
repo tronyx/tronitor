@@ -46,6 +46,7 @@ while getopts "hlfnap:u:" OPTION
       ;;
     f)
       find=true
+      prompt=true
       ;;
     n)
       find=true
@@ -226,7 +227,9 @@ function send_notification {
     echo "You didn't define your Discord webhook, skipping notification."
   else
     if [ -s /tmp/uptimerobot_monitor_utility/paused_monitors.txt ]; then
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors."}' ${webhookUrl}
+      pausedTests=$(paste -s -d, /tmp/uptimerobot_monitor_utility/paused_monitors.txt)
+      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:"}' ${webhookUrl}
+      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "'"${pausedTests}"'"}' ${webhookUrl}
     elif [ "${notifyAll}" = "true" ]; then
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
     fi
@@ -254,7 +257,6 @@ elif [ "${find}" = "true" ]; then
   create_monitor_files
   get_paused_monitors
   display_paused_monitors
-  cleanup
   if [ -s /tmp/uptimerobot_monitor_utility/paused_monitors.txt ]; then
     if [ "${prompt}" = "false" ]; then
       :
@@ -267,7 +269,6 @@ elif [ "${find}" = "true" ]; then
             curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
             echo ""
           done
-          cleanup
         elif [[ "$unpausePrompt" =~ ^(no|n)$ ]]; then
           exit 1
         fi
