@@ -5,6 +5,9 @@
 
 # Specify UptimeRobot API key
 apiKey=''
+webhookUrl=''
+# Set notifyAll to true for notification to apply for all running state as well
+notifyAll='false'
 
 # Define usage and script options
 function usage {
@@ -15,6 +18,9 @@ function usage {
     -f          Find all paused UptimeRobot monitors.
     -n          Find all paused UptimeRobot monitors
                 without an unpause prompt.
+    -a          Find all paused UptimeRobot monitors
+                without an unpause prompt and send
+                an alert via Discord webhook.
     -p VALUE    Pause specified UptimeRobot monitors.
                 Option accepts arguments in the form of "all"
                 or a comma-separated list of monitors, IE:
@@ -32,7 +38,7 @@ EOM
 exit 2
 }
 
-while getopts "hlfnp:u:" OPTION
+while getopts "hlfnap:u:" OPTION
   do
   case "$OPTION" in
     l)
@@ -44,6 +50,11 @@ while getopts "hlfnp:u:" OPTION
     n)
       find=true
       prompt=false
+      ;;
+    a)
+      find=true
+      prompt=false
+      alert=true
       ;;
     p)
       pause=true
@@ -68,6 +79,9 @@ if [[ $1 == "" ]]; then
   exit 1
 elif [ "${apiKey}" = "" ]; then
   echo "You didn't define your API key!"
+  exit 1
+elif [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
+  echo "You didn't define your Discord webhook URL!"
   exit 1
 else
   :
@@ -201,6 +215,19 @@ function unpause_specified_monitors {
   done
 }
 
+# Send Discord notification
+function send_notification {
+  if [ "${webhookUrl}" = "" ]; then
+    echo "You didn't define your Discord webhook, skipping notification."
+  else
+    if [ -s /tmp/paused_monitors.txt ]; then
+      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors."}' ${webhookUrl}
+    elif [ "${notifyAll}" = "true" ]; then
+      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
+    fi
+  fi
+}
+
 # Run functions
 check_api_key
 if [ "${list}" = "true" ]; then
@@ -233,6 +260,9 @@ elif [ "${find}" = "true" ]; then
     fi
   else
     :
+  fi
+  if [ "${alert}" = "true" ]; then
+    send_notification
   fi
 elif [ "${pause}" = "true" ]; then
   if [ "${pauseType}" = "all" ]; then
