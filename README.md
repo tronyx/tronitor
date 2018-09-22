@@ -82,9 +82,9 @@ tronyx@suladan:~# ./uptimerobot_monitor_utility.sh
 tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
-Radarr (ID: 780859973) - Status: Up
-Sonarr (ID: 780859962) - Status: Up
-Tautulli (ID: 780859975) - Status: Up
+Radarr (ID: 780859973) - Status: Down
+Sonarr (ID: 780859962) - Status: Paused
+Tautulli (ID: 780859975) - Status: Seems down
 ```
 
 ### Find paused monitors
