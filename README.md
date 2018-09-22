@@ -81,10 +81,10 @@ tronyx@suladan:~# ./uptimerobot_monitor_utility.sh
 ```json
 tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
-Plex (ID: 779783111)
-Radarr (ID: 780859973)
-Sonarr (ID: 780859962)
-Tautulli (ID: 780859975)
+Plex (ID: 779783111) - Status: Up
+Radarr (ID: 780859973) - Status: Up
+Sonarr (ID: 780859962) - Status: Up
+Tautulli (ID: 780859975) - Status: Up
 ```
 
 ### Find paused monitors
