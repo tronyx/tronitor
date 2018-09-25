@@ -219,8 +219,16 @@ pause_all_monitors() {
 
 # Pause specified monitors
 pause_specified_monitors() {
-  echo "${pauseType}" |tr , '\n' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
+  > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+  echo "${pauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
   for monitor in $(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt); do
+    if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
+      echo $(egrep -i "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')') >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+    else
+      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+    fi
+  done
+  for monitor in $(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt); do
     egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
@@ -242,8 +250,16 @@ unpause_all_monitors() {
 
 # Unpause specified monitors
 unpause_specified_monitors() {
-  echo "${unpauseType}" |tr , '\n' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
+  > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+  echo "${unpauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
   for monitor in $(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt); do
+    if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
+      echo $(egrep -i "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')') >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+    else
+      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+    fi
+  done
+  for monitor in $(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt); do
     egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
@@ -314,6 +330,7 @@ main() {
       get_data
       get_monitors
       create_monitor_files
+      create_friendly_list
       pause_specified_monitors
     fi
   elif [ "${unpause}" = "true" ]; then
@@ -326,6 +343,7 @@ main() {
       get_data
       get_monitors
       create_monitor_files
+      create_friendly_list
       unpause_specified_monitors
     fi
   fi

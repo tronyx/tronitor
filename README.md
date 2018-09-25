@@ -64,14 +64,20 @@ tronyx@suladan:~# ./uptimerobot_monitor_utility.sh
                 an alert via Discord webhook.
     -p VALUE    Pause specified UptimeRobot monitors.
                 Option accepts arguments in the form of "all"
-                or a comma-separated list of monitors, IE:
+                or a comma-separated list of monitors by ID or
+                Friendly Name. Friendly Name should be wrapped
+                in single or double quotes, IE:
                 "uptimerobot_monitor_utility.sh -p all"
                 "uptimerobot_monitor_utility.sh -p 18095687,18095688,18095689"
+                "uptimerobot_monitor_utility.sh -p 'Plex',"Tautulli",18095689"
     -u VALUE    Unpause specified UptimeRobot monitors.
                 Option accepts arguments in the form of "all"
-                or a comma-separated list of monitors, IE:
+                or a comma-separated list of monitors by ID or
+                Friendly Name. Friendly Name should be wrapped
+                in single or double quotes, IE:
                 "uptimerobot_monitor_utility.sh -u all"
                 "uptimerobot_monitor_utility.sh -u 18095687,18095688,18095689"
+                "uptimerobot_monitor_utility.sh -u 'Plex',"Tautulli",18095689"
     -h          Display this usage dialog.
 ```
 
@@ -139,7 +145,7 @@ Pausing Tautulli:
 ### Pause specific monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -p 779783111,780859973
+tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
 Pausing Plex:
 {
   "stat": "ok",
@@ -197,7 +203,7 @@ Unpausing Tautulli:
 ### Unpause specific monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -u 779783111,780859973
+tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
 Unpausing Plex:
 {
   "stat": "ok",
