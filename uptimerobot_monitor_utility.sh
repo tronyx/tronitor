@@ -110,7 +110,7 @@ create_dir() {
 cleanup() {
   rm -rf /tmp/uptimerobot_monitor_utility/*.txt
 }
-trap cleanup ERR EXIT INT QUIT TERM
+trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
