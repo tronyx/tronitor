@@ -97,7 +97,7 @@ elif [ "${#1}" -ge "3" ]; then
 elif [ "${apiKey}" = "" ]; then
   echo "You didn't define your API key in the script!"
   read -rp "Enter your API key: " API
-  sed -i "7 s/apiKey='[^']*'/apiKey='${API}'/" $0
+  sed -i "7 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
   apiKey=${API}
 # Alert set to true, but webhook not defined
 elif [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
@@ -121,7 +121,7 @@ trap 'cleanup' 0 1 2 3 6 14 15
 # Check that provided API Key is valid
 check_api_key() {
   curl -s -X POST https://api.uptimerobot.com/v2/getAccountDetails -d "api_key=${apiKey}" -d "format=json" > /tmp/uptimerobot_monitor_utility/api_test_full.txt
-  status=$(egrep -oi '"stat":"[a-z]*"' /tmp/uptimerobot_monitor_utility/api_test_full.txt |awk -F':' '{print $2}' |tr -d '"')
+  status=$(grep -Po '"stat":"[a-z]*"' /tmp/uptimerobot_monitor_utility/api_test_full.txt |awk -F':' '{print $2}' |tr -d '"')
   if [ "${status}" = "fail" ]; then
     echo "The API Key that you provided is not valid!"
     exit 1
@@ -137,19 +137,21 @@ get_data() {
 
 # Create list of monitor IDs
 get_monitors() {
-  egrep -oi '"id":[!0-9]*' /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt |tr -d '"id:' > /tmp/uptimerobot_monitor_utility/ur_monitors.txt
+  grep -Po '"id":[!0-9]*' /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt |tr -d '"id:' > /tmp/uptimerobot_monitor_utility/ur_monitors.txt
 }
 
 # Create individual monitor files
 create_monitor_files() {
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt); do curl -s -X POST https://api.uptimerobot.com/v2/getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > /tmp/uptimerobot_monitor_utility/"${monitor}".txt; done
+  while IFS= read -r monitor; do
+    curl -s -X POST https://api.uptimerobot.com/v2/getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > /tmp/uptimerobot_monitor_utility/"${monitor}".txt
+  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
 }
 
 # Create friendly output of all monitors
 create_friendly_list() {
-  > /tmp/uptimerobot_monitor_utility/friendly_list.txt
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
+  true > /tmp/uptimerobot_monitor_utility/friendly_list.txt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     status=$(grep status /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = 0 ]; then
@@ -164,7 +166,7 @@ create_friendly_list() {
       friendlyStatus="Down"
     fi
     echo "${friendlyName} (ID: ${monitor}) - Status: ${friendlyStatus}" >> /tmp/uptimerobot_monitor_utility/friendly_list.txt
-  done
+  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
 }
 
 # Display friendly list of all monitors
@@ -179,9 +181,9 @@ display_all_monitors() {
 
 # Find all paused monitors
 get_paused_monitors() {
-  > /tmp/uptimerobot_monitor_utility/paused_monitors.txt
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
+  true > /tmp/uptimerobot_monitor_utility/paused_monitors.txt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     status=$(grep status /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = '0' ]; then
@@ -189,7 +191,7 @@ get_paused_monitors() {
     else
       :
     fi
-  done
+  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
 }
 
 # Display list of all paused monitors
@@ -204,7 +206,7 @@ display_paused_monitors() {
 
 # Prompt user to unpause monitors after finding paused monitors
 unpause_prompt() {
-  read -p 'Would you like to unpause the paused monitors? ([y]es or [n]o): ' unpausePrompt
+  read -rp 'Would you like to unpause the paused monitors? ([y]es or [n]o): ' unpausePrompt
   if ! [[ "$unpausePrompt" =~ ^(yes|y|no|n)$  ]]; then
     echo "Please specify yes, y, no, or n."
   else
@@ -214,64 +216,64 @@ unpause_prompt() {
 
 # Pause all monitors
 pause_all_monitors() {
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
     echo ""
-  done
+  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
 }
 
 # Pause specified monitors
 pause_specified_monitors() {
-  > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+  true > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
   echo "${pauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt); do
+  while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      echo $(egrep -i "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')') >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+      grep -Po "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
     else
       echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
     fi
-  done
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
+  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
     echo ""
-  done
+  done < <(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt)
 }
 
 # Unpause all monitors
 unpause_all_monitors() {
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
     echo ""
-  done
+  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
 }
 
 # Unpause specified monitors
 unpause_specified_monitors() {
-  > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+  true > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
   echo "${unpauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt); do
+  while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      echo $(egrep -i "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')') >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+      grep -Po "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
     else
       echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
     fi
-  done
-  for monitor in $(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt); do
-    egrep -oi '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
+  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
     friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
     curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
     echo ""
-  done
+  done < <(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt)
 }
 
 # Send Discord notification
@@ -310,12 +312,12 @@ main() {
       else
         unpause_prompt
           if [[ "$unpausePrompt" =~ ^(yes|y)$ ]]; then
-            for monitor in $(cat /tmp/uptimerobot_monitor_utility/paused_monitors.txt |awk -F: '{print $2}' |tr -d ')' |tr -d ' '); do
+            while IFS= read -r monitor; do
               friendlyName=$(grep "${monitor}" /tmp/uptimerobot_monitor_utility/paused_monitors.txt |awk '{print $1}')
               echo "Unpausing ${friendlyName}:"
               curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
               echo ""
-            done
+            done < <(awk -F: '{print $2}' /tmp/uptimerobot_monitor_utility/paused_monitors.txt/tmp/uptimerobot_monitor_utility/paused_monitors.txt |tr -d ')' |tr -d ' ')
           elif [[ "$unpausePrompt" =~ ^(no|n)$ ]]; then
             exit 1
           fi
