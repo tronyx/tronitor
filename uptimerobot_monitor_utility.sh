@@ -138,7 +138,7 @@ fi
 
 # Create directory to neatly store temp files
 create_dir() {
-  mkdir -m 777 -p "${tempDir}"
+  mkdir -m 777 "${tempDir}"
 }
 
 # Cleanup temp files
@@ -286,7 +286,7 @@ pause_specified_monitors() {
   fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      grep -Pi "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
+      grep -Pi ""${monitor}"" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
@@ -315,7 +315,7 @@ unpause_all_monitors() {
 unpause_specified_monitors() {
   true > "${convertedMonitorsFile}"
   true > "${badMonitorsFile}"
-  echo "${pauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
+  echo "${unpauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   while IFS= read -r monitor; do
     if [[ $(grep -ic "${monitor}" "${urMonitorsFullFile}") != "1" ]]; then
       if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
@@ -339,7 +339,7 @@ unpause_specified_monitors() {
   fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      grep -Pi "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
+      grep -Pi ""${monitor}"" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> "${convertedMonitorsFile}"
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
