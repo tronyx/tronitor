@@ -90,7 +90,7 @@ pausedMonitorsFile="${tempDir}paused_monitors.txt"
 specifiedMonitorsFile="${tempDir}specified_monitors.txt"
 urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
-logFile="${tempDir}uptimerobot_monitor_utility.log"
+#logFile="${tempDir}uptimerobot_monitor_utility.log"
 # UptimeRobot API URL
 readonly apiUrl='https://api.uptimerobot.com/v2/'
 # Colors
@@ -138,7 +138,7 @@ fi
 
 # Create directory to neatly store temp files
 create_dir() {
-  mkdir -m 777 "${tempDir}"
+  mkdir -m 777 -p "${tempDir}"
 }
 
 # Cleanup temp files
