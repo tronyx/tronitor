@@ -81,16 +81,16 @@ done
 
 # Declare some variables
 # Temp dir and filenames
-readonly tempDir='/tmp/uptimerobot_monitor_utility/'
-readonly apiTestFullFile="${tempDir}api_test_full.txt"
-readonly badMonitorsFile="${tempDir}bad_monitors.txt"
-readonly convertedMonitorsFile="${tempDir}converted_monitors.txt"
-readonly friendlyListFile="${tempDir}friendly_list.txt"
-readonly pausedMonitorsFile="${tempDir}paused_monitors.txt"
-readonly specifiedMonitorsFile="${tempDir}specified_monitors.txt"
-readonly urMonitorsFile="${tempDir}ur_monitors.txt"
-readonly urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
-readonly logFile="${tempDir}uptimerobot_monitor_utility.log"
+tempDir='/tmp/uptimerobot_monitor_utility/'
+apiTestFullFile="${tempDir}api_test_full.txt"
+badMonitorsFile="${tempDir}bad_monitors.txt"
+convertedMonitorsFile="${tempDir}converted_monitors.txt"
+friendlyListFile="${tempDir}friendly_list.txt"
+pausedMonitorsFile="${tempDir}paused_monitors.txt"
+specifiedMonitorsFile="${tempDir}specified_monitors.txt"
+urMonitorsFile="${tempDir}ur_monitors.txt"
+urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
+logFile="${tempDir}uptimerobot_monitor_utility.log"
 # UptimeRobot API URL
 readonly apiUrl='https://api.uptimerobot.com/v2/'
 # Colors
@@ -101,6 +101,7 @@ readonly red='\e[31m'
 readonly ylw='\e[33m'
 readonly org='\e[38;5;202m'
 readonly lorg='\e[38;5;130m'
+readonly mgt='\e[35m'
 readonly endColor='\e[0m'
 # Log functions
 info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
@@ -185,7 +186,7 @@ create_friendly_list() {
     if [ "${status}" = 0 ]; then
       friendlyStatus="${ylw}Paused${endColor}"
     elif [ "${status}" = 1 ]; then
-      friendlyStatus='Not checked yet'
+      friendlyStatus="${mgt}Not checked yet${endColor}"
     elif [ "${status}" = 2 ]; then
       friendlyStatus="${grn}Up${endColor}"
     elif [ "${status}" = 8 ]; then
@@ -193,7 +194,7 @@ create_friendly_list() {
     elif [ "${status}" = 9 ]; then
       friendlyStatus="${red}Down${endColor}"
     fi
-    echo -e "${lorg}${friendlyName}${endColor} (ID: ${lblu}${monitor}${endColor}) - Status: ${friendlyStatus}" >> "${friendlyListFile}"
+    echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor} - Status: ${friendlyStatus}" >> "${friendlyListFile}"
   done < <(cat "${urMonitorsFile}")
 }
 
@@ -202,7 +203,7 @@ display_all_monitors() {
   if [ -s "${friendlyListFile}" ]; then
     echo 'The following UptimeRobot monitors were found in your UptimeRobot account:'
     echo ''
-    cat "${friendlyListFile}"
+    cat "${friendlyListFile}" |column -ts-
   else
     echo 'There are currently no monitors associated with your UptimeRobot account.'
   fi
@@ -216,7 +217,7 @@ get_paused_monitors() {
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = '0' ]; then
-      echo -e "${friendlyName} (ID: ${lblu}${monitor}${endColor})" >> "${pausedMonitorsFile}"
+      echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
     else
       :
     fi
@@ -228,7 +229,7 @@ display_paused_monitors() {
   if [ -s "${pausedMonitorsFile}" ]; then
     echo 'The following UptimeRobot monitors are currently paused:'
     echo ''
-    cat "${pausedMonitorsFile}"
+    cat "${pausedMonitorsFile}" |column -ts-
   else
     echo 'There are currently no paused UptimeRobot monitors.'
   fi
@@ -272,7 +273,7 @@ pause_specified_monitors() {
     else
       :
     fi
-  done < <(cat "${specifiedMonitorsFile}")
+  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
   if [ -s "${badMonitorsFile}" ]; then
     echo -e "${red}The following specified monitors are not valid:${endColor}"
     echo ''
@@ -285,18 +286,18 @@ pause_specified_monitors() {
   fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      grep -Po "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> "${convertedMonitorsFile}"
+      grep -Pi "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
-  done < <(cat "${specifiedMonitorsFile}")
+  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
     curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
     echo ''
-  done < <(cat "${convertedMonitorsFile}")
+  done < <(cat "${convertedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
 }
 
 # Unpause all monitors
@@ -325,7 +326,7 @@ unpause_specified_monitors() {
     else
       :
     fi
-  done < <(cat "${specifiedMonitorsFile}")
+  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
   if [ -s "${badMonitorsFile}" ]; then
     echo -e "${red}The following specified monitors are not valid:${endColor}"
     echo ''
@@ -338,18 +339,18 @@ unpause_specified_monitors() {
   fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      grep -Po "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> "${convertedMonitorsFile}"
+      grep -Pi "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
-  done < <(cat "${specifiedMonitorsFile}")
+  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
     curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
     echo ''
-  done < <(cat "${convertedMonitorsFile}")
+  done < <(cat "${convertedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
 }
 
 # Send Discord notification
@@ -393,7 +394,7 @@ main() {
               echo "Unpausing ${friendlyName}:"
               curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
               echo ''
-            done < <(awk -F: '{print $2}' "${pausedMonitorsFile}" |tr -d ')' |tr -d ' ')
+            done < <(awk -F: '{print $2}' "${pausedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g' |tr -d ' ')
           elif [[ "$unpausePrompt" =~ ^(no|n)$ ]]; then
             exit 1
           fi
