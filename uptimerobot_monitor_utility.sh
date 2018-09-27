@@ -238,7 +238,7 @@ display_paused_monitors() {
 unpause_prompt() {
   echo ''
   echo -e "Would you like to unpause the paused monitors? (${grn}[y]${endColor}es or ${red}[n]${endColor}o): "
-  read -rp unpausePrompt
+  read -r unpausePrompt
   if ! [[ "$unpausePrompt" =~ ^(yes|y|no|n)$  ]]; then
     echo -e "${red}Please specify yes, y, no, or n.${endColor}"
   else
