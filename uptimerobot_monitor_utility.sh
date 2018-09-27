@@ -228,7 +228,25 @@ pause_all_monitors() {
 # Pause specified monitors
 pause_specified_monitors() {
   true > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+  true > /tmp/uptimerobot_monitor_utility/bad_monitors.txt
   echo "${pauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
+  while IFS= read -r monitor; do
+    if [[ $(grep -ic "${monitor}" /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt) != "1" ]]; then
+      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/bad_monitors.txt
+    else
+      :
+    fi
+  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
+  if [ -s /tmp/uptimerobot_monitor_utility/bad_monitors.txt ]; then
+    echo "The following specified monitors are not valid:"
+    echo ""
+    cat /tmp/uptimerobot_monitor_utility/bad_monitors.txt
+    echo ""
+    echo "Please correct these and try again."
+    exit 1
+  else
+    :
+  fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
       grep -Po "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
@@ -259,7 +277,25 @@ unpause_all_monitors() {
 # Unpause specified monitors
 unpause_specified_monitors() {
   true > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
-  echo "${unpauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
+  true > /tmp/uptimerobot_monitor_utility/bad_monitors.txt
+  echo "${pauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
+  while IFS= read -r monitor; do
+    if [[ $(grep -ic "${monitor}" /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt) != "1" ]]; then
+      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/bad_monitors.txt
+    else
+      :
+    fi
+  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
+  if [ -s /tmp/uptimerobot_monitor_utility/bad_monitors.txt ]; then
+    echo "The following specified monitors are not valid:"
+    echo ""
+    cat /tmp/uptimerobot_monitor_utility/bad_monitors.txt
+    echo ""
+    echo "Please correct these and try again."
+    exit 1
+  else
+    :
+  fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
       grep -Po "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
