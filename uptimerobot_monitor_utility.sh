@@ -247,22 +247,9 @@ unpause_prompt() {
   fi
 }
 
-# Pause all monitors
-pause_all_monitors() {
-  while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    echo "Pausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
-    echo ''
-  done < <(cat "${urMonitorsFile}")
-}
-
-# Pause specified monitors
-pause_specified_monitors() {
-  true > "${convertedMonitorsFile}"
+# Check for bad monitors
+check_bad_monitors() {
   true > "${badMonitorsFile}"
-  echo "${pauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   while IFS= read -r monitor; do
     if [[ $(grep -ic "${monitor}" "${urMonitorsFullFile}") != "1" ]]; then
       if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
@@ -284,6 +271,11 @@ pause_specified_monitors() {
   else
     :
   fi
+}
+
+# Convert friendly names to IDs
+convert_friendly_monitors() {
+  true > "${convertedMonitorsFile}"
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
       grep -Pi ""${monitor}"" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
@@ -291,6 +283,24 @@ pause_specified_monitors() {
       echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
   done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+}
+
+# Pause all monitors
+pause_all_monitors() {
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    echo "Pausing ${friendlyName}:"
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
+    echo ''
+  done < <(cat "${urMonitorsFile}")
+}
+
+# Pause specified monitors
+pause_specified_monitors() {
+  echo "${pauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
+  check_bad_monitors
+  convert_friendly_monitors
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
@@ -313,37 +323,9 @@ unpause_all_monitors() {
 
 # Unpause specified monitors
 unpause_specified_monitors() {
-  true > "${convertedMonitorsFile}"
-  true > "${badMonitorsFile}"
   echo "${unpauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
-  while IFS= read -r monitor; do
-    if [[ $(grep -ic "${monitor}" "${urMonitorsFullFile}") != "1" ]]; then
-      if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-        echo -e "${lorg}${monitor}${endColor}" >> "${badMonitorsFile}"
-      elif [[ "${monitor}" != ^[A-Za-z_]+$ ]]; then
-        echo -e "${lblu}${monitor}${endColor}" >> "${badMonitorsFile}"
-      fi
-    else
-      :
-    fi
-  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
-  if [ -s "${badMonitorsFile}" ]; then
-    echo -e "${red}The following specified monitors are not valid:${endColor}"
-    echo ''
-    cat "${badMonitorsFile}"
-    echo ''
-    echo 'Please correct these and try again.'
-    exit 1
-  else
-    :
-  fi
-  while IFS= read -r monitor; do
-    if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      grep -Pi ""${monitor}"" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> "${convertedMonitorsFile}"
-    else
-      echo "${monitor}" >> "${convertedMonitorsFile}"
-    fi
-  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+  check_bad_monitors
+  convert_friendly_monitors
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
