@@ -4,7 +4,7 @@ A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via t
 It is recommened that you install the JQ package as the script uses it to automatically format the JSON output into a much more human-readable and colorized output. If you do not install you will see errors about the `jq` command not being found and it may impact the functionality of the script.
 
 ```bash
-tronyx@suladan:~# apt install jq
+tronyx@suladan:~$ sudo apt install jq
 Reading package lists... Done
 Building dependency tree
 Reading state information... Done
@@ -28,7 +28,7 @@ Processing triggers for man-db (2.8.3-2) ...
 To get the script working you will need to download it onto your preferred machine:
 
 ```bash
-tronyx@suladan:~# wget https://raw.githubusercontent.com/christronyxyocum/uptimerobot-monitor-utility/master/uptimerobot_monitor_utility.sh
+tronyx@suladan:~$ wget https://raw.githubusercontent.com/christronyxyocum/uptimerobot-monitor-utility/master/uptimerobot_monitor_utility.sh
 --2018-09-20 17:32:58--  https://raw.githubusercontent.com/christronyxyocum/uptimerobot-monitor-utility/master/uptimerobot_monitor_utility.sh
 Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 151.101.20.133
 Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|151.101.20.133|:443... connected.
@@ -44,48 +44,20 @@ uptimerobot_monitor_utility.sh          100%[===================================
 Then make it executable:
 
 ```bash
-tronyx@suladan:~# chmod a+x uptimerobot_monitor_utility.sh
+tronyx@suladan:~$ chmod a+x uptimerobot_monitor_utility.sh
 ```
 
 Finally, open the script with your favorite text editor and add your UptimeRobot API key. If you use the alert option, be sure to also enter in your Discord webhook URL.
 
 ## Usage
 
-```bash
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh
-    Usage: uptimerobot_monitor_utility.sh -[OPTION] (ARGUMENT)...
-
-    -l          List all UptimeRobot monitors.
-    -f          Find all paused UptimeRobot monitors.
-    -n          Find all paused UptimeRobot monitors
-                without an unpause prompt.
-    -a          Find all paused UptimeRobot monitors
-                without an unpause prompt and send
-                an alert via Discord webhook.
-    -p VALUE    Pause specified UptimeRobot monitors.
-                Option accepts arguments in the form of "all"
-                or a comma-separated list of monitors by ID or
-                Friendly Name. Friendly Name should be wrapped
-                in single or double quotes, IE:
-                "uptimerobot_monitor_utility.sh -p all"
-                "uptimerobot_monitor_utility.sh -p 18095687,18095688,18095689"
-                "uptimerobot_monitor_utility.sh -p 'Plex',"Tautulli",18095689"
-    -u VALUE    Unpause specified UptimeRobot monitors.
-                Option accepts arguments in the form of "all"
-                or a comma-separated list of monitors by ID or
-                Friendly Name. Friendly Name should be wrapped
-                in single or double quotes, IE:
-                "uptimerobot_monitor_utility.sh -u all"
-                "uptimerobot_monitor_utility.sh -u 18095687,18095688,18095689"
-                "uptimerobot_monitor_utility.sh -u 'Plex',"Tautulli",18095689"
-    -h          Display this usage dialog.
-```
+![Script Usage](/Images/usage.png)
 
 ## Examples
 ### List all monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -l
+tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
 Radarr (ID: 780859973) - Status: Down
@@ -96,7 +68,7 @@ Tautulli (ID: 780859975) - Status: Seems down
 ### Find paused monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -f
+tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -f
 The following UptimeRobot monitors are currently paused:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
@@ -108,7 +80,7 @@ Would you like to unpause the paused monitors? ([y]es or [n]o):
 ### Pause all monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -p all
+tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -p all
 Pausing Plex:
 {
   "stat": "ok",
@@ -145,7 +117,7 @@ Pausing Tautulli:
 ### Pause specific monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
+tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
 Pausing Plex:
 {
   "stat": "ok",
@@ -166,7 +138,7 @@ Pausing Radarr:
 ### Unpause all monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -u all
+tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -u all
 Unpausing Plex:
 {
   "stat": "ok",
@@ -203,7 +175,7 @@ Unpausing Tautulli:
 ### Unpause specific monitors
 
 ```json
-tronyx@suladan:~# ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
+tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
 Unpausing Plex:
 {
   "stat": "ok",
