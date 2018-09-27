@@ -137,7 +137,7 @@ fi
 
 # Create directory to neatly store temp files
 create_dir() {
-  mkdir -p "${tempDir}"
+  mkdir -m 777 -p "${tempDir}"
 }
 
 # Cleanup temp files
