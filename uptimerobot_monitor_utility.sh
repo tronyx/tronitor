@@ -12,32 +12,29 @@ notifyAll='false'
 # Define usage and script options
 usage() {
   cat <<EOM
-    Usage: $(basename "$0") -[OPTION] (ARGUMENT)...
 
-    -l          List all UptimeRobot monitors.
-    -f          Find all paused UptimeRobot monitors.
-    -n          Find all paused UptimeRobot monitors
-                without an unpause prompt.
-    -a          Find all paused UptimeRobot monitors
-                without an unpause prompt and send
-                an alert via Discord webhook.
-    -p VALUE    Pause specified UptimeRobot monitors.
-                Option accepts arguments in the form of "all"
-                or a comma-separated list of monitors by ID or
-                Friendly Name. Friendly Name should be wrapped
-                in single or double quotes, IE:
-                "uptimerobot_monitor_utility.sh -p all"
-                "uptimerobot_monitor_utility.sh -p 18095687,18095688,18095689"
-                "uptimerobot_monitor_utility.sh -p 'Plex',"Tautulli",18095689"
-    -u VALUE    Unpause specified UptimeRobot monitors.
-                Option accepts arguments in the form of "all"
-                or a comma-separated list of monitors by ID or
-                Friendly Name. Friendly Name should be wrapped
-                in single or double quotes, IE:
-                "uptimerobot_monitor_utility.sh -u all"
-                "uptimerobot_monitor_utility.sh -u 18095687,18095688,18095689"
-                "uptimerobot_monitor_utility.sh -u 'Plex',"Tautulli",18095689"
-    -h          Display this usage dialog.
+  Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
+
+  $(echo -e "${grn}"-l"${endColor}")          List all UptimeRobot monitors.
+  $(echo -e "${grn}"-f"${endColor}")          Find all paused UptimeRobot monitors.
+  $(echo -e "${grn}"-n"${endColor}")          Find all paused UptimeRobot monitors without an unpause prompt.
+  $(echo -e "${grn}"-a"${endColor}")          Find all paused UptimeRobot monitors without an unpause prompt
+              and send an alert via Discord webhook.
+  $(echo -e "${grn}"-p"${endColor}" "${ylw}"VALUE"${endColor}")    Pause specified UptimeRobot monitors.
+              Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
+              list of monitors by ID or Friendly Name. Friendly Name should be
+              wrapped in single or double quotes, IE:
+                A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
+                B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"'Plex',"Tautulli",18095689"${endColor}")"
+  $(echo -e "${grn}"-u"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
+              Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
+              list of monitors by ID or Friendly Name. Friendly Name should be
+              wrapped in single or double quotes, IE:
+                A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
+                B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"'Plex',"Tautulli",18095689"${endColor}")"
+  $(echo -e "${grn}"-h"${endColor}")          Display this usage dialog.
 
 EOM
 
@@ -82,6 +79,35 @@ while getopts "hlfnap:u:" OPTION
   esac
 done
 
+# Declare some variables
+# Temp dir and filenames
+readonly tempDir='/tmp/uptimerobot_monitor_utility/'
+readonly apiTestFullFile="${tempDir}api_test_full.txt"
+readonly badMonitorsFile="${tempDir}bad_monitors.txt"
+readonly convertedMonitorsFile="${tempDir}converted_monitors.txt"
+readonly friendlyListFile="${tempDir}friendly_list.txt"
+readonly pausedMonitorsFile="${tempDir}paused_monitors.txt"
+readonly specifiedMonitorsFile="${tempDir}specified_monitors.txt"
+readonly urMonitorsFile="${tempDir}ur_monitors.txt"
+readonly urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
+readonly logFile="${tempDir}uptimerobot_monitor_utility.log"
+# UptimeRobot API URL
+readonly apiUrl='https://api.uptimerobot.com/v2/'
+# Colors
+readonly blu='\e[34m'
+readonly lblu='\e[94m'
+readonly grn='\e[32m'
+readonly red='\e[31m'
+readonly ylw='\e[33m'
+readonly org='\e[38;5;202m'
+readonly lorg='\e[38;5;130m'
+readonly endColor='\e[0m'
+# Log functions
+info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
+warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${LOG_FILE}" >&2 ; }
+error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; }
+fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
+
 # Some basic checks
 # An option is provided
 if [ -z "${1}" ]; then
@@ -89,41 +115,43 @@ if [ -z "${1}" ]; then
   exit 1
 # No more than one option is provided
 elif [ "${#1}" -ge "3" ]; then
-  echo "You can only use one option at a time!"
-  echo ""
+  echo -e "${red}You can only use one option at a time!${endColor}"
+  echo ''
   usage
   exit 1
 # API key exists and, if not, user is prompted to enter one
 elif [ "${apiKey}" = "" ]; then
-  echo "You didn't define your API key in the script!"
-  read -rp "Enter your API key: " API
+  echo -e "${red}You didn't define your API key in the script!${endColor}"
+  read -rp 'Enter your API key: ' API
   sed -i "7 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
-  apiKey=${API}
+  apiKey="${API}"
 # Alert set to true, but webhook not defined
 elif [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
-  echo "You didn't define your Discord webhook URL!"
-  exit 1
+  echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
+  read -rp 'Enter your webhook URL: ' webhook
+  sed -i "8 s/webhookUrl='[^']*'/webhookUrl='${API}'/" "$0"
+  webhookUrl="${webhook}"
 else
   :
 fi
 
 # Create directory to neatly store temp files
 create_dir() {
-  mkdir -p /tmp/uptimerobot_monitor_utility
+  mkdir -p "${tempDir}"
 }
 
 # Cleanup temp files
 cleanup() {
-  rm -rf /tmp/uptimerobot_monitor_utility/*.txt
+  rm -rf "${tempDir}"*.txt
 }
 trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
-  curl -s -X POST https://api.uptimerobot.com/v2/getAccountDetails -d "api_key=${apiKey}" -d "format=json" > /tmp/uptimerobot_monitor_utility/api_test_full.txt
-  status=$(grep -Po '"stat":"[a-z]*"' /tmp/uptimerobot_monitor_utility/api_test_full.txt |awk -F':' '{print $2}' |tr -d '"')
+  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
+  status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
   if [ "${status}" = "fail" ]; then
-    echo "The API Key that you provided is not valid!"
+    echo -e "${red}The API Key that you provided is not valid!${endColor}"
     exit 1
   elif [ "${status}" = "ok" ]; then
     :
@@ -132,83 +160,87 @@ check_api_key() {
 
 # Grab data for all monitors
 get_data() {
-  curl -s -X POST https://api.uptimerobot.com/v2/getMonitors -d "api_key=${apiKey}" -d "format=json" > /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt
+  curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${urMonitorsFullFile}"
 }
 
 # Create list of monitor IDs
 get_monitors() {
-  grep -Po '"id":[!0-9]*' /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt |tr -d '"id:' > /tmp/uptimerobot_monitor_utility/ur_monitors.txt
+  grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
 }
 
 # Create individual monitor files
 create_monitor_files() {
   while IFS= read -r monitor; do
-    curl -s -X POST https://api.uptimerobot.com/v2/getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > /tmp/uptimerobot_monitor_utility/"${monitor}".txt
-  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
+    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt
+  done < <(cat "${urMonitorsFile}")
 }
 
 # Create friendly output of all monitors
 create_friendly_list() {
-  true > /tmp/uptimerobot_monitor_utility/friendly_list.txt
+  true > "${friendlyListFile}"
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
-    friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    status=$(grep status /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = 0 ]; then
-      friendlyStatus="Paused"
+      friendlyStatus="${ylw}Paused${endColor}"
     elif [ "${status}" = 1 ]; then
-      friendlyStatus="Not checked yet"
+      friendlyStatus='Not checked yet'
     elif [ "${status}" = 2 ]; then
-      friendlyStatus="Up"
+      friendlyStatus="${grn}Up${endColor}"
     elif [ "${status}" = 8 ]; then
-      friendlyStatus="Seems down"
+      friendlyStatus="${org}Seems down${endColor}"
     elif [ "${status}" = 9 ]; then
-      friendlyStatus="Down"
+      friendlyStatus="${red}Down${endColor}"
     fi
-    echo "${friendlyName} (ID: ${monitor}) - Status: ${friendlyStatus}" >> /tmp/uptimerobot_monitor_utility/friendly_list.txt
-  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
+    echo -e "${lorg}${friendlyName}${endColor} (ID: ${lblu}${monitor}${endColor}) - Status: ${friendlyStatus}" >> "${friendlyListFile}"
+  done < <(cat "${urMonitorsFile}")
 }
 
 # Display friendly list of all monitors
 display_all_monitors() {
-  if [ -s /tmp/uptimerobot_monitor_utility/friendly_list.txt ]; then
-    echo "The following UptimeRobot monitors were found in your UptimeRobot account:"
-    cat /tmp/uptimerobot_monitor_utility/friendly_list.txt
+  if [ -s "${friendlyListFile}" ]; then
+    echo 'The following UptimeRobot monitors were found in your UptimeRobot account:'
+    echo ''
+    cat "${friendlyListFile}"
   else
-    echo "There are currently no monitors associated with your UptimeRobot account."
+    echo 'There are currently no monitors associated with your UptimeRobot account.'
   fi
 }
 
 # Find all paused monitors
 get_paused_monitors() {
-  true > /tmp/uptimerobot_monitor_utility/paused_monitors.txt
+  true > "${pausedMonitorsFile}"
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
-    friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    status=$(grep status /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = '0' ]; then
-      echo "${friendlyName} (ID: ${monitor})" >> /tmp/uptimerobot_monitor_utility/paused_monitors.txt
+      echo -e "${friendlyName} (ID: ${lblu}${monitor}${endColor})" >> "${pausedMonitorsFile}"
     else
       :
     fi
-  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
+  done < <(cat "${urMonitorsFile}")
 }
 
 # Display list of all paused monitors
 display_paused_monitors() {
-  if [ -s /tmp/uptimerobot_monitor_utility/paused_monitors.txt ]; then
-    echo "The following UptimeRobot monitors are currently paused:"
-    cat /tmp/uptimerobot_monitor_utility/paused_monitors.txt
+  if [ -s "${pausedMonitorsFile}" ]; then
+    echo 'The following UptimeRobot monitors are currently paused:'
+    echo ''
+    cat "${pausedMonitorsFile}"
   else
-    echo "There are currently no paused UptimeRobot monitors."
+    echo 'There are currently no paused UptimeRobot monitors.'
   fi
 }
 
 # Prompt user to unpause monitors after finding paused monitors
 unpause_prompt() {
-  read -rp 'Would you like to unpause the paused monitors? ([y]es or [n]o): ' unpausePrompt
+  echo ''
+  echo -e "Would you like to unpause the paused monitors? (${grn}[y]${endColor}es or ${red}[n]${endColor}o): "
+  read -rp unpausePrompt
   if ! [[ "$unpausePrompt" =~ ^(yes|y|no|n)$  ]]; then
-    echo "Please specify yes, y, no, or n."
+    echo -e "${red}Please specify yes, y, no, or n.${endColor}"
   else
     :
   fi
@@ -217,108 +249,116 @@ unpause_prompt() {
 # Pause all monitors
 pause_all_monitors() {
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
-    friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
-    curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
-    echo ""
-  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
+    echo ''
+  done < <(cat "${urMonitorsFile}")
 }
 
 # Pause specified monitors
 pause_specified_monitors() {
-  true > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
-  true > /tmp/uptimerobot_monitor_utility/bad_monitors.txt
-  echo "${pauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
+  true > "${convertedMonitorsFile}"
+  true > "${badMonitorsFile}"
+  echo "${pauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   while IFS= read -r monitor; do
-    if [[ $(grep -ic "${monitor}" /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt) != "1" ]]; then
-      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/bad_monitors.txt
+    if [[ $(grep -ic "${monitor}" "${urMonitorsFullFile}") != "1" ]]; then
+      if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
+        echo -e "${lorg}${monitor}${endColor}" >> "${badMonitorsFile}"
+      elif [[ "${monitor}" != ^[A-Za-z_]+$ ]]; then
+        echo -e "${lblu}${monitor}${endColor}" >> "${badMonitorsFile}"
+      fi
     else
       :
     fi
-  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
-  if [ -s /tmp/uptimerobot_monitor_utility/bad_monitors.txt ]; then
-    echo "The following specified monitors are not valid:"
-    echo ""
-    cat /tmp/uptimerobot_monitor_utility/bad_monitors.txt
-    echo ""
-    echo "Please correct these and try again."
+  done < <(cat "${specifiedMonitorsFile}")
+  if [ -s "${badMonitorsFile}" ]; then
+    echo -e "${red}The following specified monitors are not valid:${endColor}"
+    echo ''
+    cat "${badMonitorsFile}"
+    echo ''
+    echo 'Please correct these and try again.'
     exit 1
   else
     :
   fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      grep -Po "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+      grep -Po "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> "${convertedMonitorsFile}"
     else
-      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+      echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
-  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
+  done < <(cat "${specifiedMonitorsFile}")
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
-    friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
-    curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
-    echo ""
-  done < <(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt)
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
+    echo ''
+  done < <(cat "${convertedMonitorsFile}")
 }
 
 # Unpause all monitors
 unpause_all_monitors() {
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
-    friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
-    curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
-    echo ""
-  done < <(cat /tmp/uptimerobot_monitor_utility/ur_monitors.txt)
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+    echo ''
+  done < <(cat "${urMonitorsFile}")
 }
 
 # Unpause specified monitors
 unpause_specified_monitors() {
-  true > /tmp/uptimerobot_monitor_utility/converted_monitors.txt
-  true > /tmp/uptimerobot_monitor_utility/bad_monitors.txt
-  echo "${pauseType}" |tr , '\n' |tr -d '"' > /tmp/uptimerobot_monitor_utility/specified_monitors.txt
+  true > "${convertedMonitorsFile}"
+  true > "${badMonitorsFile}"
+  echo "${pauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   while IFS= read -r monitor; do
-    if [[ $(grep -ic "${monitor}" /tmp/uptimerobot_monitor_utility/ur_monitors_full.txt) != "1" ]]; then
-      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/bad_monitors.txt
+    if [[ $(grep -ic "${monitor}" "${urMonitorsFullFile}") != "1" ]]; then
+      if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
+        echo -e "${lorg}${monitor}${endColor}" >> "${badMonitorsFile}"
+      elif [[ "${monitor}" != ^[A-Za-z_]+$ ]]; then
+        echo -e "${lblu}${monitor}${endColor}" >> "${badMonitorsFile}"
+      fi
     else
       :
     fi
-  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
-  if [ -s /tmp/uptimerobot_monitor_utility/bad_monitors.txt ]; then
-    echo "The following specified monitors are not valid:"
-    echo ""
-    cat /tmp/uptimerobot_monitor_utility/bad_monitors.txt
-    echo ""
-    echo "Please correct these and try again."
+  done < <(cat "${specifiedMonitorsFile}")
+  if [ -s "${badMonitorsFile}" ]; then
+    echo -e "${red}The following specified monitors are not valid:${endColor}"
+    echo ''
+    cat "${badMonitorsFile}"
+    echo ''
+    echo 'Please correct these and try again.'
     exit 1
   else
     :
   fi
   while IFS= read -r monitor; do
     if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
-      grep -Po "${monitor}" /tmp/uptimerobot_monitor_utility/friendly_list.txt |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+      grep -Po "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' |tr -d ')' >> "${convertedMonitorsFile}"
     else
-      echo "${monitor}" >> /tmp/uptimerobot_monitor_utility/converted_monitors.txt
+      echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
-  done < <(cat /tmp/uptimerobot_monitor_utility/specified_monitors.txt)
+  done < <(cat "${specifiedMonitorsFile}")
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' /tmp/uptimerobot_monitor_utility/"${monitor}".txt > /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt
-    friendlyName=$(grep friend /tmp/uptimerobot_monitor_utility/"${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
-    curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
-    echo ""
-  done < <(cat /tmp/uptimerobot_monitor_utility/converted_monitors.txt)
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+    echo ''
+  done < <(cat "${convertedMonitorsFile}")
 }
 
 # Send Discord notification
 send_notification() {
   if [ "${webhookUrl}" = "" ]; then
-    echo "You didn't define your Discord webhook, skipping notification."
+    echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
   else
-    if [ -s /tmp/uptimerobot_monitor_utility/paused_monitors.txt ]; then
-      pausedTests=$(paste -s -d, /tmp/uptimerobot_monitor_utility/paused_monitors.txt)
+    if [ -s "${pausedMonitorsFile}" ]; then
+      pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
     elif [ "${notifyAll}" = "true" ]; then
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
@@ -330,30 +370,30 @@ send_notification() {
 main() {
   check_api_key
   create_dir
-  if [ "${list}" = "true" ]; then
+  if [ "${list}" = 'true' ]; then
     get_data
     get_monitors
     create_monitor_files
     create_friendly_list
     display_all_monitors
-  elif [ "${find}" = "true" ]; then
+  elif [ "${find}" = 'true' ]; then
     get_data
     get_monitors
     create_monitor_files
     get_paused_monitors
     display_paused_monitors
-    if [ -s /tmp/uptimerobot_monitor_utility/paused_monitors.txt ]; then
-      if [ "${prompt}" = "false" ]; then
+    if [ -s "${pausedMonitorsFile}" ]; then
+      if [ "${prompt}" = 'false' ]; then
         :
       else
         unpause_prompt
           if [[ "$unpausePrompt" =~ ^(yes|y)$ ]]; then
             while IFS= read -r monitor; do
-              friendlyName=$(grep "${monitor}" /tmp/uptimerobot_monitor_utility/paused_monitors.txt |awk '{print $1}')
+              friendlyName=$(grep "${monitor}" "${pausedMonitorsFile}" |awk '{print $1}')
               echo "Unpausing ${friendlyName}:"
-              curl -s -X POST https://api.uptimerobot.com/v2/editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
-              echo ""
-            done < <(awk -F: '{print $2}' /tmp/uptimerobot_monitor_utility/paused_monitors.txt/tmp/uptimerobot_monitor_utility/paused_monitors.txt |tr -d ')' |tr -d ' ')
+              curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+              echo ''
+            done < <(awk -F: '{print $2}' "${pausedMonitorsFile}" |tr -d ')' |tr -d ' ')
           elif [[ "$unpausePrompt" =~ ^(no|n)$ ]]; then
             exit 1
           fi
@@ -361,29 +401,29 @@ main() {
     else
       :
     fi
-    if [ "${alert}" = "true" ]; then
+    if [ "${alert}" = 'true' ]; then
       send_notification
     fi
-  elif [ "${pause}" = "true" ]; then
-    if [ "${pauseType}" = "all" ]; then
+  elif [ "${pause}" = 'true' ]; then
+    if [ "${pauseType}" = 'all' ]; then
       get_data
       get_monitors
       create_monitor_files
       pause_all_monitors
-    elif [ "${pauseType}" != "all" ]; then
+    elif [ "${pauseType}" != 'all' ]; then
       get_data
       get_monitors
       create_monitor_files
       create_friendly_list
       pause_specified_monitors
     fi
-  elif [ "${unpause}" = "true" ]; then
-    if [ "${unpauseType}" = "all" ]; then
+  elif [ "${unpause}" = 'true' ]; then
+    if [ "${unpauseType}" = 'all' ]; then
       get_data
       get_monitors
       create_monitor_files
       unpause_all_monitors
-    elif [ "${unpauseType}" != "all" ]; then
+    elif [ "${unpauseType}" != 'all' ]; then
       get_data
       get_monitors
       create_monitor_files
