@@ -128,10 +128,11 @@ cmdline() {
         ;;
       :)
         echo "Option -${OPTARG} requires an argument."
-        exit 1
+        exit
         ;;
       h|*)
         usage
+        exit
         ;;
     esac
   done
@@ -141,7 +142,7 @@ cmdline() {
 # Some basic checks
 checks() {
 # An option is provided
-if [ -z "${1}" ]; then
+if [ -z "${args}" ]; then
   usage
   exit 1
 # No more than one option is provided
