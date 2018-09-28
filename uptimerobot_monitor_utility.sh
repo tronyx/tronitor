@@ -155,13 +155,13 @@ if [ -z "${args}" ]; then
 elif [ "${apiKey}" = "" ]; then
   echo -e "${red}You didn't define your API key in the script!${endColor}"
   read -rp 'Enter your API key: ' API
-  sed -i "7 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+  sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
   apiKey="${API}"
 # Alert set to true, but webhook not defined
 elif [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' webhook
-  sed -i "8 s/webhookUrl='[^']*'/webhookUrl='${API}'/" "$0"
+  sed -i "10 s/webhookUrl='[^']*'/webhookUrl='${API}'/" "$0"
   webhookUrl="${webhook}"
 else
   :
