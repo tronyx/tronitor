@@ -111,7 +111,7 @@ fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a
 
 # Some basic checks
 # An option is provided
-if [ -z "${1}" ]; then
+if [ -z "${1}" ] || [ "${1}" = "-" ]; then
   usage
   exit 1
 # No more than one option is provided
@@ -282,7 +282,7 @@ convert_friendly_monitors() {
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
     fi
-  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+  done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
 }
 
 # Pause all monitors
@@ -332,7 +332,7 @@ unpause_specified_monitors() {
     echo "Unpausing ${friendlyName}:"
     curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
     echo ''
-  done < <(cat "${convertedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+  done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
 # Send Discord notification
