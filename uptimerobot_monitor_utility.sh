@@ -49,26 +49,26 @@ usage() {
 
   Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
 
-  $(echo -e "${grn}"-l"${endColor}")          List all UptimeRobot monitors.
-  $(echo -e "${grn}"-f"${endColor}")          Find all paused UptimeRobot monitors.
-  $(echo -e "${grn}"-n"${endColor}")          Find all paused UptimeRobot monitors without an unpause prompt.
-  $(echo -e "${grn}"-a"${endColor}")          Find all paused UptimeRobot monitors without an unpause prompt
-              and send an alert via Discord webhook.
-  $(echo -e "${grn}"-p"${endColor}" "${ylw}"VALUE"${endColor}")    Pause specified UptimeRobot monitors.
-              Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
-              list of monitors by ID or Friendly Name. Friendly Name should be
-              wrapped in single or double quotes, IE:
-                A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
-                B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
-                C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"'Plex',"Tautulli",18095689"${endColor}")"
-  $(echo -e "${grn}"-u"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
-              Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
-              list of monitors by ID or Friendly Name. Friendly Name should be
-              wrapped in single or double quotes, IE:
-                A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
-                B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
-                C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"'Plex',"Tautulli",18095689"${endColor}")"
-  $(echo -e "${grn}"-h"${endColor}")          Display this usage dialog.
+  $(echo -e "${grn}"-l/--list"${endColor}")             List all UptimeRobot monitors.
+  $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused UptimeRobot monitors.
+  $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
+  $(echo -e "${grn}"-a/--alert"${endColor}")            Find all paused UptimeRobot monitors without an unpause prompt
+                        and send an alert via Discord webhook.
+  $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
+                        list of monitors by ID or Friendly Name. Friendly Name should be
+                        wrapped in single or double quotes, IE:
+                          A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+  $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
+                        list of monitors by ID or Friendly Name. Friendly Name should be
+                        wrapped in single or double quotes, IE:
+                          A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+  $(echo -e "${grn}"-h/--help"${endColor}")             Display this usage dialog.
 
 EOF
 
