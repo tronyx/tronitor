@@ -2,6 +2,8 @@
 #
 # Script to utilize the UptimeRobot API to retrieve and work with monitors.
 # Tronyx
+set -eo pipefail
+IFS=$'\n\t'
 
 # Specify UptimeRobot API key
 apiKey=''
@@ -9,9 +11,41 @@ webhookUrl=''
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
 
+# Declare some variables
+# Temp dir and filenames
+tempDir='/tmp/uptimerobot_monitor_utility/'
+apiTestFullFile="${tempDir}api_test_full.txt"
+badMonitorsFile="${tempDir}bad_monitors.txt"
+convertedMonitorsFile="${tempDir}converted_monitors.txt"
+friendlyListFile="${tempDir}friendly_list.txt"
+pausedMonitorsFile="${tempDir}paused_monitors.txt"
+specifiedMonitorsFile="${tempDir}specified_monitors.txt"
+urMonitorsFile="${tempDir}ur_monitors.txt"
+urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
+#logFile="${tempDir}uptimerobot_monitor_utility.log"
+# Arguments
+readonly args=("$@")
+# UptimeRobot API URL
+readonly apiUrl='https://api.uptimerobot.com/v2/'
+# Colors
+readonly blu='\e[34m'
+readonly lblu='\e[94m'
+readonly grn='\e[32m'
+readonly red='\e[31m'
+readonly ylw='\e[33m'
+readonly org='\e[38;5;202m'
+readonly lorg='\e[38;5;130m'
+readonly mgt='\e[35m'
+readonly endColor='\e[0m'
+# Log functions
+info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
+warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${LOG_FILE}" >&2 ; }
+error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; }
+fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
+
 # Define usage and script options
 usage() {
-  cat <<EOM
+  cat <<- EOF
 
   Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
 
@@ -36,90 +70,86 @@ usage() {
                 C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"'Plex',"Tautulli",18095689"${endColor}")"
   $(echo -e "${grn}"-h"${endColor}")          Display this usage dialog.
 
-EOM
+EOF
 
-exit 2
 }
 
 # Define script options
-while getopts "hlfnap:u:" OPTION
+cmdline() {
+  local arg=
+  local local_args
+  for arg
   do
-  case "$OPTION" in
-    l)
-      list=true
-      ;;
-    f)
-      find=true
-      prompt=true
-      ;;
-    n)
-      find=true
-      prompt=false
-      ;;
-    a)
-      find=true
-      prompt=false
-      alert=true
-      ;;
-    p)
-      pause=true
-      pauseType="${OPTARG}"
-      ;;
-    u)
-      unpause=true
-      unpauseType="${OPTARG}"
-      ;;
-    :)
-      echo "Option -${OPTARG} requires an argument."
-      exit 1
-      ;;
-    h|*)
-      usage
-      ;;
-  esac
-done
+    local delim=""
+    case "${arg}" in
+      # Translate --gnu-long-options to -g (short options)
+      --list)       local_args="${local_args}-l " ;;
+      --find)       local_args="${local_args}-f " ;;
+      --no-prompt)  local_args="${local_args}-n " ;;
+      --alert)      local_args="${local_args}-a " ;;
+      --pause)      local_args="${local_args}-p " ;;
+      --unpause)    local_args="${local_args}-u " ;;
+      --help)       local_args="${local_args}-h " ;;
+      # Pass through anything else
+      *) [[ "${arg:0:1}" == "-" ]] || delim="\""
+        local_args="${local_args:-}${delim}${arg}${delim} " ;;
+    esac
+  done
 
-# Declare some variables
-# Temp dir and filenames
-tempDir='/tmp/uptimerobot_monitor_utility/'
-apiTestFullFile="${tempDir}api_test_full.txt"
-badMonitorsFile="${tempDir}bad_monitors.txt"
-convertedMonitorsFile="${tempDir}converted_monitors.txt"
-friendlyListFile="${tempDir}friendly_list.txt"
-pausedMonitorsFile="${tempDir}paused_monitors.txt"
-specifiedMonitorsFile="${tempDir}specified_monitors.txt"
-urMonitorsFile="${tempDir}ur_monitors.txt"
-urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
-#logFile="${tempDir}uptimerobot_monitor_utility.log"
-# UptimeRobot API URL
-readonly apiUrl='https://api.uptimerobot.com/v2/'
-# Colors
-readonly blu='\e[34m'
-readonly lblu='\e[94m'
-readonly grn='\e[32m'
-readonly red='\e[31m'
-readonly ylw='\e[33m'
-readonly org='\e[38;5;202m'
-readonly lorg='\e[38;5;130m'
-readonly mgt='\e[35m'
-readonly endColor='\e[0m'
-# Log functions
-info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
-warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${LOG_FILE}" >&2 ; }
-error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; }
-fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
+  # Reset the positional parameters to the short options
+  eval set -- "${local_args:-}"
+
+  while getopts "hlfnap:u:" OPTION
+    do
+    case "$OPTION" in
+      l)
+        list=true
+        ;;
+      f)
+        find=true
+        prompt=true
+        ;;
+      n)
+        find=true
+        prompt=false
+        ;;
+      a)
+        find=true
+        prompt=false
+        alert=true
+        ;;
+      p)
+        pause=true
+        pauseType="${OPTARG}"
+        ;;
+      u)
+        unpause=true
+        unpauseType="${OPTARG}"
+        ;;
+      :)
+        echo "Option -${OPTARG} requires an argument."
+        exit 1
+        ;;
+      h|*)
+        usage
+        ;;
+    esac
+  done
+  return 0
+}
 
 # Some basic checks
+checks() {
 # An option is provided
-if [ -z "${1}" ] || [ "${1}" = "-" ]; then
+if [ -z "${1}" ]; then
   usage
   exit 1
 # No more than one option is provided
-elif [ "${#1}" -ge "3" ]; then
-  echo -e "${red}You can only use one option at a time!${endColor}"
-  echo ''
-  usage
-  exit 1
+#elif [ "${#1}" -ge "3" ]; then
+#  echo -e "${red}You can only use one option at a time!${endColor}"
+#  echo ''
+#  usage
+#  exit 1
 # API key exists and, if not, user is prompted to enter one
 elif [ "${apiKey}" = "" ]; then
   echo -e "${red}You didn't define your API key in the script!${endColor}"
@@ -135,6 +165,7 @@ elif [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
 else
   :
 fi
+}
 
 # Create directory to neatly store temp files
 create_dir() {
@@ -351,6 +382,8 @@ send_notification() {
 
 # Run functions
 main() {
+  cmdline "${args[@]:-}"
+  checks
   check_api_key
   create_dir
   if [ "${list}" = 'true' ]; then
