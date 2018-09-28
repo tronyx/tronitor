@@ -203,7 +203,7 @@ display_all_monitors() {
   if [ -s "${friendlyListFile}" ]; then
     echo 'The following UptimeRobot monitors were found in your UptimeRobot account:'
     echo ''
-    cat "${friendlyListFile}" |column -ts-
+    column -ts- "${friendlyListFile}"
   else
     echo 'There are currently no monitors associated with your UptimeRobot account.'
   fi
@@ -229,7 +229,7 @@ display_paused_monitors() {
   if [ -s "${pausedMonitorsFile}" ]; then
     echo 'The following UptimeRobot monitors are currently paused:'
     echo ''
-    cat "${pausedMonitorsFile}" |column -ts-
+    column -ts- "${pausedMonitorsFile}"
   else
     echo 'There are currently no paused UptimeRobot monitors.'
   fi
@@ -260,7 +260,7 @@ check_bad_monitors() {
     else
       :
     fi
-  done < <(cat "${specifiedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+  done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
   if [ -s "${badMonitorsFile}" ]; then
     echo -e "${red}The following specified monitors are not valid:${endColor}"
     echo ''
@@ -307,7 +307,7 @@ pause_specified_monitors() {
     echo "Pausing ${friendlyName}:"
     curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
     echo ''
-  done < <(cat "${convertedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+  done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
 # Unpause all monitors
