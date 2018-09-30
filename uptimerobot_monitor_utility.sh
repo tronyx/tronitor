@@ -144,13 +144,13 @@ checks() {
 # An option is provided
 if [ -z "${args}" ]; then
   usage
-  exit 1
+  exit
 # No more than one option is provided
-#elif [ "${#1}" -ge "3" ]; then
-#  echo -e "${red}You can only use one option at a time!${endColor}"
-#  echo ''
-#  usage
-#  exit 1
+elif [[ "${args}" != @(-l|--list|-f|--find|-n|--no-prompt|-a|--alert|-p|--pause|-u|--unpause|-h|--help) ]]; then
+  echo -e "${red}You are specifying a non-existent option!${endColor}"
+  echo ''
+  usage
+  exit
 # API key exists and, if not, user is prompted to enter one
 elif [ "${apiKey}" = "" ]; then
   echo -e "${red}You didn't define your API key in the script!${endColor}"
@@ -309,7 +309,7 @@ check_bad_monitors() {
 convert_friendly_monitors() {
   true > "${convertedMonitorsFile}"
   while IFS= read -r monitor; do
-    if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
+    if [[ $(echo "${monitor}" |tr -d ' ') =~ ^[A-Za-z]+$ ]]; then
       grep -Pi ""${monitor}"" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
