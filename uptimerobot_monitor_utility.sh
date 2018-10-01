@@ -78,6 +78,7 @@ EOF
 cmdline() {
   local arg=
   local local_args
+  local OPTERR=0
   for arg
   do
     local delim=""
@@ -130,7 +131,12 @@ cmdline() {
         echo "Option -${OPTARG} requires an argument."
         exit
         ;;
-      h|*)
+      h)
+        usage
+        exit
+        ;;
+      ?|*)
+        echo -e "${red}You are specifying a non-existent option!${endColor}"
         usage
         exit
         ;;
@@ -142,17 +148,25 @@ cmdline() {
 # Some basic checks
 checks() {
 # An option is provided
-if [ -z "${args}" ]; then
-  usage
-  exit
+for arg in "${args[@]:-}"
+do
+  if [ -z "${arg}" ]; then
+    usage
+    exit
+  fi
+done
 # No more than one option is provided
-elif [[ "${args}" != @(-l|--list|-f|--find|-n|--no-prompt|-a|--alert|-p|--pause|-u|--unpause|-h|--help) ]]; then
-  echo -e "${red}You are specifying a non-existent option!${endColor}"
-  echo ''
-  usage
-  exit
+for arg in "${args[@]:-}"
+do
+  if [[ "${arg}" != @(-l|--list|-f|--find|-n|--no-prompt|-a|--alert|-p|--pause|-u|--unpause|-h|--help) ]]; then
+    echo -e "${red}You are specifying a non-existent option!${endColor}"
+    echo ''
+    usage
+    exit
+  fi
+done
 # API key exists and, if not, user is prompted to enter one
-elif [ "${apiKey}" = "" ]; then
+if [ "${apiKey}" = "" ]; then
   echo -e "${red}You didn't define your API key in the script!${endColor}"
   read -rp 'Enter your API key: ' API
   sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
@@ -170,7 +184,8 @@ fi
 
 # Create directory to neatly store temp files
 create_dir() {
-  mkdir -m 777 -p "${tempDir}"
+  mkdir -p "${tempDir}"
+  chmod 777 "${tempDir}"
 }
 
 # Cleanup temp files
