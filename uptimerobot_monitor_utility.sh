@@ -22,6 +22,8 @@ pausedMonitorsFile="${tempDir}paused_monitors.txt"
 specifiedMonitorsFile="${tempDir}specified_monitors.txt"
 urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
+validMonitorsFile="${tempDir}valid_monitors.txt"
+validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
 #logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
@@ -156,15 +158,20 @@ do
   fi
 done
 # No more than one option is provided
-for arg in "${args[@]:-}"
-do
-  if [[ "${arg}" != @(-l|--list|-f|--find|-n|--no-prompt|-a|--alert|-p|--pause|-u|--unpause|-h|--help) ]]; then
-    echo -e "${red}You are specifying a non-existent option!${endColor}"
-    echo ''
-    usage
-    exit
-  fi
-done
+#for arg in "${args[@]:-}"
+#do
+#  if [[ "${arg}" != @(-l|--list|-f|--find|-n|--no-prompt|-a|--alert|-p "${OPTARG}"|--pause "${OPTARG}"|-u "${OPTARG}"|--unpause "${OPTARG}"|-h|--help) ]]; then
+#    echo -e "${red}You are specifying a non-existent option!${endColor}"
+#    echo ''
+#    usage
+#    exit
+#  elif [[ "${arg}" != @(-p "${OPTARG}"|--pause "${OPTARG}"|-u "${OPTARG}"|--unpause "${OPTARG}") ]]; then
+#    echo "Option -${OPTARG} requires an argument."
+#    echo ''
+#    usage
+#    exit
+#  fi
+#done
 # API key exists and, if not, user is prompted to enter one
 if [ "${apiKey}" = "" ]; then
   echo -e "${red}You didn't define your API key in the script!${endColor}"
@@ -285,9 +292,24 @@ display_paused_monitors() {
 # Prompt user to unpause monitors after finding paused monitors
 unpause_prompt() {
   echo ''
-  echo -e "Would you like to unpause the paused monitors? (${grn}[y]${endColor}es or ${red}[n]${endColor}o): "
+  echo -e "Would you like to unpause the paused monitors? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
   read -r unpausePrompt
   if ! [[ "$unpausePrompt" =~ ^(yes|y|no|n)$  ]]; then
+    echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+  else
+    :
+  fi
+}
+
+# Prompt user to continue actioning valid monitors after finding invalid ones
+invalid_prompt() {
+  echo "Would you like to continue actioning the valid monitors below?"
+  echo ''
+  cat "${validMonitorsFile}"
+  echo ''
+  echo -e "${grn}[Y]${endColor}es or ${red}[N]${endColor}o):"
+  read -r invalidPrompt
+  if ! [[ "$invalidPrompt" =~ ^(yes|y|no|n)$  ]]; then
     echo -e "${red}Please specify yes, y, no, or n.${endColor}"
   else
     :
@@ -298,10 +320,10 @@ unpause_prompt() {
 check_bad_monitors() {
   true > "${badMonitorsFile}"
   while IFS= read -r monitor; do
-    if [[ $(grep -ic "${monitor}" "${urMonitorsFullFile}") != "1" ]]; then
-      if [[ "${monitor}" =~ ^[A-Za-z_]+$ ]]; then
+    if [[ $(grep -ic "${monitor}" "${friendlyListFile}") != "1" ]]; then
+      if [[ "${monitor}" =~ ^[A-Za-z]+$ ]]; then
         echo -e "${lorg}${monitor}${endColor}" >> "${badMonitorsFile}"
-      elif [[ "${monitor}" != ^[A-Za-z_]+$ ]]; then
+      elif [[ "${monitor}" != ^[A-Za-z]+$ ]]; then
         echo -e "${lblu}${monitor}${endColor}" >> "${badMonitorsFile}"
       fi
     else
@@ -312,9 +334,22 @@ check_bad_monitors() {
     echo -e "${red}The following specified monitors are not valid:${endColor}"
     echo ''
     cat "${badMonitorsFile}"
-    echo ''
-    echo 'Please correct these and try again.'
-    exit 1
+    sed -i 's/\x1B\[[0-9;]*[JKmsu]//g' "${badMonitorsFile}"
+    set +e
+    grep -vxf "${badMonitorsFile}" "${specifiedMonitorsFile}" > "${validMonitorsTempFile}"
+    true > "${validMonitorsFile}"
+    if [ -s "${validMonitorsTempFile}" ]; then
+      set -e
+      while IFS= read -r monitor; do
+        echo -e "${grn}${monitor}${endColor}" >> "${validMonitorsFile}"
+      done < <(cat "${validMonitorsTempFile}")
+      echo ''
+      invalid_prompt
+    elif [ ! -s "${validMonitorsTempFile}" ]; then
+      echo ''
+      echo "Please make sure you're specifying a valid monitor ane try again."
+      exit
+    fi
   else
     :
   fi
@@ -323,6 +358,11 @@ check_bad_monitors() {
 # Convert friendly names to IDs
 convert_friendly_monitors() {
   true > "${convertedMonitorsFile}"
+  if [ -s "${validMonitorsFile}" ]; then
+    cat "${validMonitorsFile}" > "${specifiedMonitorsFile}"
+  else
+    :
+  fi
   while IFS= read -r monitor; do
     if [[ $(echo "${monitor}" |tr -d ' ') =~ ^[A-Za-z]+$ ]]; then
       grep -Pi "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
@@ -347,7 +387,11 @@ pause_all_monitors() {
 pause_specified_monitors() {
   echo "${pauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   check_bad_monitors
-  convert_friendly_monitors
+  if [[ "${invalidPrompt}" = @(n|no) ]]; then
+    exit
+  else
+    convert_friendly_monitors
+  fi
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
@@ -372,7 +416,11 @@ unpause_all_monitors() {
 unpause_specified_monitors() {
   echo "${unpauseType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   check_bad_monitors
-  convert_friendly_monitors
+  if [[ "${invalidPrompt}" = @(n|no) ]]; then
+    exit
+  else
+    convert_friendly_monitors
+  fi
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
