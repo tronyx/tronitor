@@ -139,17 +139,15 @@ cmdline() {
         exit
         ;;
       *)
-        echo -e "${red}You are specifying a non-existent option!${endColor}"
+        if [[ "${arg}" == "-p" && -z "${OPTARG}" ]]; then
+          echo -e "${red}Option ${arg} requires an argument!${endColor}"
+        else
+          echo -e "${red}You are specifying a non-existent option!${endColor}"
+        fi
         usage
         exit
         ;;
     esac
-    #if [[ "${OPTION}" = @(-p|--pause) && -z "${OPTARG}" ]]; then
-    #  echo -e "${red}Option ${arg} requires an argument!${endColor}"
-    #  echo "$#"
-    #  usage
-    #  exit
-    #fi
   done
   return 0
 }
