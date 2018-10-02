@@ -468,10 +468,10 @@ reset_prompt() {
 
 # Reset all monitors
 reset_all_monitors() {
+  reset_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    reset_prompt
     echo "Resetting ${friendlyName}:"
     curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
     echo ''
@@ -487,6 +487,7 @@ reset_specified_monitors() {
   else
     convert_friendly_monitors
   fi
+  reset_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
