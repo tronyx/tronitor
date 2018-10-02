@@ -60,16 +60,16 @@ usage() {
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
                         list of monitors by ID or Friendly Name. Friendly Name should be
                         wrapped in single or double quotes, IE:
-                          A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
-                          B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
-                          C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
                         list of monitors by ID or Friendly Name. Friendly Name should be
                         wrapped in single or double quotes, IE:
-                          A) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
-                          B) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
-                          C) "$(echo -e "${lorg}"uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-h/--help"${endColor}")             Display this usage dialog.
 
 EOF
@@ -129,20 +129,26 @@ cmdline() {
         unpause=true
         unpauseType="${OPTARG}"
         ;;
-      :)
-        echo "Option -${OPTARG} requires an argument."
-        exit
-        ;;
+      #:)
+      #  echo -e "${red}Option -${OPTARG} requires an argument.${endColor}"
+      #  exit
+      #  ;;
       h)
         usage
         exit
         ;;
-      ?|*)
+      *)
         echo -e "${red}You are specifying a non-existent option!${endColor}"
         usage
         exit
         ;;
     esac
+    #if [[ "${OPTION}" = @(-p|--pause) && -z "${OPTARG}" ]]; then
+    #  echo -e "${red}Option ${arg} requires an argument!${endColor}"
+    #  echo "$#"
+    #  usage
+    #  exit
+    #fi
   done
   return 0
 }
@@ -160,14 +166,12 @@ done
 # No more than one option is provided
 #for arg in "${args[@]:-}"
 #do
-#  if [[ "${arg}" != @(-l|--list|-f|--find|-n|--no-prompt|-a|--alert|-p "${OPTARG}"|--pause "${OPTARG}"|-u "${OPTARG}"|--unpause "${OPTARG}"|-h|--help) ]]; then
+#  if [[ "${arg}" != @(-l|--list|-f|--find|-p|--pause|-u|--unpause|-n|--no-prompt|-a|--alert|-h|--help) ]]; then
 #    echo -e "${red}You are specifying a non-existent option!${endColor}"
-#    echo ''
 #    usage
 #    exit
-#  elif [[ "${arg}" != @(-p "${OPTARG}"|--pause "${OPTARG}"|-u "${OPTARG}"|--unpause "${OPTARG}") ]]; then
-#    echo "Option -${OPTARG} requires an argument."
-#    echo ''
+#  elif [[ "${arg}" = @(-p|--pause) && ! -n "${pauseType}" ]]; then
+#    echo -e "${red}Option ${arg} requires an argument!${endColor}"
 #    usage
 #    exit
 #  fi
@@ -286,6 +290,7 @@ display_paused_monitors() {
     column -ts- "${pausedMonitorsFile}"
   else
     echo 'There are currently no paused UptimeRobot monitors.'
+    echo ''
   fi
 }
 
