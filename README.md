@@ -50,7 +50,13 @@ Then make it executable:
 tronyx@suladan:~$ chmod a+x uptimerobot_monitor_utility.sh
 ```
 
-Finally, open the script with your favorite text editor and add your UptimeRobot API key. If you use the alert option, be sure to also enter in your Discord webhook URL.
+Finally, open the script with your favorite text editor and add your UptimeRobot API key. If you forget this step the script will prompt you to enter your API key:
+
+![API Key Prompt](/Images/api_key.png)
+
+After entering your API key, the script will check whether or not it is valid and add it to the script for you.
+
+If you use the alert option, be sure to also enter in your Discord webhook URL.
 
 ## Usage
 
