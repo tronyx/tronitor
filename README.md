@@ -59,7 +59,7 @@ Finally, open the script with your favorite text editor and add your UptimeRobot
 ## Examples
 ### List all monitors
 
-```json
+```python
 tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
@@ -70,13 +70,14 @@ Tautulli (ID: 780859975) - Status: Seems down
 
 ### Find paused monitors
 
-```json
+```python
 tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -f
 The following UptimeRobot monitors are currently paused:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
 Sonarr (ID: 780859962)
 Tautulli (ID: 780859975)
+
 Would you like to unpause the paused monitors? ([y]es or [n]o):
 ```
 
