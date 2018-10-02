@@ -24,6 +24,7 @@ urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
+apiKeyStatus='invalid'
 #logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
@@ -176,14 +177,15 @@ done
 #    exit
 #  fi
 #done
+
 # API key exists and, if not, user is prompted to enter one
-if [ "${apiKey}" = "" ]; then
-  echo -e "${red}You didn't define your API key in the script!${endColor}"
-  read -rp 'Enter your API key: ' API
-  sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
-  apiKey="${API}"
+#if [ "${apiKey}" = "" ]; then
+#  echo -e "${red}You didn't define your API key in the script!${endColor}"
+#  read -rp 'Enter your API key: ' API
+#  sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+#  apiKey="${API}"
 # Alert set to true, but webhook not defined
-elif [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
+if [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' webhook
   sed -i "10 s/webhookUrl='[^']*'/webhookUrl='${API}'/" "$0"
@@ -207,14 +209,25 @@ trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
-  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
-  status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
-  if [ "${status}" = "fail" ]; then
-    echo -e "${red}The API Key that you provided is not valid!${endColor}"
-    exit 1
-  elif [ "${status}" = "ok" ]; then
-    :
+while [ "${apiKeyStatus}" = 'invalid' ]; do
+  if [[ "${apiKey}" = "" || "${apiKeyStatus}" = 'invalid' ]]; then
+    echo -e "${red}You didn't define your API key in the script!${endColor}"
+    read -rp 'Enter your API key: ' API
+    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    apiKey="${API}"
+  elif [[ "${apiKey}" != "" || "${apiKeyStatus}" = 'invalid' ]]; then
+    curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
+    status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = "fail" ]; then
+        echo -e "${red}The API Key that you provided is not valid!${endColor}"
+        exit 1
+      elif [ "${status}" = "ok" ]; then
+        "${apiKeyStatus}" = 'valid'
+        sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+        apiKey="${API}"
+      fi
   fi
+done
 }
 
 # Grab data for all monitors
