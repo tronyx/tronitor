@@ -55,22 +55,33 @@ usage() {
   $(echo -e "${grn}"-l/--list"${endColor}")             List all UptimeRobot monitors.
   $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused UptimeRobot monitors.
   $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
-  $(echo -e "${grn}"-a/--alert"${endColor}")            Find all paused UptimeRobot monitors without an unpause prompt
-                        and send an alert via Discord webhook.
+  $(echo -e "${grn}"-a/--alert"${endColor}")            Find all paused UptimeRobot monitors without an unpause prompt and
+                        send an alert to the Discord webhook specified in the script.
   $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
-                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
-                        list of monitors by ID or Friendly Name. Friendly Name should be
-                        wrapped in single or double quotes, IE:
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
+                        of monitors by ID or Friendly Name. Friendly Name should be wrapped in
+                        a set of single or double quotes, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
-                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
-                        list of monitors by ID or Friendly Name. Friendly Name should be
-                        wrapped in single or double quotes, IE:
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
+                        of monitors by ID or Friendly Name. Friendly Name should be wrapped in
+                        a set of single or double quotes, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the specified config file, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"new-monitor.txt"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"new-monitor.txt"${endColor}")"
+  $(echo -e "${grn}"-d/--delete"${endColor}" "${ylw}"VALUE"${endColor}")     Delete the specified monitor, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--delete"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"18095688"${endColor}")"
+  $(echo -e "${grn}"-r/--reset"${endColor}" "${ylw}"VALUE"${endColor}")      Reset the specified monitor, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--reset"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"18095688"${endColor}")"
   $(echo -e "${grn}"-h/--help"${endColor}")             Display this usage dialog.
 
 EOF
@@ -139,7 +150,11 @@ cmdline() {
         exit
         ;;
       *)
-        echo -e "${red}You are specifying a non-existent option!${endColor}"
+        if [[ "${arg}" == "-p" && -z "${OPTARG}" ]]; then
+          echo -e "${red}Option ${arg} requires an argument!${endColor}"
+        else
+          echo -e "${red}You are specifying a non-existent option!${endColor}"
+        fi
         usage
         exit
         ;;
@@ -207,15 +222,23 @@ cleanup() {
 }
 trap 'cleanup' 0 1 2 3 6 14 15
 
-# Check that provided API Key is valid
-check_api_key() {
-while [ "${apiKeyStatus}" = 'invalid' ]; do
+# Prompt for UptimeRobot API key
+key_prompt() {
   if [[ "${apiKey}" = "" || "${apiKeyStatus}" = 'invalid' ]]; then
     echo -e "${red}You didn't define your API key in the script!${endColor}"
     read -rp 'Enter your API key: ' API
     sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
-  elif [[ "${apiKey}" != "" || "${apiKeyStatus}" = 'invalid' ]]; then
+  else
+    :
+  fi
+}
+
+# Check that provided API Key is valid
+check_api_key() {
+while [ "${apiKeyStatus}" = 'invalid' ]; do
+  key_prompt
+  if [[ "${apiKey}" != "" || "${apiKeyStatus}" = 'invalid' ]]; then
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
       if [ "${status}" = "fail" ]; then
@@ -226,6 +249,8 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
         sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
         apiKey="${API}"
       fi
+  else
+    :
   fi
 done
 }
