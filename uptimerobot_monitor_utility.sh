@@ -378,7 +378,7 @@ convert_friendly_monitors() {
     :
   fi
   while IFS= read -r monitor; do
-    if [[ $(echo "${monitor}" |tr -d ' ') =~ ^[A-Za-z]+$ ]]; then
+    if [[ $(echo "${monitor}" |tr -d ' ') =~ [A-Za-z] ]]; then
       grep -Pi "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
