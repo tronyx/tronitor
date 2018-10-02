@@ -146,7 +146,7 @@ cmdline() {
         exit
         ;;
       *)
-        if [[ "${arg}" == "-p" && -z "${OPTARG}" ]]; then
+        if [[ "${arg}" == "-p" || "${arg}" == "-u" && -z "${OPTARG}" ]]; then
           echo -e "${red}Option ${arg} requires an argument!${endColor}"
         else
           echo -e "${red}You are specifying a non-existent option!${endColor}"
