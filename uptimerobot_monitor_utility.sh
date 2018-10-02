@@ -24,6 +24,7 @@ urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
+# Set initial API key status
 apiKeyStatus='invalid'
 #logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
@@ -104,6 +105,8 @@ cmdline() {
       --alert)      local_args="${local_args}-a " ;;
       --pause)      local_args="${local_args}-p " ;;
       --unpause)    local_args="${local_args}-u " ;;
+      --reset)      local_args="${local_args}-r " ;;
+      --delete)      local_args="${local_args}-d " ;;
       --help)       local_args="${local_args}-h " ;;
       # Pass through anything else
       *) [[ "${arg:0:1}" == "-" ]] || delim="\""
@@ -114,7 +117,7 @@ cmdline() {
   # Reset the positional parameters to the short options
   eval set -- "${local_args:-}"
 
-  while getopts "hlfnap:u:" OPTION
+  while getopts "hlfnar:d:p:u:" OPTION
     do
     case "$OPTION" in
       l)
@@ -133,6 +136,14 @@ cmdline() {
         prompt=false
         alert=true
         ;;
+      r)
+        reset=true
+        resetType="${OPTARG}"
+        ;;
+      d)
+        delete=true
+        deleteType="${OPTARG}"
+        ;;
       p)
         pause=true
         pauseType="${OPTARG}"
@@ -146,7 +157,7 @@ cmdline() {
         exit
         ;;
       *)
-        if [[ "${arg}" == "-p" || "${arg}" == "-u" ]] && [[ -z "${OPTARG}" ]]; then
+        if [[ "${arg}" == "-p" || "${arg}" == "-u" || "${arg}" == "-r" || "${arg}" == "-d" ]] && [[ -z "${OPTARG}" ]]; then
           echo -e "${red}Option ${arg} requires an argument!${endColor}"
         else
           echo -e "${red}You are specifying a non-existent option!${endColor}"
@@ -367,7 +378,7 @@ convert_friendly_monitors() {
     :
   fi
   while IFS= read -r monitor; do
-    if [[ $(echo "${monitor}" |tr -d ' ') =~ ^[A-Za-z]+$ ]]; then
+    if [[ $(echo "${monitor}" |tr -d ' ') =~ [A-Za-z] ]]; then
       grep -Pi "${monitor}" "${friendlyListFile}" |awk -F ':' '{print $2}' |awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
     else
       echo "${monitor}" >> "${convertedMonitorsFile}"
@@ -447,6 +458,98 @@ send_notification() {
   fi
 }
 
+# Reset monitors prompt
+reset_prompt() {
+  echo ''
+  echo -e "${red}***WARNING*** This will reset ALL data for the specified monitors!!!${endColor}"
+  echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
+  read -r resetPrompt
+  if ! [[ "$resetPrompt" =~ ^(yes|y|no|n)$  ]]; then
+    echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+  else
+    :
+  fi
+}
+
+# Reset all monitors
+reset_all_monitors() {
+  reset_prompt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    echo "Resetting ${friendlyName}:"
+    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    echo ''
+  done < <(cat "${urMonitorsFile}")
+}
+
+# Reset specified monitors
+reset_specified_monitors() {
+  echo "${resetType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
+  check_bad_monitors
+  if [[ "${invalidPrompt}" = @(n|no) ]]; then
+    exit
+  else
+    convert_friendly_monitors
+  fi
+  reset_prompt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    echo "Resetting ${friendlyName}:"
+    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    echo ''
+  done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
+}
+
+# Delete monitors prompt
+delete_prompt() {
+  echo ''
+  if [ "${deleteType}" = 'all' ]; then
+    echo -e "${red}***WARNING*** This will delete ALL monitors in your account!!!${endColor}"
+  elif [ "${deleteType}" != 'all' ]; then
+    echo -e "${red}***WARNING*** This will delete the specified monitor from your account!!!${endColor}"
+  fi
+  echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
+  read -r deletePrompt
+  if ! [[ "$deletePrompt" =~ ^(yes|y|no|n)$  ]]; then
+    echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+  else
+    :
+  fi
+}
+
+# Delete all monitors
+delete_all_monitors() {
+  delete_prompt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    echo "Deleting ${friendlyName}:"
+    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    echo ''
+  done < <(cat "${urMonitorsFile}")
+}
+
+# Delete specified monitors
+delete_specified_monitors() {
+  echo "${deleteType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
+  check_bad_monitors
+  if [[ "${invalidPrompt}" = @(n|no) ]]; then
+    exit
+  else
+    convert_friendly_monitors
+  fi
+  delete_prompt
+  while IFS= read -r monitor; do
+    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+    echo "Deleting ${friendlyName}:"
+    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    echo ''
+  done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
+}
+
 # Run functions
 main() {
   cmdline "${args[@]:-}"
@@ -512,6 +615,32 @@ main() {
       create_monitor_files
       create_friendly_list
       unpause_specified_monitors
+    fi
+  elif [ "${reset}" = 'true' ]; then
+    if [ "${resetType}" = 'all' ]; then
+      get_data
+      get_monitors
+      create_monitor_files
+      reset_all_monitors
+    elif [ "${resetType}" != 'all' ]; then
+      get_data
+      get_monitors
+      create_monitor_files
+      create_friendly_list
+      reset_specified_monitors
+    fi
+  elif [ "${delete}" = 'true' ]; then
+    if [ "${deleteType}" = 'all' ]; then
+      get_data
+      get_monitors
+      create_monitor_files
+      delete_all_monitors
+    elif [ "${deleteType}" != 'all' ]; then
+      get_data
+      get_monitors
+      create_monitor_files
+      create_friendly_list
+      delete_specified_monitors
     fi
   fi
 }
