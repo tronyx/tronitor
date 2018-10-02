@@ -141,10 +141,6 @@ cmdline() {
         unpause=true
         unpauseType="${OPTARG}"
         ;;
-      #:)
-      #  echo -e "${red}Option -${OPTARG} requires an argument.${endColor}"
-      #  exit
-      #  ;;
       h)
         usage
         exit
@@ -159,12 +155,6 @@ cmdline() {
         exit
         ;;
     esac
-    #if [[ "${OPTION}" = @(-p|--pause) && -z "${OPTARG}" ]]; then
-    #  echo -e "${red}Option ${arg} requires an argument!${endColor}"
-    #  echo "$#"
-    #  usage
-    #  exit
-    #fi
   done
   return 0
 }
@@ -179,26 +169,6 @@ do
     exit
   fi
 done
-# No more than one option is provided
-#for arg in "${args[@]:-}"
-#do
-#  if [[ "${arg}" != @(-l|--list|-f|--find|-p|--pause|-u|--unpause|-n|--no-prompt|-a|--alert|-h|--help) ]]; then
-#    echo -e "${red}You are specifying a non-existent option!${endColor}"
-#    usage
-#    exit
-#  elif [[ "${arg}" = @(-p|--pause) && ! -n "${pauseType}" ]]; then
-#    echo -e "${red}Option ${arg} requires an argument!${endColor}"
-#    usage
-#    exit
-#  fi
-#done
-
-# API key exists and, if not, user is prompted to enter one
-#if [ "${apiKey}" = "" ]; then
-#  echo -e "${red}You didn't define your API key in the script!${endColor}"
-#  read -rp 'Enter your API key: ' API
-#  sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
-#  apiKey="${API}"
 # Alert set to true, but webhook not defined
 if [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
@@ -222,35 +192,25 @@ cleanup() {
 }
 trap 'cleanup' 0 1 2 3 6 14 15
 
-# Prompt for UptimeRobot API key
-key_prompt() {
-  if [[ "${apiKey}" = "" || "${apiKeyStatus}" = 'invalid' ]]; then
+# Check that provided API Key is valid
+check_api_key() {
+while [ "${apiKeyStatus}" = 'invalid' ]; do
+  if [[ -z "${apiKey}" ]]; then
     echo -e "${red}You didn't define your API key in the script!${endColor}"
     read -rp 'Enter your API key: ' API
     sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
-    :
-  fi
-}
-
-# Check that provided API Key is valid
-check_api_key() {
-while [ "${apiKeyStatus}" = 'invalid' ]; do
-  key_prompt
-  if [[ "${apiKey}" != "" || "${apiKeyStatus}" = 'invalid' ]]; then
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
-      if [ "${status}" = "fail" ]; then
-        echo -e "${red}The API Key that you provided is not valid!${endColor}"
-        exit 1
-      elif [ "${status}" = "ok" ]; then
-        "${apiKeyStatus}" = 'valid'
-        sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
-        apiKey="${API}"
-      fi
-  else
-    :
+    if [ "${status}" = "fail" ]; then
+      echo -e "${red}The API Key that you provided is not valid!${endColor}"
+      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "$0"
+      apiKey=""
+    elif [ "${status}" = "ok" ]; then
+      sed -i "9 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      apiKeyStatus="${status}"
+    fi
   fi
 done
 }
