@@ -24,6 +24,7 @@ urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
+apiKeyStatus='invalid'
 #logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
@@ -54,22 +55,33 @@ usage() {
   $(echo -e "${grn}"-l/--list"${endColor}")             List all UptimeRobot monitors.
   $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused UptimeRobot monitors.
   $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
-  $(echo -e "${grn}"-a/--alert"${endColor}")            Find all paused UptimeRobot monitors without an unpause prompt
-                        and send an alert via Discord webhook.
+  $(echo -e "${grn}"-a/--alert"${endColor}")            Find all paused UptimeRobot monitors without an unpause prompt and
+                        send an alert to the Discord webhook specified in the script.
   $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
-                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
-                        list of monitors by ID or Friendly Name. Friendly Name should be
-                        wrapped in single or double quotes, IE:
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
+                        of monitors by ID or Friendly Name. Friendly Name should be wrapped in
+                        a set of single or double quotes, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
-                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated
-                        list of monitors by ID or Friendly Name. Friendly Name should be
-                        wrapped in single or double quotes, IE:
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
+                        of monitors by ID or Friendly Name. Friendly Name should be wrapped in
+                        a set of single or double quotes, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the specified config file, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"new-monitor.txt"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"new-monitor.txt"${endColor}")"
+  $(echo -e "${grn}"-d/--delete"${endColor}" "${ylw}"VALUE"${endColor}")     Delete the specified monitor, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--delete"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"18095688"${endColor}")"
+  $(echo -e "${grn}"-r/--reset"${endColor}" "${ylw}"VALUE"${endColor}")      Reset the specified monitor, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--reset"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"18095688"${endColor}")"
   $(echo -e "${grn}"-h/--help"${endColor}")             Display this usage dialog.
 
 EOF
@@ -129,26 +141,20 @@ cmdline() {
         unpause=true
         unpauseType="${OPTARG}"
         ;;
-      #:)
-      #  echo -e "${red}Option -${OPTARG} requires an argument.${endColor}"
-      #  exit
-      #  ;;
       h)
         usage
         exit
         ;;
       *)
-        echo -e "${red}You are specifying a non-existent option!${endColor}"
+        if [[ "${arg}" == "-p" || "${arg}" == "-u" ]] && [[ -z "${OPTARG}" ]]; then
+          echo -e "${red}Option ${arg} requires an argument!${endColor}"
+        else
+          echo -e "${red}You are specifying a non-existent option!${endColor}"
+        fi
         usage
         exit
         ;;
     esac
-    #if [[ "${OPTION}" = @(-p|--pause) && -z "${OPTARG}" ]]; then
-    #  echo -e "${red}Option ${arg} requires an argument!${endColor}"
-    #  echo "$#"
-    #  usage
-    #  exit
-    #fi
   done
   return 0
 }
@@ -163,27 +169,8 @@ do
     exit
   fi
 done
-# No more than one option is provided
-#for arg in "${args[@]:-}"
-#do
-#  if [[ "${arg}" != @(-l|--list|-f|--find|-p|--pause|-u|--unpause|-n|--no-prompt|-a|--alert|-h|--help) ]]; then
-#    echo -e "${red}You are specifying a non-existent option!${endColor}"
-#    usage
-#    exit
-#  elif [[ "${arg}" = @(-p|--pause) && ! -n "${pauseType}" ]]; then
-#    echo -e "${red}Option ${arg} requires an argument!${endColor}"
-#    usage
-#    exit
-#  fi
-#done
-# API key exists and, if not, user is prompted to enter one
-if [ "${apiKey}" = "" ]; then
-  echo -e "${red}You didn't define your API key in the script!${endColor}"
-  read -rp 'Enter your API key: ' API
-  sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
-  apiKey="${API}"
 # Alert set to true, but webhook not defined
-elif [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
+if [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' webhook
   sed -i "10 s/webhookUrl='[^']*'/webhookUrl='${API}'/" "$0"
@@ -207,14 +194,25 @@ trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
-  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
-  status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
-  if [ "${status}" = "fail" ]; then
-    echo -e "${red}The API Key that you provided is not valid!${endColor}"
-    exit 1
-  elif [ "${status}" = "ok" ]; then
-    :
+while [ "${apiKeyStatus}" = 'invalid' ]; do
+  if [[ -z "${apiKey}" ]]; then
+    echo -e "${red}You didn't define your API key in the script!${endColor}"
+    read -rp 'Enter your API key: ' API
+    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    apiKey="${API}"
+  else
+    curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
+    status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
+    if [ "${status}" = "fail" ]; then
+      echo -e "${red}The API Key that you provided is not valid!${endColor}"
+      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "$0"
+      apiKey=""
+    elif [ "${status}" = "ok" ]; then
+      sed -i "9 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      apiKeyStatus="${status}"
+    fi
   fi
+done
 }
 
 # Grab data for all monitors
