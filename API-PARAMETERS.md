@@ -1,6 +1,6 @@
 # Parameters
-Objects  |  Values  | Extra Details
--------  |  ------  |  ----------  
+|  Objects  |  Values  | Extra Details
+|  -------  |  ------  |  ----------  
 stat | <ul><li>ok</li><li>fail</li></ul> | Exists only for JSON responses to show if any records are returned or not.
 pagination>offset |	integer	| The starting record for getMonitors and getAlertContacts methods
 pagination>limit | integer | The number of records to be returned for getMonitors and getAlertContacts methods
@@ -39,6 +39,9 @@ alertcontact>type | <ul><li>1 - SMS</li><li>2 - E-mail</li><li>3 - Twitter DM</l
 alertcontact>friendly_name | text | Friendly name of the alert contact (for making it easier to distinguish from others).
 alertcontact>value | text | Alert contact's address/phone.
 alertcontact>status | <ul><li>0 - not activated</li><li>1 - paused</li><li>2 - active</li></ul> | The status of the alert contact.
+
+
+
 alertcontact>threshold	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,35,40,45,50,55,60,70,80,90,100,110,120,150,180,210,240,270,300,360,420,480,540,600,660,720	the x value that is set to define "if down for x minutes, alert every y minutes.
 alertcontact>recurrence	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,35,40,45,50,55,60	the y value that is set to define "if down for x minutes, alert every y minutes.
 mwindow>id	integer	the ID of the maintenance window.
