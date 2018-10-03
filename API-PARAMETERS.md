@@ -1,6 +1,6 @@
 # Parameters
-Objects	|      Values      | Extra Details
-------- |      ------      |  ----------  
+Objects  |  Values  | Extra Details
+-------  |  ------  |  ----------  
 stat | <ul><li>ok</li><li>fail</li></ul> | Exists only for JSON responses to show if any records are returned or not.
 pagination>offset |	integer	| The starting record for getMonitors and getAlertContacts methods
 pagination>limit | integer | The number of records to be returned for getMonitors and getAlertContacts methods
@@ -17,30 +17,15 @@ monitor>url | URL or IP | The URL/IP of the monitor.
 monitor>type | <ul><li>1 - HTTP(s)</li><li>2 - Keyword</li><li>3 - Ping</li><li>4 - Port</li></ul> | The type of the monitor.
 monitor>sub_type | <ul><li>1 - HTTP (80)</li><li>2 - HTTPS (443)</li><li>3 - FTP (21)</li><li>4 - SMTP (25)</li><li>5 - POP3 (110)</li><li>6 - IMAP (143)</li><li>99 - Custom Port</li></ul> | Used only for "Port monitoring (monitor>type = 4)" and shows which pre-defined port/service is monitored or if a custom port is monitored.
 monitor>keyword_type | <ul><li>1 - exists</li><li>2 - not exists</li></ul> | Used only for "Keyword monitoring (monitor>type = 2)" and shows "if the monitor will be flagged as down when the keyword exists or not exists".
-monitor>keyword_value	text	the value of the keyword.
-monitor>http_username	text	used for password-protected web pages (HTTP Basic Auth). Available for HTTP and keyword monitoring.
-monitor>http_password	text	used for password-protected web pages (HTTP Basic Auth). Available for HTTP and keyword monitoring.
-monitor>port	integer	used only for "Port monitoring (monitor>type = 4)" and shows the port monitored.
-monitor>interval	integer	the interval for the monitoring check (300 seconds by default).
-monitor>status
-0 - paused
-1 - not checked yet
-2 - up
-8 - seems down
-9 - down
-the status of the monitor. When used with the editMonitor method 0 (to pause) or 1 (to start) can be sent.
-monitor>all_time_uptime_ratio
-formatted as up-down-paused
-
-the uptime ratio of the monitor calculated since the monitor is created.
-monitor>all_time_uptime_durations
-rational number (with 3 decimals)
-
-the durations of all time up-down-paused events in seconds.
-monitor>custom_uptime_ratios
-rational number (with 3 decimals)
-
-the uptime ratio of the monitor for the given periods (if there is more than 1 period, then the values are seperated with "-")
+monitor>keyword_value | text | The value of the keyword.
+monitor>http_username | text | Used for password-protected web pages (HTTP Basic Auth). Available for HTTP and keyword monitoring.
+monitor>http_password | text | Used for password-protected web pages (HTTP Basic Auth). Available for HTTP and keyword monitoring.
+monitor>port | integer | Used only for "Port monitoring (monitor>type = 4)" and shows the port monitored.
+monitor>interval | integer | The interval for the monitoring check (300 seconds by default).
+monitor>status | <ul><li>0 - paused</li><li>1 - not checked yet</li><li>2 - up</li><li>8 - seems down</li><li>9 - down</li></ul> | The status of the monitor. When used with the editMonitor method 0 (to pause) or 1 (to start) can be sent.
+monitor>all_time_uptime_ratio | formatted as up-down-paused | The uptime ratio of the monitor calculated since the monitor is created.
+monitor>all_time_uptime_durations | rational number (with 3 decimals) | The durations of all time up-down-paused events in seconds.
+monitor>custom_uptime_ratios | rational number (with 3 decimals) | The uptime ratio of the monitor for the given periods (if there is more than 1 period, then the values are seperated with "-")
 monitor>custom_uptime_ranges
 rational number (with 3 decimals)
 
