@@ -1,33 +1,47 @@
 # YAML file for use with the UptimeRobot Monitor Utility script
 # This data is used for creating a new monitor
 # Full API documentation can be found here: https://uptimerobot.com/api
-# Please reference the above page for how to define the below values
+# Please reference the Parameters section of the above page for how to define the below values
 
 # Friendly Name for the monitor (Required)
 friendly_name:
+
 # URL to be checked (Required)
 url:
+
 # Type of test (Required)
 type:
+
+# The following parameters are optional so uncomment as required
 # Sub-type of test (Optional - Required for port monitoring)
-sub_type:
+#sub_type:
+
 # Port to be checked (Optional - Required for port monitoring)
-port:
+#port:
+
 # Keyword type (Optional - Required for keyword monitoring)
-keyword_type:
+#keyword_type:
+
 # Keyword value (Optional - Required for keyword monitoring)
-keyword_value:
+#keyword_value:
+
 # Check interval (Optional - In seconds)
-interval:
+#interval:
+
 # HTTP username (Optional)
-http_username:
+#http_username:
+
 # HTTP password (Optional)
-http_password:
+#http_password:
+
 # Alert contacts (Optional - The alert contacts to be notified when the monitor goes up/down)
-alert_contacts:
+#alert_contacts:
+
 # Maintenance windows (Optional - The maintenance windows for the monitor)
-mwindows:
+#mwindows:
+
 # Custom HTTP headers (Optional - Must be sent as a JSON object)
-custom_http_headers:
+#custom_http_headers:
+
 # Ignore SSL errors (Optional - For ignoring SSL certificate related errors)
-ignore_ssl_errors:
+#ignore_ssl_errors:

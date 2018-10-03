@@ -5,8 +5,10 @@
 set -eo pipefail
 IFS=$'\n\t'
 
+# Edit these to finish setting up the script
 # Specify UptimeRobot API key
 apiKey=''
+# Specify the Discord webhook URL to send notifications to
 webhookUrl=''
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
@@ -24,6 +26,7 @@ urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
+newMonitorConfigFile="${tempDir}new-monitor.yaml"
 # Set initial API key status
 apiKeyStatus='invalid'
 #logFile="${tempDir}uptimerobot_monitor_utility.log"
@@ -72,9 +75,9 @@ usage() {
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
-  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the specified config file, IE:
-                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"new-monitor.yaml"${endColor}")"
-                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"new-monitor.yaml"${endColor}")"
+  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the new-monitor.yaml file, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--create"${endColor}")"
   $(echo -e "${grn}"-d/--delete"${endColor}" "${ylw}"VALUE"${endColor}")     Delete the specified monitor, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--delete"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
@@ -103,10 +106,11 @@ cmdline() {
       --find)       local_args="${local_args}-f " ;;
       --no-prompt)  local_args="${local_args}-n " ;;
       --alert)      local_args="${local_args}-a " ;;
+      --create)     local_args="${local_args}-c " ;;
       --pause)      local_args="${local_args}-p " ;;
       --unpause)    local_args="${local_args}-u " ;;
       --reset)      local_args="${local_args}-r " ;;
-      --delete)      local_args="${local_args}-d " ;;
+      --delete)     local_args="${local_args}-d " ;;
       --help)       local_args="${local_args}-h " ;;
       # Pass through anything else
       *) [[ "${arg:0:1}" == "-" ]] || delim="\""
@@ -117,7 +121,7 @@ cmdline() {
   # Reset the positional parameters to the short options
   eval set -- "${local_args:-}"
 
-  while getopts "hlfnar:d:p:u:" OPTION
+  while getopts "hlfnacr:d:p:u:" OPTION
     do
     case "$OPTION" in
       l)
@@ -135,6 +139,9 @@ cmdline() {
         find=true
         prompt=false
         alert=true
+        ;;
+      c)
+        create=true
         ;;
       r)
         reset=true
@@ -361,7 +368,7 @@ check_bad_monitors() {
       invalid_prompt
     elif [ ! -s "${validMonitorsTempFile}" ]; then
       echo ''
-      echo "Please make sure you're specifying a valid monitor ane try again."
+      echo "Please make sure you're specifying a valid monitor and try again."
       exit
     fi
   else
@@ -456,6 +463,36 @@ send_notification() {
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
     fi
   fi
+}
+
+# Create monitor prompt
+create_prompt() {
+  if [ ! -f "${newMonitorConfigFile}" ]; then
+    echo -e "${red}You have not created the required new-monitor.yaml file!${endColor}"
+    echo ''
+    echo -e "${red}Please copy the sample, provide the required information${endColor}"
+    echo -e "${red}and try running the script again.${endColor}"
+  else
+    :
+  fi
+}
+
+# Create a new monitor
+create_monitor() {
+  friendlyName=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  url=$(grep url "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  type=$(grep type "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  subType=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  port=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  keywordType=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  keywordValue=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  interval=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  httpUsername=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  httpPassword=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  alertContacts=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  mwindows=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  customHttpHeaders=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+  ignoreSslErrors=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
 }
 
 # Reset monitors prompt
@@ -642,6 +679,8 @@ main() {
       create_friendly_list
       delete_specified_monitors
     fi
+  elif [ "${create}" = 'true' ]; then
+    create_monitor
   fi
 }
 
