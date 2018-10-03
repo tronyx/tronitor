@@ -1,7 +1,7 @@
 # YAML file for use with the UptimeRobot Monitor Utility script
 # This data is used for creating a new monitor
 # Full API documentation can be found here: https://uptimerobot.com/api
-# Please see the API-PARAMETERS.md file for a list of all accepted parameters
+# Please reference the above page for how to define the below values
 
 # Friendly Name for the monitor (Required)
 friendly_name:
@@ -30,4 +30,4 @@ mwindows:
 # Custom HTTP headers (Optional - Must be sent as a JSON object)
 custom_http_headers:
 # Ignore SSL errors (Optional - For ignoring SSL certificate related errors)
-ignore_ssl_errors: 
+ignore_ssl_errors:
