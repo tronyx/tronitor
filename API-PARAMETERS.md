@@ -28,33 +28,17 @@ monitor>all_time_uptime_durations | rational number (with 3 decimals) | The dura
 monitor>custom_uptime_ratios | rational number (with 3 decimals) | The uptime ratio of the monitor for the given periods (if there is more than 1 period, then the values are seperated with "-")
 monitor>custom_uptime_ranges | rational number (with 3 decimals) | The uptime ratio of the monitor for the given ranges (if there is more than 1 range, then the values are seperated with "-")
 monitor>average_response_time | rational number (with 3 decimals) | The average value of the response times (requires response_times=1)
-log>type | <ul><li> 1 - down </li><li> 2 - up </li><li> 99 - paused </li><li> 98 - started </li></ul>
-the value of the keyword.
-log>datetime	Unix time	the date and time of the log (inherits the user's timezone setting).
-log>duration	seconds (integer)	the duration of the downtime in seconds.
-log>reason	text	the reason of the downtime (if exists).
-response_time>datetime	Unix time	the date and time of the log (inherits the user's timezone setting).
-response_time>value	Integer	the time to first-byte in milliseconds.
-alertcontact>id	integer	the ID of the alert contact.
-alertcontact>type
-1 - SMS
-2 - E-mail
-3 - Twitter DM
-4 - Boxcar
-5 - Web-Hook
-6 - Pushbullet
-7 - Zapier
-9 - Pushover
-10 - HipChat
-11 - Slack
-the type of the alert contact notified (Zapier, HipChat and Slack are not supported in the newAlertContact method yet).
-alertcontact>friendly_name	text	friendly name of the alert contact (for making it easier to distinguish from others).
-alertcontact>value	text	alert contact's address/phone.
-alertcontact>status
-0 - not activated
-1 - paused
-2 - active
-the status of the alert contact.
+log>type | <ul><li>1 - down</li><li>2 - up</li><li>99 - paused</li><li>98 - started</li></ul> | The value of the keyword.
+log>datetime | Unix time | The date and time of the log (inherits the user's timezone setting).
+log>duration | seconds (integer) | The duration of the downtime in seconds.
+log>reason | text | The reason of the downtime (if exists).
+response_time>datetime | Unix time | the date and time of the log (inherits the user's timezone setting).
+response_time>value | integer | The time to first-byte in milliseconds.
+alertcontact>id | integer | The ID of the alert contact.
+alertcontact>type | <ul><li>1 - SMS</li><li>2 - E-mail</li><li>3 - Twitter DM</li><li>4 - Boxcar</li><li>5 - Web-Hook</li><li>6 - Pushbullet</li><li>7 - Zapier</li><li>9 - Pushover</li><li>10 - HipChat</li><li>11 - Slack</li></ul> | The type of the alert contact notified (Zapier, HipChat and Slack are not supported in the newAlertContact method yet).
+alertcontact>friendly_name | text | Friendly name of the alert contact (for making it easier to distinguish from others).
+alertcontact>value | text | Alert contact's address/phone.
+alertcontact>status | <ul><li>0 - not activated</li><li>1 - paused</li><li>2 - active</li></ul> | The status of the alert contact.
 alertcontact>threshold	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,35,40,45,50,55,60,70,80,90,100,110,120,150,180,210,240,270,300,360,420,480,540,600,660,720	the x value that is set to define "if down for x minutes, alert every y minutes.
 alertcontact>recurrence	0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,20,30,35,40,45,50,55,60	the y value that is set to define "if down for x minutes, alert every y minutes.
 mwindow>id	integer	the ID of the maintenance window.
