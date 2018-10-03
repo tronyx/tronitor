@@ -1,6 +1,6 @@
 # Parameters
-Objects  |                          Values                          | Extra Details
--------  |  ------------------------------------------------------  |  ----------  
+Objects  |  Values  | Extra Details
+-------  |  ------  |  ----------  
 stat | <ul><li>ok</li><li>fail</li></ul> | Exists only for JSON responses to show if any records are returned or not.
 pagination>offset |	integer	| The starting record for getMonitors and getAlertContacts methods
 pagination>limit | integer | The number of records to be returned for getMonitors and getAlertContacts methods
@@ -26,19 +26,9 @@ monitor>status | <ul><li>0 - paused</li><li>1 - not checked yet</li><li>2 - up</
 monitor>all_time_uptime_ratio | formatted as up-down-paused | The uptime ratio of the monitor calculated since the monitor is created.
 monitor>all_time_uptime_durations | rational number (with 3 decimals) | The durations of all time up-down-paused events in seconds.
 monitor>custom_uptime_ratios | rational number (with 3 decimals) | The uptime ratio of the monitor for the given periods (if there is more than 1 period, then the values are seperated with "-")
-monitor>custom_uptime_ranges
-rational number (with 3 decimals)
-
-the uptime ratio of the monitor for the given ranges (if there is more than 1 range, then the values are seperated with "-")
-monitor>average_response_time
-rational number (with 3 decimals)
-
-the average value of the response times (requires response_times=1)
-log>type
-1 - down
-2 - up
-99 - paused
-98 - started
+monitor>custom_uptime_ranges | rational number (with 3 decimals) | The uptime ratio of the monitor for the given ranges (if there is more than 1 range, then the values are seperated with "-")
+monitor>average_response_time | rational number (with 3 decimals) | The average value of the response times (requires response_times=1)
+log>type | <ul><li> 1 - down </li><li> 2 - up </li><li> 99 - paused </li><li> 98 - started </li></ul>
 the value of the keyword.
 log>datetime	Unix time	the date and time of the log (inherits the user's timezone setting).
 log>duration	seconds (integer)	the duration of the downtime in seconds.
