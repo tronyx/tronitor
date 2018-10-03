@@ -1,6 +1,6 @@
 # Parameters
-Objects	|  Values  | Extra Details
-------- |  ------  |  ----------  
+Objects	|      Values      | Extra Details
+------- |      ------      |  ----------  
 stat | <ul><li>ok</li><li>fail</li></ul> | Exists only for JSON responses to show if any records are returned or not.
 pagination>offset |	integer	| The starting record for getMonitors and getAlertContacts methods
 pagination>limit | integer | The number of records to be returned for getMonitors and getAlertContacts methods
