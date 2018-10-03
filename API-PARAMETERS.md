@@ -2,37 +2,21 @@
 Objects	| Values | Extra Details
 --------|--------|--------------
 stat | <ul><li>ok</li><li>fail</li></ul> | Exists only for JSON responses to show if any records are returned or not.
-pagination>offset	integer	the starting record for getMonitors and getAlertContacts methods
-pagination>limit	integer	the number of records to be returned for getMonitors and getAlertContacts methods
-pagination>total	integer	the total number of records for getMonitors and getAlertContacts methods
-account>email	text	the account e-mail.
-account>monitor_limit	integer	the max number of monitors that can be created for the account
-account>monitor_interval	integer	the min monitoring interval (in seconds) supported by the account
-account>up_monitors	integer	the number of "up" monitors
-account>down_monitors	integer	the number of "down" monitors
-account>pause_monitors	integer	the number of "paused" monitors
-monitor>id	integer	the ID of the monitor (can be used for monitor-specific requests).
-monitor>friendly_name	text	the friendly name of the monitor.
-monitor>url	URL or IP	the URL/IP of the monitor.
-monitor>type
-1 - HTTP(s)
-2 - Keyword
-3 - Ping
-4 - Port
-the type of the monitor.
-monitor>sub_type
-1 - HTTP (80)
-2 - HTTPS (443)
-3 - FTP (21)
-4 - SMTP (25)
-5 - POP3 (110)
-6 - IMAP (143)
-99 - Custom Port
-used only for "Port monitoring (monitor>type = 4)" and shows which pre-defined port/service is monitored or if a custom port is monitored.
-monitor>keyword_type
-1 - exists
-2 - not exists
-used only for "Keyword monitoring (monitor>type = 2)" and shows "if the monitor will be flagged as down when the keyword exists or not exists".
+pagination>offset |	integer	| The starting record for getMonitors and getAlertContacts methods
+pagination>limit | integer | The number of records to be returned for getMonitors and getAlertContacts methods
+pagination>total | integer | The total number of records for getMonitors and getAlertContacts methods
+account>email | text | The account e-mail.
+account>monitor_limit | integer | The max number of monitors that can be created for the account
+account>monitor_interval | integer | The min monitoring interval (in seconds) supported by the account
+account>up_monitors | integer | The number of "up" monitors
+account>down_monitors | integer | The number of "down" monitors
+account>pause_monitors | integer | The number of "paused" monitors
+monitor>id | integer | The ID of the monitor (can be used for monitor-specific requests).
+monitor>friendly_name | text | The friendly name of the monitor.
+monitor>url | URL or IP | The URL/IP of the monitor.
+monitor>type | <ul><li>1 - HTTP(s)</li><li>2 - Keyword</li><li>3 - Ping</li><li>4 - Port</li></ul> | The type of the monitor.
+monitor>sub_type | <ul><li>1 - HTTP (80)</li><li>2 - HTTPS (443)</li><li>3 - FTP (21)</li><li>4 - SMTP (25)</li><li>5 - POP3 (110)</li><li>6 - IMAP (143)</li><li>99 - Custom Port</li></ul> | Used only for "Port monitoring (monitor>type = 4)" and shows which pre-defined port/service is monitored or if a custom port is monitored.
+monitor>keyword_type | <ul><li>1 - exists</li><li>2 - not exists</li></ul> | Used only for "Keyword monitoring (monitor>type = 2)" and shows "if the monitor will be flagged as down when the keyword exists or not exists".
 monitor>keyword_value	text	the value of the keyword.
 monitor>http_username	text	used for password-protected web pages (HTTP Basic Auth). Available for HTTP and keyword monitoring.
 monitor>http_password	text	used for password-protected web pages (HTTP Basic Auth). Available for HTTP and keyword monitoring.
