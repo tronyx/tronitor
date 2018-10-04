@@ -521,11 +521,15 @@ get_info() {
   check_bad_monitors
   convert_friendly_monitors
   curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json" |jq
+  echo ''
 }
 
 # Display all alert contacts
 get_alert_contacts() {
+  echo 'The following alert contacts have been found for your UptimeRobot account:'
+  echo ''
   curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq
+  echo ''
 }
 
 # Reset monitors prompt
