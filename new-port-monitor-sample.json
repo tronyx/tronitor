@@ -1,0 +1,12 @@
+{
+      "api_key": "",
+      "friendly_name": "Google",
+      "url": "https://google.com",
+      "type": 4,
+      "sub_type": "2",
+      "port": "",
+      "interval": 300,
+      "alert_contacts":  "",
+      "ignore_ssl_errors": "false",
+      "format": "json"
+    }

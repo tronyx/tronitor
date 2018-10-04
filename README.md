@@ -28,26 +28,24 @@ Processing triggers for man-db (2.8.3-2) ...
 
 ## Setting it up
 
-To get the script working you will need to download it onto your preferred machine:
+To get the script working you will need to clone the repo onto your preferred machine:
 
-```bash
-tronyx@suladan:~$ wget https://raw.githubusercontent.com/christronyxyocum/uptimerobot-monitor-utility/master/uptimerobot_monitor_utility.sh
---2018-09-20 17:32:58--  https://raw.githubusercontent.com/christronyxyocum/uptimerobot-monitor-utility/master/uptimerobot_monitor_utility.sh
-Resolving raw.githubusercontent.com (raw.githubusercontent.com)... 151.101.20.133
-Connecting to raw.githubusercontent.com (raw.githubusercontent.com)|151.101.20.133|:443... connected.
-HTTP request sent, awaiting response... 200 OK
-Length: 8339 (8.1K) [text/plain]
-Saving to: ‘uptimerobot_monitor_utility.sh’
-
-uptimerobot_monitor_utility.sh          100%[===================================================================>]   8.14K  --.-KB/s    in 0s
-
-2018-09-20 17:32:58 (39.2 MB/s) - ‘uptimerobot_monitor_utility.sh’ saved [8339/8339]
+```python
+tronyx@suladan:~$ git clone https://github.com/christronyxyocum/uptimerobot-monitor-utility.git
+Cloning into 'uptimerobot-monitor-utility'...
+remote: Enumerating objects: 108, done.
+remote: Counting objects: 100% (108/108), done.
+remote: Compressing objects: 100% (75/75), done.
+remote: Total 262 (delta 60), reused 76 (delta 32), pack-reused 154
+Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
+Resolving deltas: 100% (143/143), done.
 ```
 
 Then make it executable:
 
-```bash
-tronyx@suladan:~$ chmod a+x uptimerobot_monitor_utility.sh
+```python
+tronyx@suladan:~$ cd uptimerobot-monitor-utility
+tronyx@suladan:~/uptimerobot-monitor-utility$ chmod a+x uptimerobot_monitor_utility.sh
 ```
 
 Finally, open the script with your favorite text editor and add your UptimeRobot API key. If you forget this step the script will prompt you to enter your API key:
@@ -55,6 +53,8 @@ Finally, open the script with your favorite text editor and add your UptimeRobot
 ![API Key Prompt](/Images/api_key.png)
 
 After entering your API key, the script will check whether or not it is valid and add it to the script for you.
+
+If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`.
 
 If you use the alert option, be sure to also enter in your Discord webhook URL.
 
@@ -66,7 +66,7 @@ If you use the alert option, be sure to also enter in your Discord webhook URL.
 ### List all monitors
 
 ```python
-tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -l
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
 Radarr (ID: 780859973) - Status: Down
@@ -77,7 +77,7 @@ Tautulli (ID: 780859975) - Status: Seems down
 ### Find paused monitors
 
 ```python
-tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -f
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -f
 The following UptimeRobot monitors are currently paused:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
@@ -87,10 +87,41 @@ Tautulli (ID: 780859975)
 Would you like to unpause the paused monitors? ([y]es or [n]o):
 ```
 
+### Info
+
+```json
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -i 'plex'
+{
+  "stat": "ok",
+  "pagination": {
+    "offset": 0,
+    "limit": 50,
+    "total": 1
+  },
+  "monitors": [
+    {
+      "id": 779783111,
+      "friendly_name": "Plex",
+      "url": "https://plex.tv",
+      "type": 1,
+      "sub_type": "",
+      "keyword_type": null,
+      "keyword_value": "",
+      "http_username": "",
+      "http_password": "",
+      "port": "",
+      "interval": 300,
+      "status": 2,
+      "create_datetime": 1513815865
+    }
+  ]
+}
+```
+
 ### Pause all monitors
 
 ```json
-tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -p all
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p all
 Pausing Plex:
 {
   "stat": "ok",
@@ -127,7 +158,7 @@ Pausing Tautulli:
 ### Pause specific monitors
 
 ```json
-tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
 Pausing Plex:
 {
   "stat": "ok",
@@ -148,7 +179,7 @@ Pausing Radarr:
 ### Unpause all monitors
 
 ```json
-tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -u all
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u all
 Unpausing Plex:
 {
   "stat": "ok",
@@ -185,7 +216,7 @@ Unpausing Tautulli:
 ### Unpause specific monitors
 
 ```json
-tronyx@suladan:~$ ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
 Unpausing Plex:
 {
   "stat": "ok",
@@ -202,6 +233,18 @@ Unpausing Radarr:
   }
 }
 ```
+
+### Create
+
+
+
+### Reset
+
+
+
+### Delete
+
+
 
 ### Discord alert for paused monitors
 

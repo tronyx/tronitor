@@ -37,11 +37,5 @@ type:
 # Alert contacts (Optional - The alert contacts to be notified when the monitor goes up/down)
 #alert_contacts:
 
-# Maintenance windows (Optional - The maintenance windows for the monitor)
-#mwindows:
-
-# Custom HTTP headers (Optional - Must be sent as a JSON object)
-#custom_http_headers:
-
 # Ignore SSL errors (Optional - For ignoring SSL certificate related errors)
 #ignore_ssl_errors:

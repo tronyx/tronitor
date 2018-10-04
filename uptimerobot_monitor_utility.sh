@@ -26,7 +26,10 @@ urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
-newMonitorConfigFile="${tempDir}new-monitor.yaml"
+newHttpMonitorConfigFile="new-http-monitor.json"
+newPortMonitorConfigFile="new-port-monitor.json"
+newKeywordMonitorConfigFile="new-keyword-monitor.json"
+newPingMonitorConfigFile="new-ping-monitor.json"
 # Set initial API key status
 apiKeyStatus='invalid'
 #logFile="${tempDir}uptimerobot_monitor_utility.log"
@@ -61,6 +64,10 @@ usage() {
   $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
   $(echo -e "${grn}"-a/--alert"${endColor}")            Find all paused UptimeRobot monitors without an unpause prompt and
                         send an alert to the Discord webhook specified in the script.
+  $(echo -e "${grn}"-i/--info"${endColor}" "${ylw}"VALUE"${endColor}")       List all information for the specified monitor.
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"18095689"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--info"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
   $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
                         of monitors by ID or Friendly Name. Friendly Name should be wrapped in
@@ -75,9 +82,10 @@ usage() {
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
-  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the new-monitor.yaml file, IE:
-                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}")"
-                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--create"${endColor}")"
+  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding JSON file, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"port"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"keyword"${endColor}")"
   $(echo -e "${grn}"-d/--delete"${endColor}" "${ylw}"VALUE"${endColor}")     Delete the specified monitor, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--delete"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
@@ -106,6 +114,7 @@ cmdline() {
       --find)       local_args="${local_args}-f " ;;
       --no-prompt)  local_args="${local_args}-n " ;;
       --alert)      local_args="${local_args}-a " ;;
+      --info)       local_args="${local_args}-i " ;;
       --create)     local_args="${local_args}-c " ;;
       --pause)      local_args="${local_args}-p " ;;
       --unpause)    local_args="${local_args}-u " ;;
@@ -121,7 +130,7 @@ cmdline() {
   # Reset the positional parameters to the short options
   eval set -- "${local_args:-}"
 
-  while getopts "hlfnacr:d:p:u:" OPTION
+  while getopts "hlfnai:c:r:d:p:u:" OPTION
     do
     case "$OPTION" in
       l)
@@ -140,8 +149,13 @@ cmdline() {
         prompt=false
         alert=true
         ;;
+      i)
+        info=true
+        infoType="${OPTARG}"
+        ;;
       c)
         create=true
+        createType="${OPTARG}"
         ;;
       r)
         reset=true
@@ -164,7 +178,7 @@ cmdline() {
         exit
         ;;
       *)
-        if [[ "${arg}" == "-p" || "${arg}" == "-u" || "${arg}" == "-r" || "${arg}" == "-d" ]] && [[ -z "${OPTARG}" ]]; then
+        if [[ "${arg}" == "-p" || "${arg}" == "-u" || "${arg}" == "-r" || "${arg}" == "-d" || "${arg}" == "-i" || "${arg}" == "-c" ]] && [[ -z "${OPTARG}" ]]; then
           echo -e "${red}Option ${arg} requires an argument!${endColor}"
         else
           echo -e "${red}You are specifying a non-existent option!${endColor}"
@@ -215,18 +229,20 @@ check_api_key() {
 while [ "${apiKeyStatus}" = 'invalid' ]; do
   if [[ -z "${apiKey}" ]]; then
     echo -e "${red}You didn't define your API key in the script!${endColor}"
+    echo ''
     read -rp 'Enter your API key: ' API
-    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    echo ''
+    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "9 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "31 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi
@@ -315,6 +331,7 @@ unpause_prompt() {
   echo ''
   echo -e "Would you like to unpause the paused monitors? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
   read -r unpausePrompt
+  echo ''
   if ! [[ "$unpausePrompt" =~ ^(yes|y|no|n)$  ]]; then
     echo -e "${red}Please specify yes, y, no, or n.${endColor}"
   else
@@ -330,6 +347,7 @@ invalid_prompt() {
   echo ''
   echo -e "${grn}[Y]${endColor}es or ${red}[N]${endColor}o):"
   read -r invalidPrompt
+  echo ''
   if ! [[ "$invalidPrompt" =~ ^(yes|y|no|n)$  ]]; then
     echo -e "${red}Please specify yes, y, no, or n.${endColor}"
   else
@@ -465,34 +483,34 @@ send_notification() {
   fi
 }
 
-# Create monitor prompt
-create_prompt() {
-  if [ ! -f "${newMonitorConfigFile}" ]; then
-    echo -e "${red}You have not created the required new-monitor.yaml file!${endColor}"
-    echo ''
-    echo -e "${red}Please copy the sample, provide the required information${endColor}"
-    echo -e "${red}and try running the script again.${endColor}"
+# Create a new monitor
+create_monitor() {
+  if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
+    echo -e "${red}You did not specify a valid monitor type!${endColor}"
+    echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
+    exit
   else
     :
   fi
+  if [ "${createType}" = 'http' ]; then
+    newMonitorConfigFile="${newHttpMonitorConfigFile}"
+  elif [ "${createType}" = 'ping' ]; then
+    newMonitorConfigFile="${newPingMonitorConfigFile}"
+  elif [ "${createType}" = 'port' ]; then
+    newMonitorConfigFile="${newPortMonitorConfigFile}"
+  elif [ "${createType}" = 'keyword' ]; then
+    newMonitorConfigFile="${newKeywordMonitorConfigFile}"
+  fi
+  sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"$(head -10 $0 |tail -1 |tr -d "apiKey='")\"|" "${newMonitorConfigFile}"
+  curl -s -X POST "${apiUrl}"newMonitor -d @"{$newMonitorConfigFile}" --header "Content-Type: application/json" |jq
 }
 
-# Create a new monitor
-create_monitor() {
-  friendlyName=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  url=$(grep url "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  type=$(grep type "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  subType=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  port=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  keywordType=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  keywordValue=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  interval=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  httpUsername=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  httpPassword=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  alertContacts=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  mwindows=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  customHttpHeaders=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
-  ignoreSslErrors=$(grep friendly_name "${newMonitorConfigFile}" |awk -F':' '{print $2}' |tr -d ' ')
+# Display all stats for single specified monitor
+get_info() {
+  echo "${infoType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
+  check_bad_monitors
+  convert_friendly_monitors
+  curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json" |jq
 }
 
 # Reset monitors prompt
@@ -501,6 +519,7 @@ reset_prompt() {
   echo -e "${red}***WARNING*** This will reset ALL data for the specified monitors!!!${endColor}"
   echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
   read -r resetPrompt
+  echo ''
   if ! [[ "$resetPrompt" =~ ^(yes|y|no|n)$  ]]; then
     echo -e "${red}Please specify yes, y, no, or n.${endColor}"
   else
@@ -549,6 +568,7 @@ delete_prompt() {
   fi
   echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
   read -r deletePrompt
+  echo ''
   if ! [[ "$deletePrompt" =~ ^(yes|y|no|n)$  ]]; then
     echo -e "${red}Please specify yes, y, no, or n.${endColor}"
   else
@@ -681,6 +701,12 @@ main() {
     fi
   elif [ "${create}" = 'true' ]; then
     create_monitor
+  elif [ "${info}" = 'true' ]; then
+    get_data
+    get_monitors
+    create_monitor_files
+    create_friendly_list
+    get_info
   fi
 }
 
