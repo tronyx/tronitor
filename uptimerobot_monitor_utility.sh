@@ -62,12 +62,13 @@ usage() {
   $(echo -e "${grn}"-l/--list"${endColor}")             List all UptimeRobot monitors.
   $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused UptimeRobot monitors.
   $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
-  $(echo -e "${grn}"-a/--alert"${endColor}")            Find all paused UptimeRobot monitors without an unpause prompt and
+  $(echo -e "${grn}"-w/--webhook"${endColor}")          Find all paused UptimeRobot monitors without an unpause prompt and
                         send an alert to the Discord webhook specified in the script.
   $(echo -e "${grn}"-i/--info"${endColor}" "${ylw}"VALUE"${endColor}")       List all information for the specified monitor.
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"18095689"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--info"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+  $(echo -e "${grn}"-a/--alerts"${endColor}" "${ylw}"VALUE"${endColor}")     List all alert contacts.
   $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
                         of monitors by ID or Friendly Name. Friendly Name should be wrapped in
@@ -113,8 +114,9 @@ cmdline() {
       --list)       local_args="${local_args}-l " ;;
       --find)       local_args="${local_args}-f " ;;
       --no-prompt)  local_args="${local_args}-n " ;;
-      --alert)      local_args="${local_args}-a " ;;
+      --webhook)    local_args="${local_args}-w " ;;
       --info)       local_args="${local_args}-i " ;;
+      --alerts)     local_args="${local_args}-a " ;;
       --create)     local_args="${local_args}-c " ;;
       --pause)      local_args="${local_args}-p " ;;
       --unpause)    local_args="${local_args}-u " ;;
@@ -130,7 +132,7 @@ cmdline() {
   # Reset the positional parameters to the short options
   eval set -- "${local_args:-}"
 
-  while getopts "hlfnai:c:r:d:p:u:" OPTION
+  while getopts "hlfnwai:c:r:d:p:u:" OPTION
     do
     case "$OPTION" in
       l)
@@ -144,10 +146,13 @@ cmdline() {
         find=true
         prompt=false
         ;;
-      a)
+      w)
         find=true
         prompt=false
-        alert=true
+        webhook=true
+        ;;
+      a)
+        alerts=true
         ;;
       i)
         info=true
@@ -202,12 +207,12 @@ do
   fi
 done
 # Alert set to true, but webhook not defined
-if [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
+if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
-  read -rp 'Enter your webhook URL: ' webhook
+  read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "10 s/webhookUrl='[^']*'/webhookUrl='${API}'/" "$0"
-  webhookUrl="${webhook}"
+  sed -i "12 s/webhookUrl='[^']*'/webhookUrl='${url}'/" "$0"
+  webhookUrl="${url}"
 else
   :
 fi
@@ -507,6 +512,7 @@ create_monitor() {
   fi
   sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
   curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+  echo ''
 }
 
 # Display all stats for single specified monitor
@@ -515,6 +521,11 @@ get_info() {
   check_bad_monitors
   convert_friendly_monitors
   curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json" |jq
+}
+
+# Display all alert contacts
+get_alert_contacts() {
+  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq
 }
 
 # Reset monitors prompt
@@ -648,7 +659,7 @@ main() {
     else
       :
     fi
-    if [ "${alert}" = 'true' ]; then
+    if [ "${webhook}" = 'true' ]; then
       send_notification
     fi
   elif [ "${pause}" = 'true' ]; then
@@ -705,6 +716,8 @@ main() {
     fi
   elif [ "${create}" = 'true' ]; then
     create_monitor
+  elif [ "${alerts}" = 'true' ]; then
+    get_alert_contacts
   elif [ "${info}" = 'true' ]; then
     get_data
     get_monitors

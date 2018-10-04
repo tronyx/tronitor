@@ -41,7 +41,7 @@ Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
 Resolving deltas: 100% (143/143), done.
 ```
 
-Then make it executable:
+Then `cd` into the new directory and make the script executable with the `chmod` command:
 
 ```bash
 tronyx@suladan:~$ cd uptimerobot-monitor-utility
@@ -65,7 +65,7 @@ If you use the alert option, be sure to also enter in your Discord webhook URL.
 ## Examples
 ### List all monitors
 
-```python
+```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
@@ -76,7 +76,7 @@ Tautulli (ID: 780859975) - Status: Seems down
 
 ### Find paused monitors
 
-```python
+```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -f
 The following UptimeRobot monitors are currently paused:
 Plex (ID: 779783111)
@@ -88,6 +88,8 @@ Would you like to unpause the paused monitors? ([y]es or [n]o):
 ```
 
 ### Info
+
+Display all information for a single monitor:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -i 'plex'
@@ -117,6 +119,16 @@ tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility
   ]
 }
 ```
+
+### Get alert contacts
+
+Displays a list of all of the alert contacts configured for the account:
+
+```json
+
+```
+
+This can be helpful when creating a new monitor as you can use the `id` field of the alert contact to specify the alert contact that you want to be notified when an event occurs with the new monitor that you're creating.
 
 ### Pause all monitors
 
@@ -234,17 +246,84 @@ Unpausing Radarr:
 }
 ```
 
-### Create
+### Create a new monitor
 
-TODO
+Monitors can be created using this option.
 
-### Reset
+Modify the settings of the corresponding monitor type JSON file in the `Templates` directory, IE: creating a new HTTP(s) monitor so modify the `Templates/new-http-monitor.json` file. The full API documentation can be found [HERE](https://uptimerobot.com/api) for information on monitor types and any required values and what they're for.
 
-TODO
+The below example is for creating a new HTTP(s) monitor for Google:
 
-### Delete
+```json
+tronyx@suladan:~/uptimerobot-monitor-utility$ cat Templates/new-http-monitor.json
+{
+      "api_key": "",
+      "friendly_name": "Google",
+      "url": "https://google.com",
+      "type": 1,
+      "http_username": "",
+      "http_password": "",
+      "interval": 300,
+      "alert_contacts": "",
+      "ignore_ssl_errors": "false",
+      "format": "json"
+}
+```
 
-TODO
+The `api_key` field is filled in automatically by the script, but you can still add it yourself if you'd like to.
+
+Then just execute the script to create the monitor:
+
+```json
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -c http
+{
+  "stat": "ok",
+  "monitor": {
+    "id": 781067574,
+    "status": 1
+  }
+}
+```
+
+### Reset a monitor
+
+Monitors can be reset (deleting all stats and response time data) using this option:
+
+```json
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -r google
+
+***WARNING*** This will reset ALL data for the specified monitors!!!
+Are you sure you wish to continue? ([Y]es or [N]o):
+y
+
+Resetting Google:
+{
+  "stat": "ok",
+  "monitor": {
+    "id": 781067574
+  }
+}
+```
+
+### Delete a monitor
+
+Monitors can be deleted using this option:
+
+```json
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -d plex
+
+***WARNING*** This will delete the specified monitor from your account!!!
+Are you sure you wish to continue? ([Y]es or [N]o):
+y
+
+Deleting Plex:
+{
+  "stat": "ok",
+  "monitor": {
+    "id": 781067560
+  }
+}
+```
 
 ### Discord alert for paused monitors
 
