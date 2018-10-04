@@ -243,7 +243,7 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
       sed -i "10 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "31 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi
@@ -505,8 +505,8 @@ create_monitor() {
   elif [ "${createType}" = 'keyword' ]; then
     newMonitorConfigFile="${newKeywordMonitorConfigFile}"
   fi
-  sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"$(head -10 $0 |tail -1 |tr -d "apiKey='")\"|" "${newMonitorConfigFile}"
-  curl -s -X POST "${apiUrl}"newMonitor "api_key=${apiKey}" -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+  sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
+  curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
 }
 
 # Display all stats for single specified monitor
