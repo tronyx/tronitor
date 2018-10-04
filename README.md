@@ -1,6 +1,6 @@
 # UptimeRobot Monitor Utility
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-monitor-utility&amp;utm_campaign=Badge_Grade) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-monitor-utility/blob/master/LICENSE.md) ![Github All Releases](https://img.shields.io/github/downloads/christronyxyocum/uptimerobot-monitor-utility/total.svg)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-monitor-utility&amp;utm_campaign=Badge_Grade) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-monitor-utility/blob/master/LICENSE.md)
 
 A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
 
@@ -56,7 +56,7 @@ After entering your API key, the script will check whether or not it is valid an
 
 If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`.
 
-If you use the alert option, be sure to also enter in your Discord webhook URL.
+If you use the alert option, be sure to also enter in your Discord/Slack webhook URL.
 
 ## Usage
 
@@ -109,8 +109,10 @@ Radarr (ID: 780859973)
 Sonarr (ID: 780859962)
 Tautulli (ID: 780859975)
 
-Would you like to unpause the paused monitors? ([y]es or [n]o):
+Would you like to unpause the paused monitors? ([Y]es or [N]o):
 ```
+
+You can also use the `-n` option to display the same list, but not display a prompt to unpause the paused monitors.
 
 ### Info
 
@@ -175,7 +177,7 @@ The following alert contacts have been found for your UptimeRobot account:
       "friendly_name": "Discord",
       "type": 11,
       "status": 2,
-      "value": "https://discordapp.com/api/webhooks/1234567890987654321/ewrtgeqfge-qegqthqwrth-qehqerthdfbtrh-qthqrthqhbgtqrh/slack"
+      "value": "https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack"
     }
   ]
 }
@@ -184,6 +186,8 @@ The following alert contacts have been found for your UptimeRobot account:
 This can be helpful when creating a new monitor as you can use the `id` field of the alert contact to specify the alert contact that you want to be notified when an event occurs with the new monitor that you're creating.
 
 ### Pause all monitors
+
+Pause all monitors in your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p all
@@ -222,6 +226,8 @@ Pausing Tautulli:
 
 ### Pause specific monitors
 
+Pause specific monitors in your account:
+
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
 Pausing Plex:
@@ -242,6 +248,8 @@ Pausing Radarr:
 ```
 
 ### Unpause all monitors
+
+Unpause all monitors in your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u all
@@ -279,6 +287,8 @@ Unpausing Tautulli:
 ```
 
 ### Unpause specific monitors
+
+Unpause specific monitors in your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
@@ -340,7 +350,7 @@ tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility
 
 ### Reset a monitor
 
-Monitors can be reset (deleting all stats and response time data) using this option:
+Reset (deleting all stats and response time data) all or specific monitors in your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -r google
@@ -360,7 +370,7 @@ Resetting Google:
 
 ### Delete a monitor
 
-Monitors can be deleted using this option:
+Delete a specific monitor from your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -d plex
@@ -380,6 +390,6 @@ Deleting Plex:
 
 ### Discord alert for paused monitors
 
-Using the `-a` option will check for any paused monitors and, if there are any, send an alert to the specified Discord webhook like below:
+Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
 
-![Discord Notification](/Images/webhook.png)
+![Discord/Slack Notification](/Images/webhook.png)
