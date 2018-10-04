@@ -56,7 +56,7 @@ After entering your API key, the script will check whether or not it is valid an
 
 If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`.
 
-If you use the alert option, be sure to also enter in your Discord webhook URL.
+If you use the alert option, be sure to also enter in your Discord/Slack webhook URL.
 
 ## Usage
 
@@ -111,6 +111,8 @@ Tautulli (ID: 780859975)
 
 Would you like to unpause the paused monitors? ([Y]es or [N]o):
 ```
+
+You can also use the `-n` option to display the same list, but not display a prompt to unpause the paused monitors.
 
 ### Info
 
