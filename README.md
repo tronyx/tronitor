@@ -125,7 +125,35 @@ tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility
 Displays a list of all of the alert contacts configured for the account:
 
 ```json
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -a
+You didn't define your API key in the script!
 
+Enter your API key: u526944-e14f448afd3ce288452edd48
+
+The following alert contacts have been found for your UptimeRobot account:
+
+{
+  "stat": "ok",
+  "offset": 0,
+  "limit": 50,
+  "total": 2,
+  "alert_contacts": [
+    {
+      "id": "0526944",
+      "friendly_name": "E-Mail",
+      "type": 2,
+      "status": 2,
+      "value": "me@domain.com"
+    },
+    {
+      "id": "2611518",
+      "friendly_name": "Discord",
+      "type": 11,
+      "status": 2,
+      "value": "https://discordapp.com/api/webhooks/1234567890987654321/ewrtgeqfge-qegqthqwrth-qehqerthdfbtrh-qthqrthqhbgtqrh/slack"
+    }
+  ]
+}
 ```
 
 This can be helpful when creating a new monitor as you can use the `id` field of the alert contact to specify the alert contact that you want to be notified when an event occurs with the new monitor that you're creating.
@@ -270,7 +298,7 @@ tronyx@suladan:~/uptimerobot-monitor-utility$ cat Templates/new-http-monitor.jso
 }
 ```
 
-The `api_key` field is filled in automatically by the script, but you can still add it yourself if you'd like to.
+The `api_key` field is filled in automatically by the script, but you can still add it yourself if you'd like to. The `alert_contacts` field can be filled in with the `id` field from your preferred alert contact which you can retrieve using the `-a/--alerts` option with the script.
 
 Then just execute the script to create the monitor:
 

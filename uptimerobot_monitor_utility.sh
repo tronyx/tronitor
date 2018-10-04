@@ -395,6 +395,7 @@ check_bad_monitors() {
     elif [ ! -s "${validMonitorsTempFile}" ]; then
       echo ''
       echo "Please make sure you're specifying a valid monitor and try again."
+      echo ''
       exit
     fi
   else
