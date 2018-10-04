@@ -63,7 +63,30 @@ If you use the alert option, be sure to also enter in your Discord webhook URL.
 ![Script Usage](/Images/usage.png)
 
 ## Examples
+### Get account statistics
+
+Display basic statistics for your account:
+
+```json
+tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -s
+Here are the basic statistics for your UptimeRobot account:
+
+{
+ "stat": "ok",
+ "account": {
+   "email": "me@domain.com",
+   "monitor_limit": 50,
+   "monitor_interval": 5,
+   "up_monitors": 14,
+   "down_monitors": 0,
+   "paused_monitors": 0
+ }
+}
+```
+
 ### List all monitors
+
+Display all monitors associated with your account and their current status:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -l
@@ -75,6 +98,8 @@ Tautulli (ID: 780859975) - Status: Seems down
 ```
 
 ### Find paused monitors
+
+Find and display all monitors in your account that are currently paused:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -f
