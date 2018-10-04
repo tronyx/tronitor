@@ -26,10 +26,10 @@ urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
-newHttpMonitorConfigFile="new-http-monitor.json"
-newPortMonitorConfigFile="new-port-monitor.json"
-newKeywordMonitorConfigFile="new-keyword-monitor.json"
-newPingMonitorConfigFile="new-ping-monitor.json"
+newHttpMonitorConfigFile='Templates/new-http-monitor.json'
+newPortMonitorConfigFile='Templates/new-port-monitor.json'
+newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
+newPingMonitorConfigFile='Templates/new-ping-monitor.json'
 # Set initial API key status
 apiKeyStatus='invalid'
 #logFile="${tempDir}uptimerobot_monitor_utility.log"
