@@ -491,6 +491,7 @@ create_monitor() {
   if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
     echo -e "${red}You did not specify a valid monitor type!${endColor}"
     echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
+    echo ''
     exit
   else
     :
@@ -505,7 +506,7 @@ create_monitor() {
     newMonitorConfigFile="${newKeywordMonitorConfigFile}"
   fi
   sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"$(head -10 $0 |tail -1 |tr -d "apiKey='")\"|" "${newMonitorConfigFile}"
-  curl -s -X POST "${apiUrl}"newMonitor -d @"{$newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+  curl -s -X POST "${apiUrl}"newMonitor "api_key=${apiKey}" -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
 }
 
 # Display all stats for single specified monitor
