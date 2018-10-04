@@ -59,6 +59,7 @@ usage() {
 
   Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
 
+  $(echo -e "${grn}"-s/--stats"${endColor}")            List account statistics.
   $(echo -e "${grn}"-l/--list"${endColor}")             List all UptimeRobot monitors.
   $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused UptimeRobot monitors.
   $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
@@ -111,6 +112,7 @@ cmdline() {
     local delim=""
     case "${arg}" in
       # Translate --gnu-long-options to -g (short options)
+      --stats)      local_args="${local_args}-s " ;;
       --list)       local_args="${local_args}-l " ;;
       --find)       local_args="${local_args}-f " ;;
       --no-prompt)  local_args="${local_args}-n " ;;
@@ -132,9 +134,12 @@ cmdline() {
   # Reset the positional parameters to the short options
   eval set -- "${local_args:-}"
 
-  while getopts "hlfnwai:c:r:d:p:u:" OPTION
+  while getopts "hslfnwai:c:r:d:p:u:" OPTION
     do
     case "$OPTION" in
+      s)
+        stats=true
+        ;;
       l)
         list=true
         ;;
@@ -516,6 +521,14 @@ create_monitor() {
   echo ''
 }
 
+# Display account statistics
+get_stats() {
+  echo 'Here are the basic statistics for your UptimeRobot account:'
+  echo ''
+  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" |jq
+  echo ''
+}
+
 # Display all stats for single specified monitor
 get_info() {
   echo "${infoType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
@@ -719,6 +732,8 @@ main() {
       create_friendly_list
       delete_specified_monitors
     fi
+  elif [ "${stats}" = 'true' ]; then
+    get_stats
   elif [ "${create}" = 'true' ]; then
     create_monitor
   elif [ "${alerts}" = 'true' ]; then
