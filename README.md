@@ -236,15 +236,15 @@ Unpausing Radarr:
 
 ### Create
 
-
+TODO
 
 ### Reset
 
-
+TODO
 
 ### Delete
 
-
+TODO
 
 ### Discord alert for paused monitors
 
