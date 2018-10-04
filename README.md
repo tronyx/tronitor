@@ -185,6 +185,8 @@ This can be helpful when creating a new monitor as you can use the `id` field of
 
 ### Pause all monitors
 
+Pause all monitors in your account:
+
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p all
 Pausing Plex:
@@ -222,6 +224,8 @@ Pausing Tautulli:
 
 ### Pause specific monitors
 
+Pause specific monitors in your account:
+
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
 Pausing Plex:
@@ -242,6 +246,8 @@ Pausing Radarr:
 ```
 
 ### Unpause all monitors
+
+Unpause all monitors in your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u all
@@ -279,6 +285,8 @@ Unpausing Tautulli:
 ```
 
 ### Unpause specific monitors
+
+Unpause specific monitors in your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
@@ -340,7 +348,7 @@ tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility
 
 ### Reset a monitor
 
-Monitors can be reset (deleting all stats and response time data) using this option:
+Reset (deleting all stats and response time data) all or specific monitors in your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -r google
@@ -360,7 +368,7 @@ Resetting Google:
 
 ### Delete a monitor
 
-Monitors can be deleted using this option:
+Delete a specific monitor from your account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -d plex
@@ -380,6 +388,6 @@ Deleting Plex:
 
 ### Discord alert for paused monitors
 
-Using the `-a` option will check for any paused monitors and, if there are any, send an alert to the specified Discord webhook like below:
+Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
 
-![Discord Notification](/Images/webhook.png)
+![Discord/Slack Notification](/Images/webhook.png)
