@@ -68,7 +68,7 @@ usage() {
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"18095689"${endColor}")"
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--info"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
-  $(echo -e "${grn}"-a/--alerts"${endColor}"            List all alert contacts.
+  $(echo -e "${grn}"-a/--alerts"${endColor}")           List all alert contacts.
   $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
                         of monitors by ID or Friendly Name. Friendly Name should be wrapped in
