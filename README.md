@@ -109,7 +109,7 @@ Radarr (ID: 780859973)
 Sonarr (ID: 780859962)
 Tautulli (ID: 780859975)
 
-Would you like to unpause the paused monitors? ([y]es or [n]o):
+Would you like to unpause the paused monitors? ([Y]es or [N]o):
 ```
 
 ### Info
