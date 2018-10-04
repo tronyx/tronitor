@@ -178,7 +178,7 @@ cmdline() {
         exit
         ;;
       *)
-        if [[ "${arg}" == "-p" || "${arg}" == "-u" || "${arg}" == "-r" || "${arg}" == "-d" || "${arg}" == "-i" || "${arg}" == "-c" ]] && [[ -z "${OPTARG}" ]]; then
+        if [[ "${arg}" == '-p' || "${arg}" == '-u' || "${arg}" == '-r' || "${arg}" == '-d' || "${arg}" == '-i' || "${arg}" == '-c' ]] && [[ -z "${OPTARG}" ]]; then
           echo -e "${red}Option ${arg} requires an argument!${endColor}"
         else
           echo -e "${red}You are specifying a non-existent option!${endColor}"
@@ -205,6 +205,7 @@ done
 if [ "${webhookUrl}" = "" ] && [ "${alert}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' webhook
+  echo ''
   sed -i "10 s/webhookUrl='[^']*'/webhookUrl='${API}'/" "$0"
   webhookUrl="${webhook}"
 else
@@ -273,15 +274,15 @@ create_friendly_list() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    if [ "${status}" = 0 ]; then
+    if [ "${status}" = '0' ]; then
       friendlyStatus="${ylw}Paused${endColor}"
-    elif [ "${status}" = 1 ]; then
+    elif [ "${status}" = '1' ]; then
       friendlyStatus="${mgt}Not checked yet${endColor}"
-    elif [ "${status}" = 2 ]; then
+    elif [ "${status}" = '2' ]; then
       friendlyStatus="${grn}Up${endColor}"
-    elif [ "${status}" = 8 ]; then
+    elif [ "${status}" = '8' ]; then
       friendlyStatus="${org}Seems down${endColor}"
-    elif [ "${status}" = 9 ]; then
+    elif [ "${status}" = '9' ]; then
       friendlyStatus="${red}Down${endColor}"
     fi
     echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor} - Status: ${friendlyStatus}" >> "${friendlyListFile}"
@@ -294,8 +295,10 @@ display_all_monitors() {
     echo 'The following UptimeRobot monitors were found in your UptimeRobot account:'
     echo ''
     column -ts- "${friendlyListFile}"
+    echo ''
   else
     echo 'There are currently no monitors associated with your UptimeRobot account.'
+    echo ''
   fi
 }
 
