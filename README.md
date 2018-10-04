@@ -30,7 +30,7 @@ Processing triggers for man-db (2.8.3-2) ...
 
 To get the script working you will need to clone the repo onto your preferred machine:
 
-```python
+```bash
 tronyx@suladan:~$ git clone https://github.com/christronyxyocum/uptimerobot-monitor-utility.git
 Cloning into 'uptimerobot-monitor-utility'...
 remote: Enumerating objects: 108, done.
@@ -43,7 +43,7 @@ Resolving deltas: 100% (143/143), done.
 
 Then make it executable:
 
-```python
+```bash
 tronyx@suladan:~$ cd uptimerobot-monitor-utility
 tronyx@suladan:~/uptimerobot-monitor-utility$ chmod a+x uptimerobot_monitor_utility.sh
 ```
