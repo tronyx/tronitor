@@ -13,8 +13,13 @@ else
   # Enter your API key here
   apiKey=''
 fi
-# Specify the Discord webhook URL to send notifications to
-webhookUrl=''
+# Specify the Discord/Slack webhook URL to send notifications to
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  webhookUrl="${travisWebhookUrl}"
+else
+  # Enter your webhook URL here
+  webhookUrl=''
+fi
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
 
