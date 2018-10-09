@@ -542,7 +542,6 @@ get_stats() {
   echo ''
   curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" |jq
   echo ''
-  exit
 }
 
 # Display all stats for single specified monitor
@@ -558,9 +557,8 @@ get_info() {
 get_alert_contacts() {
   echo 'The following alert contacts have been found for your UptimeRobot account:'
   echo ''
-  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq
+  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq -e
   echo ''
-  exit
 }
 
 # Reset monitors prompt

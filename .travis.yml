@@ -13,24 +13,24 @@ addons:
       - cmake
 jobs:
   include:
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -h
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --help
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -l
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --list
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -f
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --find
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -n
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --no-prompt
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh -h
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh --help
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh -l
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh --list
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh -f
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh --find
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh -n
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh --no-prompt
     #- stage: run
     #  script: sudo bash ./uptimerobot_monitor_utility.sh -c http
     #- stage: run
