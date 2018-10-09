@@ -542,6 +542,7 @@ get_stats() {
   echo ''
   curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" |jq
   echo ''
+  exit
 }
 
 # Display all stats for single specified monitor
@@ -559,6 +560,7 @@ get_alert_contacts() {
   echo ''
   curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq
   echo ''
+  exit
 }
 
 # Reset monitors prompt
