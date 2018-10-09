@@ -239,7 +239,7 @@ create_dir() {
 
 # Cleanup temp files
 cleanup() {
-  rm -rf "${tempDir}"*.txt
+  rm -rf "${tempDir}"*.txt || true
 }
 trap 'cleanup' 0 1 2 3 6 14 15
 
@@ -275,7 +275,13 @@ get_data() {
 
 # Create list of monitor IDs
 get_monitors() {
-  grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
+  totalMonitors=$(grep -Po '"total":[!0-9]*' "${urMonitorsFullFile}" |awk -F: '{print $2}')
+  if [ "${totalMonitors}" = '0' ]; then
+    echo 'There are currently no monitors associated with your UptimeRobot account.'
+    exit
+  else
+    grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
+  fi
 }
 
 # Create individual monitor files
@@ -315,7 +321,8 @@ display_all_monitors() {
     column -ts- "${friendlyListFile}"
     echo ''
   else
-    echo 'There are currently no monitors associated with your UptimeRobot account.'
+    :
+    #echo 'There are currently no monitors associated with your UptimeRobot account.'
     echo ''
   fi
 }
