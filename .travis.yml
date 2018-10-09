@@ -32,11 +32,11 @@ jobs:
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh --no-prompt
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -a
+      script: sudo bash -x ./uptimerobot_monitor_utility.sh -a
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh --alerts
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -s
+      script: sudo bash -x ./uptimerobot_monitor_utility.sh -s
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh --stats
 after_success: |
