@@ -6,8 +6,8 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Edit these to finish setting up the script
-# Source hidden file for API key
-source Travis/.api
+# Specify your UptimeRobot API key
+#apiKey=''
 # Specify the Discord webhook URL to send notifications to
 webhookUrl=''
 # Set notifyAll to true for notification to apply for all running state as well
