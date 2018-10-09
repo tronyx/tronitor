@@ -31,14 +31,14 @@ jobs:
       script: sudo bash ./uptimerobot_monitor_utility.sh -n
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh --no-prompt
-    - stage: run
-      script: sudo bash -x ./uptimerobot_monitor_utility.sh -a
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --alerts
-    - stage: run
-      script: sudo bash -x ./uptimerobot_monitor_utility.sh -s
-    - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --stats
+    #- stage: run
+    #  script: sudo bash -x ./uptimerobot_monitor_utility.sh -a
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh --alerts
+    #- stage: run
+    #  script: sudo bash -x ./uptimerobot_monitor_utility.sh -s
+    #- stage: run
+    #  script: sudo bash ./uptimerobot_monitor_utility.sh --stats
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
