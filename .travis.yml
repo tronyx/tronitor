@@ -31,6 +31,10 @@ jobs:
       script: sudo bash ./uptimerobot_monitor_utility.sh -n
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh --no-prompt
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh -c http
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh --create http
     #- stage: run
     #  script: sudo bash -x ./uptimerobot_monitor_utility.sh -a
     #- stage: run
