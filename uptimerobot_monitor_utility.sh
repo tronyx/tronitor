@@ -652,8 +652,8 @@ delete_specified_monitors() {
 main() {
   cmdline "${args[@]:-}"
   checks
-  check_api_key
   create_dir
+  check_api_key
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors
