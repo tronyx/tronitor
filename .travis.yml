@@ -4,6 +4,10 @@ addons:
   apt:
     packages:
       - jq
+      - libcurl4-openssl-dev
+      - libelf-dev
+      - libdw-dev
+      - cmake
 jobs:
   include:
   - stage: run
