@@ -8,10 +8,10 @@ IFS=$'\n\t'
 # Edit these to finish setting up the script
 # Specify UptimeRobot API key
 if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-    apiKey="${travisApiKey}"
+  apiKey="${travisApiKey}"
 else
-    # Enter your API key here
-    apiKey=''
+  # Enter your API key here
+  apiKey=''
 fi
 # Specify the Discord webhook URL to send notifications to
 webhookUrl=''

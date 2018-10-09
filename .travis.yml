@@ -14,11 +14,11 @@ addons:
 jobs:
   include:
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh
+      script: sudo bash -x ./uptimerobot_monitor_utility.sh
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -l
+      script: sudo bash -x ./uptimerobot_monitor_utility.sh -l
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --list
+      script: sudo bash -x ./uptimerobot_monitor_utility.sh --list
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
