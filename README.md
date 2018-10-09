@@ -1,6 +1,6 @@
 # UptimeRobot Monitor Utility
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-monitor-utility&amp;utm_campaign=Badge_Grade) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-monitor-utility/blob/master/LICENSE.md)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-monitor-utility&amp;utm_campaign=Badge_Grade) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-monitor-utility/blob/master/LICENSE.md) [![Build Status](https://travis-ci.org/christronyxyocum/uptimerobot-monitor-utility.svg?branch=master)](https://travis-ci.org/christronyxyocum/uptimerobot-monitor-utility) [![codecov.io](https://codecov.io/gh/christronyxyocum/uptimerobot-monitor-utility/branch/master/graphs/badge.svg?branch=master)](http://codecov.io/github/christronyxyocum/uptimerobot-monitor-utility?branch=master)
 
 A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
 
