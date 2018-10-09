@@ -557,7 +557,8 @@ get_info() {
 get_alert_contacts() {
   echo 'The following alert contacts have been found for your UptimeRobot account:'
   echo ''
-  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq -e
+  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq
+  exit 0
   echo ''
 }
 
