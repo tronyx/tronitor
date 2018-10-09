@@ -1,7 +1,7 @@
 language: generic
-branches:
-  except:
-    - develop
+#branches:
+#  except:
+#    - develop
 sudo: required
 addons:
   apt:
@@ -14,7 +14,9 @@ addons:
 jobs:
   include:
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh
+      script: sudo bash ./travis.sh
+      script: sudo bash ./travis.sh -l
+      script: sudo bash ./travis.sh --list
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
@@ -27,5 +29,5 @@ after_success: |
   cd ../.. &&
   rm -rf kcov-master &&
   mkdir -p coverage &&
-  kcov coverage uptimerobot_monitor_utility.sh &&
+  kcov coverage travis.sh &&
   bash <(curl -s https://codecov.io/bash)
