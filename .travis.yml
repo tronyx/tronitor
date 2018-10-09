@@ -16,6 +16,10 @@ jobs:
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh
     - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh -h
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh --help
+    - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh -l
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh --list
@@ -23,6 +27,18 @@ jobs:
       script: sudo bash ./uptimerobot_monitor_utility.sh -f
     - stage: run
       script: sudo bash ./uptimerobot_monitor_utility.sh --find
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh -n
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh --no-prompt
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh -a
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh --alerts
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh -s
+    - stage: run
+      script: sudo bash ./uptimerobot_monitor_utility.sh --stats
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
@@ -35,5 +51,5 @@ after_success: |
   cd ../.. &&
   rm -rf kcov-master &&
   mkdir -p coverage &&
-  kcov coverage Travis/travis.sh &&
+  kcov coverage uptimerobot_monitor_utility.sh &&
   bash <(curl -s https://codecov.io/bash)
