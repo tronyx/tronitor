@@ -31,7 +31,6 @@ urMonitorsFile="${tempDir}ur_monitors.txt"
 urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
-alertContactsFile="${tempDir}alert_contacts.txt"
 newHttpMonitorConfigFile='Templates/new-http-monitor.json'
 newPortMonitorConfigFile='Templates/new-port-monitor.json'
 newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
@@ -558,8 +557,8 @@ get_info() {
 get_alert_contacts() {
   echo 'The following alert contacts have been found for your UptimeRobot account:'
   echo ''
-  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" > "${alertContactsFile}"
-  jq -e "${alertContactsFile}"
+  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json"
+  #jq
   echo ''
 }
 
