@@ -11,6 +11,13 @@ addons:
       - libelf-dev
       - libdw-dev
       - cmake
+stages:
+  - prep
+  - basic
+  - create
+  - alerts
+  - stats
+  - delete
 jobs:
   include:
     - stage: prep
