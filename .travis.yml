@@ -11,42 +11,49 @@ addons:
       - libelf-dev
       - libdw-dev
       - cmake
+before_script:
+  - curl -s -X POST "${apiUrl}"newMonitor -d @Travis/travisone.json --header "Content-Type: application/json"
+  - curl -s -X POST "${apiUrl}"newMonitor -d @Travis/travistwo.json --header "Content-Type: application/json"
 jobs:
   include:
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh -h
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh --help
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh -l
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh --list
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh -f
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh --find
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh -n
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh --no-prompt
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh -w
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
     - stage: run
-      script: sudo bash ./uptimerobot_monitor_utility.sh --webhook
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh -c http
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh --create http
-    #- stage: run
-    #  script: sudo bash -x ./uptimerobot_monitor_utility.sh -a
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh --alerts
-    #- stage: run
-    #  script: sudo bash -x ./uptimerobot_monitor_utility.sh -s
-    #- stage: run
-    #  script: sudo bash ./uptimerobot_monitor_utility.sh --stats
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -f
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --find
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create http
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --alerts
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -s
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -d 'travisone'
+    - stage: run
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --delete 'travistwo'
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
@@ -61,3 +68,5 @@ after_success: |
   mkdir -p coverage &&
   kcov coverage uptimerobot_monitor_utility.sh &&
   bash <(curl -s https://codecov.io/bash)
+after_script:
+  -
