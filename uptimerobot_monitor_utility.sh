@@ -7,7 +7,12 @@ IFS=$'\n\t'
 
 # Edit these to finish setting up the script
 # Specify UptimeRobot API key
-apiKey=''
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+    apiKey="${travisApiKey}"
+else
+    # Enter your API key here
+    apiKey=''
+fi
 # Specify the Discord webhook URL to send notifications to
 webhookUrl=''
 # Set notifyAll to true for notification to apply for all running state as well
