@@ -14,9 +14,9 @@ addons:
 jobs:
   include:
     - stage: run
-      script: sudo bash ./travis.sh
-      script: sudo bash ./travis.sh -l
-      script: sudo bash ./travis.sh --list
+      script: sudo bash ./Travis/travis.sh
+      script: sudo bash ./Travis/travis.sh -l
+      script: sudo bash ./Travis/travis.sh --list
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
@@ -29,5 +29,5 @@ after_success: |
   cd ../.. &&
   rm -rf kcov-master &&
   mkdir -p coverage &&
-  kcov coverage travis.sh &&
+  kcov coverage Travis/travis.sh &&
   bash <(curl -s https://codecov.io/bash)
