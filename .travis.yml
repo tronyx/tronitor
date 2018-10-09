@@ -24,5 +24,5 @@ after_success: |
   cd ../.. &&
   rm -rf kcov-master &&
   mkdir -p coverage &&
-  kcov coverage uptimerobot_monitor_utility &&
+  kcov coverage uptimerobot_monitor_utility.sh &&
   bash <(curl -s https://codecov.io/bash)
