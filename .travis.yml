@@ -21,7 +21,7 @@ stages:
 jobs:
   include:
     - stage: prep
-      script: sudo bash ./Travis/prep.sh
+      script: sudo bash -x ./Travis/prep.sh
     - stage: basic
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
