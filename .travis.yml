@@ -1,0 +1,10 @@
+language: generic
+sudo: required
+addons:
+  apt:
+    packages:
+      - jq
+jobs:
+  include:
+  - stage: run
+    script: sudo bash ./uptimerobot_monitor_utility.sh
