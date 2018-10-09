@@ -19,6 +19,10 @@ jobs:
       script: sudo bash -x ./uptimerobot_monitor_utility.sh -l
     - stage: run
       script: sudo bash -x ./uptimerobot_monitor_utility.sh --list
+    - stage: run
+      script: sudo bash -x ./uptimerobot_monitor_utility.sh -f
+    - stage: run
+      script: sudo bash -x ./uptimerobot_monitor_utility.sh --find
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
