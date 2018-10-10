@@ -13,15 +13,15 @@ addons:
       - cmake
 stages:
   - prep
-  - basic
-  - info
-  - create
-  - pause
-  - alerts
-  - stats
-  - delete
-  - unpause
-  - reset
+  #- basic
+  #- info
+  #- create
+  #- pause
+  #- alerts
+  #- stats
+  #- delete
+  #- unpause
+  #- reset
 jobs:
   include:
     - stage: prep
