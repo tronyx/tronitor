@@ -1,7 +1,6 @@
 {
-      "api_key": "",
-      "friendly_name": "GoogleHttp",
-      "url": "https://google.com",
+      "friendly_name": "TravisOne",
+      "url": "https://google.co.uk",
       "type": 1,
       "http_username": "",
       "http_password": "",

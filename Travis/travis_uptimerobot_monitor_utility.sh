@@ -7,9 +7,19 @@ IFS=$'\n\t'
 
 # Edit these to finish setting up the script
 # Specify UptimeRobot API key
-apiKey=''
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  apiKey="${travisApiKey}"
+else
+  # Enter your API key here
+  apiKey=''
+fi
 # Specify the Discord/Slack webhook URL to send notifications to
-webhookUrl=''
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  webhookUrl="${travisWebhookUrl}"
+else
+  # Enter your webhook URL here
+  webhookUrl=''
+fi
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
 
@@ -441,7 +451,7 @@ pause_all_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0"
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -459,7 +469,7 @@ pause_specified_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Pausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0"
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
@@ -470,7 +480,7 @@ unpause_all_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1"
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -488,7 +498,7 @@ unpause_specified_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Unpausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1"
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
@@ -527,7 +537,7 @@ create_monitor() {
     newMonitorConfigFile="${newKeywordMonitorConfigFile}"
   fi
   sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
-  curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+  curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json"
   echo ''
 }
 
@@ -535,7 +545,7 @@ create_monitor() {
 get_stats() {
   echo 'Here are the basic statistics for your UptimeRobot account:'
   echo ''
-  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" |jq
+  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json"
   echo ''
 }
 
@@ -544,7 +554,7 @@ get_info() {
   echo "${infoType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   check_bad_monitors
   convert_friendly_monitors
-  curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json" |jq
+  curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json"
   echo ''
 }
 
@@ -552,7 +562,7 @@ get_info() {
 get_alert_contacts() {
   echo 'The following alert contacts have been found for your UptimeRobot account:'
   echo ''
-  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq
+  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json"
   echo ''
 }
 
@@ -577,7 +587,7 @@ reset_all_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Resetting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -596,7 +606,7 @@ reset_specified_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Resetting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
@@ -626,7 +636,7 @@ delete_all_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Deleting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -645,7 +655,7 @@ delete_specified_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Deleting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
@@ -677,7 +687,7 @@ main() {
             while IFS= read -r monitor; do
               friendlyName=$(grep "${monitor}" "${pausedMonitorsFile}" |awk '{print $1}')
               echo "Unpausing ${friendlyName}:"
-              curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+              curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1"
               echo ''
             done < <(awk -F: '{print $2}' "${pausedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g' |tr -d ' ')
           elif [[ "$unpausePrompt" =~ ^(no|n)$ ]]; then
