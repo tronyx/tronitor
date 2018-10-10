@@ -66,7 +66,7 @@ jobs:
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
     - stage: reset
       script: sudo expect ./Travis/reset_expect_short.exp
-      script: sudo bash ./Travis/reset_expect_long.exp
+      script: sudo expect ./Travis/reset_expect_long.exp
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
