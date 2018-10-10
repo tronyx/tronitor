@@ -1,5 +1,4 @@
 {
-      "api_key": "\"${travisApiKey}\"",
       "friendly_name": "TravisTwo",
       "url": "https://amazon.co.uk",
       "type": 1,

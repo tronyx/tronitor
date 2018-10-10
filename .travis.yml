@@ -12,9 +12,9 @@ addons:
       - libdw-dev
       - cmake
 stages:
-  #- prep
+  - prep
   #- basic
-  #- create
+  - create
   #- pause
   #- alerts
   #- stats
@@ -23,8 +23,8 @@ stages:
   - reset
 jobs:
   include:
-    #- stage: prep
-    #  script: sudo bash ./Travis/prep.sh
+    - stage: prep
+      script: sudo bash ./Travis/prep.sh
     #- stage: basic
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
@@ -37,14 +37,14 @@ jobs:
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
-    #- stage: create
-    #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
+    - stage: create
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create http
-    #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c ping
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c ping
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create ping
-    #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
-    #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
     #- stage: alerts
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
@@ -64,9 +64,9 @@ jobs:
     #- stage: unpause
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
     #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
-    - stage: reset
-      script: sudo expect ./Travis/reset_expect_short.exp
-      script: sudo expect ./Travis/reset_expect_long.exp
+    #- stage: reset
+    #  script: sudo expect ./Travis/reset_expect_short.exp
+    #  script: sudo expect ./Travis/reset_expect_long.exp
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
