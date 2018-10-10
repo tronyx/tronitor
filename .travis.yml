@@ -17,6 +17,7 @@ stages:
   - info
   - create
   - pause
+  - find
   - alerts
   - stats
   - delete
@@ -35,8 +36,6 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -f
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --find
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
@@ -51,6 +50,10 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
+    - stage: find
+      script:
+        - sudo expect ./Travis/find_expect_short.exp
+        - sudo expect ./Travis/find_expect_long.exp
     - stage: alerts
       script:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
