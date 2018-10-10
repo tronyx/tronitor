@@ -62,9 +62,9 @@ jobs:
     - stage: unpause
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
-    - stage: reset
-      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -r all
-      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --reset all
+    #- stage: reset
+    #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -r all
+    #  script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --reset all
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
