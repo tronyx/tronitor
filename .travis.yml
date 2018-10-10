@@ -91,7 +91,4 @@ after_success: |
   rm -rf kcov-master &&
   mkdir -p coverage &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
-  kcov coverage Travis/prep.sh &&
-  kcov coverage Travis/reset_expect_long.exp &&
-  kcov coverage Travis/reset_expect_short.exp &&
   bash <(curl -s https://codecov.io/bash)
