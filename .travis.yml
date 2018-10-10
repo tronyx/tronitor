@@ -28,71 +28,73 @@ jobs:
     - stage: prep
       script:
         - sudo bash ./Travis/prep.sh
-    #- stage: basic
-    #  script:
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -f
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --find
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
-    #- stage: create
-    #  script:
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create http
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c ping
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create ping
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
-    #- stage: alerts
-    #  script:
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --alerts
-    #- stage: stats
-    #  script:
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -s
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
+    - stage: basic
+      script:
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -f
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --find
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
+    - stage: create
+      script:
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create http
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c ping
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create ping
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
+    - stage: alerts
+      script:
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --alerts
+    - stage: stats
+      script:
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -s
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
     - stage: delete
       script:
         - sudo expect ./Travis/delete_expect_short.exp
         - sudo expect ./Travis/delete_expect_long.exp
-    #- stage: info
-    #  script:
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --info 'travistwo'
-    #- stage: pause
-    #  script:
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p all
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --pause all
-    #- stage: unpause
-    #  script:
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
-    #    - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
-    #- stage: reset
-    #  script:
-    #    - sudo expect ./Travis/reset_expect_short.exp
-    #    - sudo expect ./Travis/reset_expect_long.exp
-    #- stage: cleanup
-    #  script:
-    #    - sudo expect ./Travis/cleanup.exp
-after_success: |
-  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  tar xzf master.tar.gz &&
-  cd kcov-master &&
-  mkdir build &&
-  cd build &&
-  cmake .. &&
-  make &&
-  sudo make install &&
-  cd ../.. &&
-  rm -rf kcov-master &&
-  mkdir -p coverage &&
-  kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
-  bash <(curl -s https://codecov.io/bash)
+    - stage: info
+      script:
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --info 'travistwo'
+    - stage: pause
+      script:
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p all
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --pause all
+    - stage: unpause
+      script:
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
+    - stage: reset
+      script:
+        - sudo expect ./Travis/reset_expect_short.exp
+        - sudo expect ./Travis/reset_expect_long.exp
+    - stage: cleanup
+      script:
+        - sudo expect ./Travis/cleanup.exp
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+#after_success: |
+#  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+#  tar xzf master.tar.gz &&
+#  cd kcov-master &&
+#  mkdir build &&
+#  cd build &&
+#  cmake .. &&
+#  make &&
+#  sudo make install &&
+#  cd ../.. &&
+#  rm -rf kcov-master &&
+#  mkdir -p coverage &&
+#  kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
+#  bash <(curl -s https://codecov.io/bash)
