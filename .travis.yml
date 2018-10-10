@@ -14,9 +14,11 @@ stages:
   - prep
   - basic
   - create
+  - pause
   - alerts
   - stats
   - delete
+  - unpause
 jobs:
   include:
     - stage: prep
@@ -51,6 +53,18 @@ jobs:
     - stage: delete
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -d 'travisone'
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --delete 'travistwo'
+    - stage: info
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --info 'travistwo'
+    - stage: pause
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p all
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --pause all
+    - stage: unpause
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
+    - stage: reset
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -r all
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --reset all
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&

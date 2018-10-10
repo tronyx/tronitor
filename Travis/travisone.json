@@ -1,5 +1,5 @@
 {
-      "api_key": "",
+      "api_key": "${travisApiKey}",
       "friendly_name": "TravisOne",
       "url": "https://google.co.uk",
       "type": 1,
