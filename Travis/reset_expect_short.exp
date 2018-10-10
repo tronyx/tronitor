@@ -1,10 +1,10 @@
-#!/usr/bin/expect
+#!/usr/bin/expect -f
 
 set timeout 10
 
-spawn sudo bash travis_uptimerobot_monitor_utility.sh -r all
+spawn ./travis_uptimerobot_monitor_utility.sh -r all
 
 expect "Are you sure you wish to continue? ([Y]es or [N]o):"
-send "y\r"
+send -- "y\r"
 
-interact
+expect eof
