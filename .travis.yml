@@ -61,8 +61,8 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
     - stage: delete
       script:
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -d 'travisone'
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --delete 'travistwo'
+        - sudo expect ./Travis/delete_expect_short.exp
+        - sudo expect ./Travis/delete_expect_long.exp
     - stage: info
       script:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
