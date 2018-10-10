@@ -6,7 +6,6 @@ sudo: required
 addons:
   apt:
     packages:
-      - jq
       - libcurl4-openssl-dev
       - libelf-dev
       - libdw-dev
@@ -37,6 +36,12 @@ jobs:
     - stage: create
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create http
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c ping
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create ping
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
+      script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
     - stage: alerts
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
       script: sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --alerts

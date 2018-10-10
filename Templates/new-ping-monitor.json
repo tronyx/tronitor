@@ -1,6 +1,6 @@
 {
       "api_key": "",
-      "friendly_name": "Google",
+      "friendly_name": "GooglePing",
       "url": "https://google.com",
       "type": 3,
       "interval": 300,

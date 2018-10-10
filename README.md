@@ -153,10 +153,6 @@ Displays a list of all of the alert contacts configured for the account:
 
 ```json
 tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -a
-You didn't define your API key in the script!
-
-Enter your API key: u526944-e14f448afd3ce288452edd48
-
 The following alert contacts have been found for your UptimeRobot account:
 
 {
