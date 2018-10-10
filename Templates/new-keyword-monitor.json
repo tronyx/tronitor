@@ -5,7 +5,7 @@
       "type": 2,
       "http_username": "",
       "http_password": "",
-      "keyword_type": "exists",
+      "keyword_type": "1",
       "keyword_value": "about",
       "interval": 300,
       "alert_contacts":  "",
