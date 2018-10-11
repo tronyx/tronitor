@@ -28,27 +28,26 @@ kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --no-prompt &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -w' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -w &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --webhook' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p GooglePing &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --webhook &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -c http' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c http &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --create http' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --create http &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -c ping' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c ping &&
+#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --create http' &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --create http &&
+#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -c ping' &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c ping &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --create ping' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --create ping &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -c port' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c port &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --create port' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --create port &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -c keyword' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c keyword &&
+#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --create port' &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --create port &&
+#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -c keyword' &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c keyword &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --create keyword' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --create keyword &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -f' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -f &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --find' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --find &&
+echo 'Testing create with bad monitor type' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c foobar &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -a' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -a &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --alerts' &&
@@ -69,10 +68,16 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -p all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p all &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --pause all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --pause all &&
+#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -f' &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -f &&
+#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --find' &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --find &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -u all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -u all &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --unpause all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --unpause all &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -u GooglePort'
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -u GooglePort &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -r all' &&
 #kcov coverage Travis/reset_expect_short.exp &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --reset all' &&
