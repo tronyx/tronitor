@@ -18,6 +18,8 @@ jobs:
       script:
         - sudo bash ./Travis/prep.sh
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -x
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
