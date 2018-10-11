@@ -33,18 +33,18 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
-        - sudo expect ./Travis/find_expect_short.exp
-        - sudo expect ./Travis/find_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --alerts
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -s
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
-        - sudo expect ./Travis/delete_expect_short.exp
-        - sudo expect ./Travis/delete_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --info 'travistwo'
+        - sudo expect ./Travis/delete_expect_short.exp
+        - sudo expect ./Travis/delete_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p all
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --pause all
+        - sudo expect ./Travis/find_expect_short.exp
+        - sudo expect ./Travis/find_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
         - sudo expect ./Travis/reset_expect_short.exp
