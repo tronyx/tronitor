@@ -57,10 +57,10 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -s' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -s &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --stats' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --stats &&
-#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -d all' &&
-#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -d all &&
-#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --delete all' &&
-#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --delete all &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -d all' &&
+kcov coverage Travis/delete_expect_short.exp &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --delete all' &&
+kcov coverage Travis/delete_expect_long.exp &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -i travisone' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -i travisone &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --info travistwo' &&
@@ -74,7 +74,7 @@ kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -u all &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --unpause all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --unpause all &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -r all' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -r all &&
+kcov coverage Travis/reset_expect_short.exp &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --reset all' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --reset all &&
+kcov coverage Travis/reset_expect_long.exp &&
 bash <(curl -s https://codecov.io/bash)
