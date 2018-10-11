@@ -14,13 +14,16 @@ addons:
 stages:
   - prep
   - basic
+  - info
   - create
   - pause
+  - find
   - alerts
   - stats
   - delete
   - unpause
   - reset
+  - cleanup
 jobs:
   include:
     - stage: prep
@@ -33,8 +36,6 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -f
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --find
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
@@ -49,6 +50,10 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
+    - stage: find
+      script:
+        - sudo expect ./Travis/find_expect_short.exp
+        - sudo expect ./Travis/find_expect_long.exp
     - stage: alerts
       script:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
@@ -59,8 +64,8 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
     - stage: delete
       script:
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -d 'travisone'
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --delete 'travistwo'
+        - sudo expect ./Travis/delete_expect_short.exp
+        - sudo expect ./Travis/delete_expect_long.exp
     - stage: info
       script:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
@@ -77,6 +82,9 @@ jobs:
       script:
         - sudo expect ./Travis/reset_expect_short.exp
         - sudo expect ./Travis/reset_expect_long.exp
+    - stage: cleanup
+      script:
+        - sudo expect ./Travis/cleanup.exp
 after_success: |
   wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
   tar xzf master.tar.gz &&
