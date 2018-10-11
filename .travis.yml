@@ -11,6 +11,7 @@ addons:
       - libelf-dev
       - libdw-dev
       - cmake
+      - kcov
 jobs:
   include:
     - stage: test
@@ -51,21 +52,11 @@ jobs:
         - sudo expect ./Travis/reset_expect_long.exp
         - sudo expect ./Travis/cleanup.exp
 after_success: |
-  wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-  tar xzf master.tar.gz &&
-  cd kcov-master &&
-  mkdir build &&
-  cd build &&
-  cmake .. &&
-  make &&
-  sudo make install &&
-  cd ../.. &&
-  rm -rf kcov-master &&
   mkdir -p coverage &&
-  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh &&
-  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h &&
-  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help &&
-  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l &&
+  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
+  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -h &&
+  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --help &&
+  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --list &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --no-prompt &&
