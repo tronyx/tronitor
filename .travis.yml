@@ -62,10 +62,10 @@ after_success: |
   cd ../.. &&
   rm -rf kcov-master &&
   mkdir -p coverage &&
-  kcov coverage sudo ./Travis/travis_uptimerobot_monitor_utility.sh &&
-  kcov coverage sudo ./Travis/travis_uptimerobot_monitor_utility.sh -h &&
-  kcov coverage sudo ./Travis/travis_uptimerobot_monitor_utility.sh --help &&
-  kcov coverage sudo ./Travis/travis_uptimerobot_monitor_utility.sh -l &&
+  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh &&
+  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h &&
+  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help &&
+  kcov coverage sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --list &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --no-prompt &&
