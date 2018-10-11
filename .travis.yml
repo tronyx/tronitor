@@ -53,10 +53,10 @@ jobs:
         - sudo expect ./Travis/cleanup.exp
 after_success: |
   mkdir -p coverage &&
-  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
-  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -h &&
-  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --help &&
-  sudo kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
+  sudo kcov coverage ./Travis/travis_uptimerobot_monitor_utility.sh &&
+  sudo kcov coverage ./Travis/travis_uptimerobot_monitor_utility.sh -h &&
+  sudo kcov coverage ./Travis/travis_uptimerobot_monitor_utility.sh --help &&
+  sudo kcov coverage ./Travis/travis_uptimerobot_monitor_utility.sh -l &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --list &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
   kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --no-prompt &&
