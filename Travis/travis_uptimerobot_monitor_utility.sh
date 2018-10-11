@@ -6,7 +6,7 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Declare some variables
-. /Config/vars.cfg
+. Config/vars.cfg
 
 # Edit these to finish setting up the script
 # Specify UptimeRobot API key
@@ -33,10 +33,10 @@ notifyAll='false'
 #fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
 
 # Source usage function
-. /Config/usage.cfg
+. Config/usage.cfg
 
 # Source cmdline function
-. /Config/cmdline.cfg
+. Config/cmdline.cfg
 
 # Some basic checks
 checks() {
