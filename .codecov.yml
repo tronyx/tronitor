@@ -1,14 +1,14 @@
 coverage:
   ignore:
     - "Travis/cleanup.exp"
-    - "Travis/delete_expect_long.exp"
-    - "Travis/delete_expect_short.exp"
-    - "Travis/find_expect_long.exp"
-    - "Travis/find_expect_short.exp"
-    - "Travis/prep.sh"
-    - "Travis/reset_expect_long.exp"
-    - "Travis/reset_expect_short.exp"
-    - "Config/*"
+    #- "Travis/delete_expect_long.exp"
+    #- "Travis/delete_expect_short.exp"
+    #- "Travis/find_expect_long.exp"
+    #- "Travis/find_expect_short.exp"
+    #- "Travis/prep.sh"
+    #- "Travis/reset_expect_long.exp"
+    #- "Travis/reset_expect_short.exp"
+    #- "Config/*"
   status:
     patch: false
   range: 50...75
