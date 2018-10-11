@@ -8,6 +8,7 @@ coverage:
     - "Travis/prep.sh"
     - "Travis/reset_expect_long.exp"
     - "Travis/reset_expect_short.exp"
+    - "Config/*"
   status:
     patch: false
   range: 50...75
