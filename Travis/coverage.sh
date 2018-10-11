@@ -21,6 +21,8 @@ echo 'Running kcov for no argument for option that requires one' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c &&
 echo 'Running kcov for non-existent option' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -x &&
+#echo 'Running kcov for missing webhook URL' &&
+#kcov coverage expect ./Travis/webhook_empty_expect.exp
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -l' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --list' &&
