@@ -14,6 +14,7 @@ addons:
 jobs:
   include:
     - stage: test
+      script:
         - sudo bash ./Travis/prep.sh
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
