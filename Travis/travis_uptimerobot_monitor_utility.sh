@@ -6,7 +6,39 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Declare some variables
-. Config/vars.cfg
+# Temp dir and filenames
+tempDir='temp'
+apiTestFullFile="${tempDir}api_test_full.txt"
+badMonitorsFile="${tempDir}bad_monitors.txt"
+convertedMonitorsFile="${tempDir}converted_monitors.txt"
+friendlyListFile="${tempDir}friendly_list.txt"
+pausedMonitorsFile="${tempDir}paused_monitors.txt"
+specifiedMonitorsFile="${tempDir}specified_monitors.txt"
+urMonitorsFile="${tempDir}ur_monitors.txt"
+urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
+validMonitorsFile="${tempDir}valid_monitors.txt"
+validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
+newHttpMonitorConfigFile='Templates/new-http-monitor.json'
+newPortMonitorConfigFile='Templates/new-port-monitor.json'
+newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
+newPingMonitorConfigFile='Templates/new-ping-monitor.json'
+# Set initial API key status
+apiKeyStatus='invalid'
+#logFile="${tempDir}uptimerobot_monitor_utility.log"
+# Arguments
+readonly args=("$@")
+# UptimeRobot API URL
+readonly apiUrl='https://api.uptimerobot.com/v2/'
+# Colors
+readonly blu='\e[34m'
+readonly lblu='\e[94m'
+readonly grn='\e[32m'
+readonly red='\e[31m'
+readonly ylw='\e[33m'
+readonly org='\e[38;5;202m'
+readonly lorg='\e[38;5;130m'
+readonly mgt='\e[35m'
+readonly endColor='\e[0m'
 
 # Edit these to finish setting up the script
 # Specify UptimeRobot API key
@@ -32,11 +64,156 @@ notifyAll='false'
 #error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; }
 #fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
 
-# Source usage function
-. Config/usage.cfg
+# Define usage and script options
+usage() {
+  cat <<- EOF
 
-# Source cmdline function
-. Config/cmdline.cfg
+  Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
+
+  $(echo -e "${grn}"-s/--stats"${endColor}")            List account statistics.
+  $(echo -e "${grn}"-l/--list"${endColor}")             List all UptimeRobot monitors.
+  $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused UptimeRobot monitors.
+  $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
+  $(echo -e "${grn}"-w/--webhook"${endColor}")          Find all paused UptimeRobot monitors without an unpause prompt and
+                        send an alert to the Discord webhook specified in the script.
+  $(echo -e "${grn}"-i/--info"${endColor}" "${ylw}"VALUE"${endColor}")       List all information for the specified monitor.
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"18095689"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--info"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+  $(echo -e "${grn}"-a/--alerts"${endColor}")           List all alert contacts.
+  $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
+                        of monitors by ID or Friendly Name. Friendly Name should be wrapped in
+                        a set of single or double quotes, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+  $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
+                        Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
+                        of monitors by ID or Friendly Name. Friendly Name should be wrapped in
+                        a set of single or double quotes, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding JSON file. Each type of test
+                        (HTTP, Ping, Port, & Keyword) as a JSOn template in the Templates directory.
+                        Just edit the JSON file for the monitor type you wish to create and then run
+                        the script with the corresponding monitor type, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"port"${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"keyword"${endColor}")"
+  $(echo -e "${grn}"-d/--delete"${endColor}" "${ylw}"VALUE"${endColor}")     Delete the specified monitor, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--delete"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"18095688"${endColor}")"
+  $(echo -e "${grn}"-r/--reset"${endColor}" "${ylw}"VALUE"${endColor}")      Reset the specified monitor, IE:
+                          A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--reset"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"18095688"${endColor}")"
+  $(echo -e "${grn}"-h/--help"${endColor}")             Display this usage dialog.
+
+EOF
+
+}
+
+# Define script options
+cmdline() {
+  local arg=
+  local local_args
+  local OPTERR=0
+  for arg
+  do
+    local delim=""
+    case "${arg}" in
+      # Translate --gnu-long-options to -g (short options)
+      --stats)      local_args="${local_args}-s " ;;
+      --list)       local_args="${local_args}-l " ;;
+      --find)       local_args="${local_args}-f " ;;
+      --no-prompt)  local_args="${local_args}-n " ;;
+      --webhook)    local_args="${local_args}-w " ;;
+      --info)       local_args="${local_args}-i " ;;
+      --alerts)     local_args="${local_args}-a " ;;
+      --create)     local_args="${local_args}-c " ;;
+      --pause)      local_args="${local_args}-p " ;;
+      --unpause)    local_args="${local_args}-u " ;;
+      --reset)      local_args="${local_args}-r " ;;
+      --delete)     local_args="${local_args}-d " ;;
+      --help)       local_args="${local_args}-h " ;;
+      # Pass through anything else
+      *) [[ "${arg:0:1}" == "-" ]] || delim="\""
+        local_args="${local_args:-}${delim}${arg}${delim} " ;;
+    esac
+  done
+
+  # Reset the positional parameters to the short options
+  eval set -- "${local_args:-}"
+
+  while getopts "hslfnwai:c:r:d:p:u:" OPTION
+    do
+    case "$OPTION" in
+      s)
+        stats=true
+        ;;
+      l)
+        list=true
+        ;;
+      f)
+        find=true
+        prompt=true
+        ;;
+      n)
+        find=true
+        prompt=false
+        ;;
+      w)
+        find=true
+        prompt=false
+        webhook=true
+        ;;
+      a)
+        alerts=true
+        ;;
+      i)
+        info=true
+        infoType="${OPTARG}"
+        ;;
+      c)
+        create=true
+        createType="${OPTARG}"
+        ;;
+      r)
+        reset=true
+        resetType="${OPTARG}"
+        ;;
+      d)
+        delete=true
+        deleteType="${OPTARG}"
+        ;;
+      p)
+        pause=true
+        pauseType="${OPTARG}"
+        ;;
+      u)
+        unpause=true
+        unpauseType="${OPTARG}"
+        ;;
+      h)
+        usage
+        exit
+        ;;
+      *)
+        if [[ "${arg}" == '-p' || "${arg}" == '-u' || "${arg}" == '-r' || "${arg}" == '-d' || "${arg}" == '-i' || "${arg}" == '-c' ]] && [[ -z "${OPTARG}" ]]; then
+          echo -e "${red}Option ${arg} requires an argument!${endColor}"
+        else
+          echo -e "${red}You are specifying a non-existent option!${endColor}"
+        fi
+        usage
+        exit
+        ;;
+    esac
+  done
+  return 0
+}
 
 # Some basic checks
 checks() {
@@ -53,7 +230,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "12 s/webhookUrl='[^']*'/webhookUrl='${url}'/" "$0"
+  sed -i "53 s/webhookUrl='[^']*'/webhookUrl='${url}'/" "$0"
   webhookUrl="${url}"
 else
   :
@@ -80,17 +257,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "46 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "46 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "26 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi
