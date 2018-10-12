@@ -70,7 +70,7 @@ readonly endColor='\e[0m'
 #fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
 
 # Source usage function
-. Config/usage.cfg
+. Travis/Config/usage.cfg
 
 # Define script options
 cmdline() {

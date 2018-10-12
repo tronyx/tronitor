@@ -5,7 +5,7 @@ coverage:
     - "Travis/coverage.sh"
     - "Travis/cleanup.sh"
     - "Travis/sleep.sh"
-    - "Config/*"
+    - "Travis/Config/*"
   status:
     patch: false
   range: 50...75
