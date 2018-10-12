@@ -1,9 +1,8 @@
 coverage:
   ignore:
-    - "Travis/*.exp"
+    - "Travis/Expects/*"
     - "Travis/prep.sh"
     - "Travis/coverage.sh"
-    - "Travis/expect_wrapper.sh"
     - "Config/*"
   status:
     patch: false

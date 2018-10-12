@@ -20,8 +20,8 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne
-        - sudo expect ./Travis/webhook_empty_expect_short.exp
-        - sudo expect ./Travis/webhook_empty_expect_long.exp
+        - sudo expect ./Travis/Expects/webhook_empty_expect_short.exp
+        - sudo expect ./Travis/Expects/webhook_empty_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
@@ -36,18 +36,18 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --info 'travistwo'
-        - sudo expect ./Travis/delete_expect_short.exp
-        - sudo expect ./Travis/delete_expect_long.exp
+        - sudo expect ./Travis/Expects/delete_expect_short.exp
+        - sudo expect ./Travis/Expects/delete_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p GooglePing
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --pause all
-        - sudo expect ./Travis/find_expect_short.exp
-        - sudo expect ./Travis/find_expect_long.exp
+        - sudo expect ./Travis/Expects/find_expect_short.exp
+        - sudo expect ./Travis/Expects/find_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
-        - sudo expect ./Travis/reset_expect_short.exp
-        - sudo expect ./Travis/reset_expect_long.exp
-        - sudo expect ./Travis/pause_invalid_expect.exp
-        - sudo expect ./Travis/cleanup.exp
+        - sudo expect ./Travis/Expects/reset_expect_short.exp
+        - sudo expect ./Travis/Expects/reset_expect_long.exp
+        - sudo expect ./Travis/Expects/pause_invalid_expect.exp
+        - sudo expect ./Travis/Expects/cleanup.exp
 after_success:
   - bash ./Travis/coverage.sh
-  - sudo expect ./Travis/cleanup.exp
+  - sudo expect ./Travis/Expects/cleanup.exp
