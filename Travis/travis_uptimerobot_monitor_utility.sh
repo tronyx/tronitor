@@ -6,7 +6,39 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Declare some variables
-. Config/vars.cfg
+# Temp dir and filenames
+tempDir='temp'
+apiTestFullFile="${tempDir}api_test_full.txt"
+badMonitorsFile="${tempDir}bad_monitors.txt"
+convertedMonitorsFile="${tempDir}converted_monitors.txt"
+friendlyListFile="${tempDir}friendly_list.txt"
+pausedMonitorsFile="${tempDir}paused_monitors.txt"
+specifiedMonitorsFile="${tempDir}specified_monitors.txt"
+urMonitorsFile="${tempDir}ur_monitors.txt"
+urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
+validMonitorsFile="${tempDir}valid_monitors.txt"
+validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
+newHttpMonitorConfigFile='Templates/new-http-monitor.json'
+newPortMonitorConfigFile='Templates/new-port-monitor.json'
+newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
+newPingMonitorConfigFile='Templates/new-ping-monitor.json'
+# Set initial API key status
+apiKeyStatus='invalid'
+#logFile="${tempDir}uptimerobot_monitor_utility.log"
+# Arguments
+readonly args=("$@")
+# UptimeRobot API URL
+readonly apiUrl='https://api.uptimerobot.com/v2/'
+# Colors
+readonly blu='\e[34m'
+readonly lblu='\e[94m'
+readonly grn='\e[32m'
+readonly red='\e[31m'
+readonly ylw='\e[33m'
+readonly org='\e[38;5;202m'
+readonly lorg='\e[38;5;130m'
+readonly mgt='\e[35m'
+readonly endColor='\e[0m'
 
 # Edit these to finish setting up the script
 # Specify UptimeRobot API key
@@ -35,8 +67,104 @@ notifyAll='false'
 # Source usage function
 . Config/usage.cfg
 
-# Source cmdline function
-. Config/cmdline.cfg
+# Define script options
+cmdline() {
+  local arg=
+  local local_args
+  local OPTERR=0
+  for arg
+  do
+    local delim=""
+    case "${arg}" in
+      # Translate --gnu-long-options to -g (short options)
+      --stats)      local_args="${local_args}-s " ;;
+      --list)       local_args="${local_args}-l " ;;
+      --find)       local_args="${local_args}-f " ;;
+      --no-prompt)  local_args="${local_args}-n " ;;
+      --webhook)    local_args="${local_args}-w " ;;
+      --info)       local_args="${local_args}-i " ;;
+      --alerts)     local_args="${local_args}-a " ;;
+      --create)     local_args="${local_args}-c " ;;
+      --pause)      local_args="${local_args}-p " ;;
+      --unpause)    local_args="${local_args}-u " ;;
+      --reset)      local_args="${local_args}-r " ;;
+      --delete)     local_args="${local_args}-d " ;;
+      --help)       local_args="${local_args}-h " ;;
+      # Pass through anything else
+      *) [[ "${arg:0:1}" == "-" ]] || delim="\""
+        local_args="${local_args:-}${delim}${arg}${delim} " ;;
+    esac
+  done
+
+  # Reset the positional parameters to the short options
+  eval set -- "${local_args:-}"
+
+  while getopts "hslfnwai:c:r:d:p:u:" OPTION
+    do
+    case "$OPTION" in
+      s)
+        stats=true
+        ;;
+      l)
+        list=true
+        ;;
+      f)
+        find=true
+        prompt=true
+        ;;
+      n)
+        find=true
+        prompt=false
+        ;;
+      w)
+        find=true
+        prompt=false
+        webhook=true
+        ;;
+      a)
+        alerts=true
+        ;;
+      i)
+        info=true
+        infoType="${OPTARG}"
+        ;;
+      c)
+        create=true
+        createType="${OPTARG}"
+        ;;
+      r)
+        reset=true
+        resetType="${OPTARG}"
+        ;;
+      d)
+        delete=true
+        deleteType="${OPTARG}"
+        ;;
+      p)
+        pause=true
+        pauseType="${OPTARG}"
+        ;;
+      u)
+        unpause=true
+        unpauseType="${OPTARG}"
+        ;;
+      h)
+        usage
+        exit
+        ;;
+      *)
+        if [[ "${arg}" == '-p' || "${arg}" == '-u' || "${arg}" == '-r' || "${arg}" == '-d' || "${arg}" == '-i' || "${arg}" == '-c' ]] && [[ -z "${OPTARG}" ]]; then
+          echo -e "${red}Option ${arg} requires an argument!${endColor}"
+        else
+          echo -e "${red}You are specifying a non-existent option!${endColor}"
+        fi
+        usage
+        exit
+        ;;
+    esac
+  done
+  return 0
+}
 
 # Some basic checks
 checks() {
@@ -53,7 +181,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "12 s/webhookUrl='[^']*'/webhookUrl='${url}'/" "$0"
+  sed -i "56 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
   webhookUrl="${url}"
 else
   :
@@ -63,7 +191,6 @@ fi
 # Create directory to neatly store temp files
 create_dir() {
   mkdir -p "${tempDir}"
-  chmod 777 "${tempDir}"
 }
 
 # Cleanup temp files
@@ -80,17 +207,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "46 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "46 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "26 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi

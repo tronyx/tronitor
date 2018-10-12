@@ -6,6 +6,6 @@ set timeout 10
 spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh --reset all
 
 expect "Are you sure you wish to continue? (\[Y\]es or \[N\]o):"
-send -- "y\r"
+send -- "n\r"
 
 expect eof
