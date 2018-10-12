@@ -11,8 +11,6 @@ sudo make install &&
 cd ../.. &&
 rm -rf kcov-master &&
 mkdir -p coverage &&
-echo 'Running kcov for Config/usage.cfg' &&
-kcov coverage Config/usage.cfg &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -h' &&

@@ -3,6 +3,7 @@ coverage:
     - "Travis/*.exp"
     - "Travis/prep.sh"
     - "Travis/coverage.sh"
+    - "Config/*"
   status:
     patch: false
   range: 50...75
