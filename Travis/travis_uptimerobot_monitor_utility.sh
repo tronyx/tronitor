@@ -26,7 +26,7 @@ notifyAll='false'
 # Declare some variables
 # Temp dir and filenames
 if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  tempDir='Travis/tmp/'
+  tempDir='Travis/'
 else
   # Enter your API key here
   tempDir='/tmp/uptimerobot_monitor_utility/'
