@@ -5,9 +5,32 @@
 set -eo pipefail
 IFS=$'\n\t'
 
+# Edit these to finish setting up the script
+# Specify UptimeRobot API key
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  apiKey="${travisApiKey}"
+else
+  # Enter your API key here
+  apiKey=''
+fi
+# Specify the Discord/Slack webhook URL to send notifications to
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  webhookUrl="${travisWebhookUrl}"
+else
+  # Enter your webhook URL here
+  webhookUrl=''
+fi
+# Set notifyAll to true for notification to apply for all running state as well
+notifyAll='false'
+
 # Declare some variables
 # Temp dir and filenames
-tempDir='temp/'
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  tempDir=''
+else
+  # Enter your API key here
+  tempDir='/tmp/uptimerobot_monitor_utility/'
+fi
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -39,24 +62,6 @@ readonly org='\e[38;5;202m'
 readonly lorg='\e[38;5;130m'
 readonly mgt='\e[35m'
 readonly endColor='\e[0m'
-
-# Edit these to finish setting up the script
-# Specify UptimeRobot API key
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  apiKey="${travisApiKey}"
-else
-  # Enter your API key here
-  apiKey=''
-fi
-# Specify the Discord/Slack webhook URL to send notifications to
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  webhookUrl="${travisWebhookUrl}"
-else
-  # Enter your webhook URL here
-  webhookUrl=''
-fi
-# Set notifyAll to true for notification to apply for all running state as well
-notifyAll='false'
 
 # Log functions
 #info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
@@ -181,7 +186,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "56 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
+  sed -i "21 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
   webhookUrl="${url}"
 else
   :
@@ -207,17 +212,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "46 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "14 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "46 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "14 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "26 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "49 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi
