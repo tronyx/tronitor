@@ -11,6 +11,8 @@ sudo make install &&
 cd ../.. &&
 rm -rf kcov-master &&
 mkdir -p coverage &&
+echo 'Running kcov for Config/usage.cfg' &&
+kcov coverage Config/usage.cfg &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -h' &&
@@ -21,8 +23,6 @@ echo 'Running kcov for no argument for option that requires one' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c &&
 echo 'Running kcov for non-existent option' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -x &&
-#echo 'Running kcov for missing webhook URL' &&
-#kcov coverage expect ./Travis/webhook_empty_expect.exp
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -l' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --list' &&
@@ -71,8 +71,8 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --info travistwo' &
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --info travistwo &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -p all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p all &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --pause all' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --pause all &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -f' &&
 #kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -f &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --find' &&

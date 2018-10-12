@@ -191,7 +191,6 @@ fi
 # Create directory to neatly store temp files
 create_dir() {
   mkdir -p "${tempDir}"
-  #chmod 777 "${tempDir}"
 }
 
 # Cleanup temp files
