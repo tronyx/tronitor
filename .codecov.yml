@@ -3,6 +3,7 @@ coverage:
     - "Travis/Expects/*"
     - "Travis/prep.sh"
     - "Travis/coverage.sh"
+    - "Travis/cleanup.sh"
     - "Config/*"
   status:
     patch: false
