@@ -1,7 +1,4 @@
 language: bash
-#branches:
-#  except:
-#    - develop
 sudo: required
 addons:
   apt:
@@ -53,3 +50,4 @@ jobs:
         - sudo expect ./Travis/cleanup.exp
 after_success:
   - bash ./Travis/coverage.sh
+  - sudo expect ./Travis/cleanup.exp
