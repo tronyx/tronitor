@@ -181,7 +181,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "53 s/webhookUrl='[^']*'/webhookUrl='${url}'/" "$0"
+  sed -i "56 s/webhookUrl='[^']*'/webhookUrl='${url}'/" "$0"
   webhookUrl="${url}"
 else
   :

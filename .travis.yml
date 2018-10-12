@@ -23,12 +23,11 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne
         - sudo expect ./Travis/webhook_empty_expect.exp
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create ping
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
