@@ -49,7 +49,7 @@ jobs:
         - sudo expect ./Travis/Expects/reset_expect_short.exp
         - sudo expect ./Travis/Expects/reset_expect_long.exp
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
-        - sudo bash ./Travis/cleanup.sh
+        - sudo expect ./Travis/Expects/cleanup.exp
 after_success:
   - bash ./Travis/coverage.sh
-  - sudo bash ./Travis/cleanup.sh
+  - sudo expect ./Travis/Expects/cleanup.exp

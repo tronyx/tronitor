@@ -15,6 +15,8 @@ echo 'Running kcov for no monitors within account' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
 echo 'Creating Travis test monitors' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/prep.sh &&
+echo 'Sleeping to allow tests to be checked' &&
+sleep 600 &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -h' &&
