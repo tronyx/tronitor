@@ -79,6 +79,10 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --unpause all' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh --unpause all &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --list' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh --list &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -d TravisOne' &&
+kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh -d TravisOne &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --delete TravisTwo' &&
+kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh --delete TravisTwo &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -r all' &&
 #kcov coverage Travis/expect_wrapper.sh Travis/reset_expect_short.exp &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --reset all' &&
