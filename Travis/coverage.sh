@@ -33,9 +33,11 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --no-prompt' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --no-prompt &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -w' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -w &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --webhook' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p GooglePing &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --webhook &&
+#echo 'Running kcov for empty webhookUrl' &&
+# kcov coverage Travis/webhook_empty_expect.exp &&
+#echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --webhook' &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne &&
+#kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --webhook &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -c http' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c http &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --create http' &&

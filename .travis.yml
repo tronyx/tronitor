@@ -21,6 +21,7 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -x
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne
         - sudo expect ./Travis/webhook_empty_expect.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
@@ -29,12 +30,8 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -w
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
-        #- sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create http
-        #- sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c ping
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create ping
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
-        #- sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create port
-        #- sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c keyword
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c foobar
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
