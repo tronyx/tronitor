@@ -31,8 +31,6 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --no-prompt' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --no-prompt &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -w' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -w &&
 #echo 'Running kcov for empty short webhook' &&
 # kcov coverage Travis/webhook_empty_expect_short.exp &&
 #echo 'Running kcov for empty long webhook' &&
