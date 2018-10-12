@@ -13,6 +13,8 @@ rm -rf kcov-master &&
 mkdir -p coverage &&
 echo 'Running kcov for no monitors within account' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
+echo 'Creating Travis test monitors' &&
+kcov coverage Travis/prep.sh &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -h' &&
@@ -23,8 +25,6 @@ echo 'Running kcov for no argument for option that requires one' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c &&
 echo 'Running kcov for non-existent option' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -x &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --list' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --list &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --no-prompt' &&
@@ -60,6 +60,8 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -s' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -s &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --stats' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --stats &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --list' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --list &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -d all' &&
 #kcov coverage Travis/delete_expect_short.exp &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --delete all' &&

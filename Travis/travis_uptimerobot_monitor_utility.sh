@@ -7,7 +7,7 @@ IFS=$'\n\t'
 
 # Declare some variables
 # Temp dir and filenames
-tempDir='temp'
+tempDir='temp/'
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
