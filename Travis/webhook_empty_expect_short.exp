@@ -1,9 +1,9 @@
-#!/usr/bin/expect -df
+#!/usr/bin/expect -f
 #!/usr/bin/env bash
 
 set timeout 10
 
-spawn sudo bash -x Travis/travis_uptimerobot_monitor_utility.sh --webhook
+spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh --webhook
 
 expect "Enter your webhook URL: "
 send -- "https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack\r"
