@@ -52,4 +52,4 @@ jobs:
         - sudo bash ./Travis/cleanup.sh
 after_success:
   - bash ./Travis/coverage.sh
-  - sudo expect ./Travis/Expects/cleanup.exp
+  - sudo bash ./Travis/cleanup.sh
