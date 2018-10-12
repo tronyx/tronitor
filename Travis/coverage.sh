@@ -59,10 +59,16 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -i travisone' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh -i travisone &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --info travistwo' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh --info travistwo &&
+echo 'Running kcov for info option with invalid monitor' &&
+kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh -i foobar &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
+kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -p all' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh -p all &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword' &&
 kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
+kcov --exclude-line=14,21,32,87,89,95,96,117,118,141,142,145,146,252,285,287,354,355,360,391,399,401,412,420,449,459,638,657 --exclude-region=125:127,186:190,210:226,268:271,309:311,320:327,333:344,370:375464:471,526:617,641:650,686:696,699:709 coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -f' &&
 #kcov coverage Travis/expect_wrapper.sh Travis/travis_uptimerobot_monitor_utility.sh -f &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --find' &&
