@@ -4,6 +4,7 @@ coverage:
     - "Travis/prep.sh"
     - "Travis/coverage.sh"
     - "Travis/cleanup.sh"
+    - "Travis/sleep.sh"
     - "Config/*"
   status:
     patch: false
