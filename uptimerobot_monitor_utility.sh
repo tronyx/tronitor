@@ -495,16 +495,16 @@ unpause_specified_monitors() {
 
 # Send Discord notification
 send_notification() {
-  if [ "${webhookUrl}" = "" ]; then
-    echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
-  else
+  #if [ "${webhookUrl}" = "" ]; then
+  #  echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
+  #else
     if [ -s "${pausedMonitorsFile}" ]; then
       pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
     elif [ "${notifyAll}" = "true" ]; then
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
     fi
-  fi
+  #fi
 }
 
 # Create a new monitor
@@ -640,7 +640,7 @@ delete_specified_monitors() {
   else
     convert_friendly_monitors
   fi
-  delete_prompt
+  #delete_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
