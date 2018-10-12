@@ -11,6 +11,8 @@ sudo make install &&
 cd ../.. &&
 rm -rf kcov-master &&
 mkdir -p coverage &&
+echo 'Running kcov for no monitors within account' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -h' &&
@@ -21,8 +23,6 @@ echo 'Running kcov for no argument for option that requires one' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -c &&
 echo 'Running kcov for non-existent option' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -x &&
-echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -l' &&
-kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --list' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --list &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&

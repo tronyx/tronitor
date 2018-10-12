@@ -3,6 +3,7 @@ coverage:
     - "Travis/*.exp"
     - "Travis/prep.sh"
     - "Travis/coverage.sh"
+    - "Travis/expect_wrapper.sh"
     - "Config/*"
   status:
     patch: false
