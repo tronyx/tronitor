@@ -85,7 +85,7 @@ usage() {
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding JSON file. Each type of test
-                        (HTTP, Ping, Port, & Keyword) as a JSOn template in the Templates directory.
+                        (HTTP, Ping, Port, & Keyword) as a JSON template in the Templates directory.
                         Just edit the JSON file for the monitor type you wish to create and then run
                         the script with the corresponding monitor type, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
