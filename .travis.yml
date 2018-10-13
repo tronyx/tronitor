@@ -21,7 +21,8 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne
         - sudo expect ./Travis/Expects/webhook_empty_expect_short.exp
-        - sudo expect ./Travis/Expects/webhook_empty_expect_long.exp
+        #- sudo expect ./Travis/Expects/webhook_empty_expect_long.exp
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
