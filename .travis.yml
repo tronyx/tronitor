@@ -12,7 +12,7 @@ jobs:
   include:
     - stage: test
       script:
-        - sudo expect ./Travis/api_key_expect.exp
+        - sudo expect ./Travis/Expects/api_key_expect.exp
         - sudo bash ./Travis/prep.sh
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c
