@@ -25,7 +25,6 @@ notifyAll='false'
 if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
   tempDir='Travis/'
 else
-  # Set temp dir
   tempDir='/tmp/uptimerobot_monitor_utility/'
 fi
 apiTestFullFile="${tempDir}api_test_full.txt"
