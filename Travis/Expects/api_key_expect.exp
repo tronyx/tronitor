@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh -l
+
+expect "Enter your API key: "
+send -- {${travisApiKey}\r}
+
+expect eof

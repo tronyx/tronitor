@@ -6,7 +6,7 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Specify UptimeRobot API key
-apiKey="${travisApiKey}"
+apiKey=''
 
 # Specify the Discord/Slack webhook URL to send notifications to
 webhookUrl=''
