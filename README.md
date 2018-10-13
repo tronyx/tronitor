@@ -4,7 +4,7 @@
 
 A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
 
-It is recommended that you install the JQ package as the script uses it to automatically format the JSON output into a much more human-readable and colorized output. If you do not install you will see errors about the `jq` command not being found and it may impact the functionality of the script.
+It is recommended that you install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. If you do not install you will see errors about the `jq` command not being found and it may impact the functionality of the script.
 
 ```bash
 tronyx@suladan:~$ sudo apt install jq
