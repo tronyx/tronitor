@@ -176,7 +176,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "21 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
+  sed -i "18 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
   webhookUrl="${url}"
 else
   :

@@ -74,7 +74,7 @@ kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -p all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p all &&
 echo 'Running kcov for notification option' &&
-sed -i "21 s|webhookUrl='[^']*'|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_uptimerobot_monitor_utility.sh &&
+sed -i "18 s|webhookUrl='[^']*'|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_uptimerobot_monitor_utility.sh &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -w &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword &&
