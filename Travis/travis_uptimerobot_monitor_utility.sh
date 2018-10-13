@@ -5,9 +5,28 @@
 set -eo pipefail
 IFS=$'\n\t'
 
+# Specify UptimeRobot API key
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  apiKey="${travisApiKey}"
+else
+  apiKey=''
+fi
+# Specify the Discord/Slack webhook URL to send notifications to
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  webhookUrl="${travisWebhookUrl}"
+else
+  webhookUrl=''
+fi
+# Set notifyAll to true for notification to apply for all running state as well
+notifyAll='false'
+
 # Declare some variables
 # Temp dir and filenames
-tempDir='temp'
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  tempDir='Travis/'
+else
+  tempDir='/tmp/uptimerobot_monitor_utility/'
+fi
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -24,7 +43,6 @@ newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
 newPingMonitorConfigFile='Templates/new-ping-monitor.json'
 # Set initial API key status
 apiKeyStatus='invalid'
-#logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
 # UptimeRobot API URL
@@ -40,32 +58,8 @@ readonly lorg='\e[38;5;130m'
 readonly mgt='\e[35m'
 readonly endColor='\e[0m'
 
-# Edit these to finish setting up the script
-# Specify UptimeRobot API key
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  apiKey="${travisApiKey}"
-else
-  # Enter your API key here
-  apiKey=''
-fi
-# Specify the Discord/Slack webhook URL to send notifications to
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  webhookUrl="${travisWebhookUrl}"
-else
-  # Enter your webhook URL here
-  webhookUrl=''
-fi
-# Set notifyAll to true for notification to apply for all running state as well
-notifyAll='false'
-
-# Log functions
-#info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
-#warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${LOG_FILE}" >&2 ; }
-#error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; }
-#fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
-
 # Source usage function
-. Config/usage.cfg
+. Travis/Config/usage.cfg
 
 # Define script options
 cmdline() {
@@ -181,7 +175,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "56 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
+  sed -i "21 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
   webhookUrl="${url}"
 else
   :
@@ -207,17 +201,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "46 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "14 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "46 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "14 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "26 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "49 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi
@@ -456,15 +450,11 @@ unpause_specified_monitors() {
 
 # Send Discord notification
 send_notification() {
-  if [ "${webhookUrl}" = "" ]; then
-    echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
-  else
-    if [ -s "${pausedMonitorsFile}" ]; then
-      pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
-    elif [ "${notifyAll}" = "true" ]; then
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
-    fi
+  if [ -s "${pausedMonitorsFile}" ]; then
+    pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
+    curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+  elif [ "${notifyAll}" = "true" ]; then
+    curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
   fi
 }
 
@@ -601,7 +591,7 @@ delete_specified_monitors() {
   else
     convert_friendly_monitors
   fi
-  delete_prompt
+  #delete_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')

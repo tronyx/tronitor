@@ -85,7 +85,7 @@ usage() {
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding JSON file. Each type of test
-                        (HTTP, Ping, Port, & Keyword) as a JSOn template in the Templates directory.
+                        (HTTP, Ping, Port, & Keyword) as a JSON template in the Templates directory.
                         Just edit the JSON file for the monitor type you wish to create and then run
                         the script with the corresponding monitor type, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
@@ -495,16 +495,16 @@ unpause_specified_monitors() {
 
 # Send Discord notification
 send_notification() {
-  if [ "${webhookUrl}" = "" ]; then
-    echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
-  else
+  #if [ "${webhookUrl}" = "" ]; then
+  #  echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
+  #else
     if [ -s "${pausedMonitorsFile}" ]; then
       pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
     elif [ "${notifyAll}" = "true" ]; then
       curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
     fi
-  fi
+  #fi
 }
 
 # Create a new monitor
@@ -640,7 +640,7 @@ delete_specified_monitors() {
   else
     convert_friendly_monitors
   fi
-  delete_prompt
+  #delete_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
