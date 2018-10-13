@@ -12,6 +12,7 @@ sudo make install &&
 cd ../.. &&
 rm -rf kcov-master &&
 mkdir -p coverage &&
+kcov=true
 echo 'Running kcov for no monitors within account' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -l &&
 echo 'Creating Travis test monitors' &&
