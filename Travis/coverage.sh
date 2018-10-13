@@ -73,8 +73,10 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -p all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p all &&
-echo 'Running kcov for notification option' &&
+echo 'Running kcov for short notification option' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -w &&
+echo 'Running kcov for long notification option' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --webhook &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&

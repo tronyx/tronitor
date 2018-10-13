@@ -8,6 +8,9 @@ set apiKey $::env(travisApiKey)
 spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh -l
 
 expect "Enter your API key: "
+send -- "this-is-a-bad-api-key"
+
+expect "Enter your API key: "
 send -- "$apiKey\r"
 
 expect eof
