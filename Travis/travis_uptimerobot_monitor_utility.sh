@@ -5,19 +5,16 @@
 set -eo pipefail
 IFS=$'\n\t'
 
-# Edit these to finish setting up the script
 # Specify UptimeRobot API key
 if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
   apiKey="${travisApiKey}"
 else
-  # Enter your API key here
   apiKey=''
 fi
 # Specify the Discord/Slack webhook URL to send notifications to
 if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
   webhookUrl="${travisWebhookUrl}"
 else
-  # Enter your webhook URL here
   webhookUrl=''
 fi
 # Set notifyAll to true for notification to apply for all running state as well
@@ -47,7 +44,6 @@ newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
 newPingMonitorConfigFile='Templates/new-ping-monitor.json'
 # Set initial API key status
 apiKeyStatus='invalid'
-#logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
 # UptimeRobot API URL
@@ -62,12 +58,6 @@ readonly org='\e[38;5;202m'
 readonly lorg='\e[38;5;130m'
 readonly mgt='\e[35m'
 readonly endColor='\e[0m'
-
-# Log functions
-#info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
-#warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${LOG_FILE}" >&2 ; }
-#error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; }
-#fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
 
 # Source usage function
 . Travis/Config/usage.cfg
@@ -199,10 +189,10 @@ create_dir() {
 }
 
 # Cleanup temp files
-cleanup() {
-  rm -rf "${tempDir}"*.txt || true
-}
-trap 'cleanup' 0 1 2 3 6 14 15
+#cleanup() {
+#  rm -rf "${tempDir}"*.txt || true
+#}
+#trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
@@ -461,16 +451,12 @@ unpause_specified_monitors() {
 
 # Send Discord notification
 send_notification() {
-  #if [ "${webhookUrl}" = "" ]; then
-  #  echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
-  #else
-    if [ -s "${pausedMonitorsFile}" ]; then
-      pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
-    elif [ "${notifyAll}" = "true" ]; then
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
-    fi
-  #fi
+  if [ -s "${pausedMonitorsFile}" ]; then
+    pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
+    curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+  elif [ "${notifyAll}" = "true" ]; then
+    curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
+  fi
 }
 
 # Create a new monitor

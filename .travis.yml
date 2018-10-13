@@ -36,9 +36,7 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --info 'travistwo'
-        #- sudo expect ./Travis/Expects/delete_expect_short.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -d 'travisone'
-        #- sudo expect ./Travis/Expects/delete_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --delete 'travistwo'
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p GooglePing
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --pause all
