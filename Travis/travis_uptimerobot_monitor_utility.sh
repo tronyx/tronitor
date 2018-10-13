@@ -13,7 +13,7 @@ else
 fi
 # Specify the Discord/Slack webhook URL to send notifications to
 if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  if [ ${kcov} = true ]; then
+  if [ "${kcov}" = 'true' ]; then
     webhookUrl="${travisWebhookUrl}"
   else
     webhookUrl=''
