@@ -185,7 +185,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "18 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
+  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
   webhookUrl="${url}"
 else
   :
@@ -200,17 +200,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "14 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "14 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "49 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "35 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi
