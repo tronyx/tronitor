@@ -49,8 +49,6 @@ jobs:
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
 after_success:
-  env:
-    global:
-      - webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'
+  - webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'
   - bash ./Travis/coverage.sh
   - sudo expect ./Travis/Expects/cleanup.exp
