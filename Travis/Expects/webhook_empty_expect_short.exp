@@ -3,7 +3,7 @@
 
 set timeout 10
 
-set webhookUrl "\$EMPTY_STRING%"
+#set webhookUrl "\$EMPTY_STRING%"
 
 spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh --webhook
 

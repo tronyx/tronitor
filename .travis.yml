@@ -20,6 +20,7 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne
+        - webhookUrl=''
         - sudo expect ./Travis/Expects/webhook_empty_expect_short.exp
         - sudo expect ./Travis/Expects/webhook_empty_expect_long.exp
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
