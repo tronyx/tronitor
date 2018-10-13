@@ -449,7 +449,6 @@ unpause_specified_monitors() {
 
 # Send Discord notification
 send_notification() {
-  webhookUrl="https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack"
   if [ -s "${pausedMonitorsFile}" ]; then
     pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
     curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
