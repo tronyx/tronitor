@@ -3,7 +3,7 @@
 
 set timeout 10
 
- set apiKey {$travisApiKey}
+set apiKey $::env(travisApiKey)
 
 spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh -l
 
