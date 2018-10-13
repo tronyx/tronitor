@@ -67,6 +67,7 @@ kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -i foobar &&
 echo 'Running kcov for info option with invalid monitor ID' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -i 123456789 &&
 echo 'Running kcov for info option with valid monitor ID' &&
+travisThreeId=$(curl -s -X POST getMonitors -d "api_key=${travisApiKey}"  -d "format=json" > foo; grep TravisThree foo |grep -Po '"id":[!0-9]*' foo |awk -F: '{print $2}')
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -i "${travisThreeId}" &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
