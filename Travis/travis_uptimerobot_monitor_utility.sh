@@ -150,6 +150,25 @@ cmdline() {
   return 0
 }
 
+# Create directory to neatly store temp files
+create_dir() {
+  mkdir -p "${tempDir}"
+  chmod 777 "${tempDir}"
+}
+
+# Cleanup temp files
+cleanup() {
+  rm -rf "${tempDir}"*.txt || true
+}
+trap 'cleanup' 0 1 2 3 6 14 15
+
+# Exit the script if the user hits CTRL+C
+function control_c() {
+  cleanup
+  exit
+}
+trap control_c SIGINT
+
 # Some basic checks
 checks() {
 # An option is provided
@@ -172,17 +191,6 @@ else
   :
 fi
 }
-
-# Create directory to neatly store temp files
-create_dir() {
-  mkdir -p "${tempDir}"
-}
-
-# Cleanup temp files
-cleanup() {
-  rm -rf "${tempDir}"*.txt || true
-}
-trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
