@@ -56,7 +56,9 @@ After entering your API key, the script will check whether or not it is valid an
 
 If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`.
 
-If you use the alert option, be sure to also enter in your Discord/Slack webhook URL.
+If you use the alert option, be sure to also enter in your Discord/Slack webhook URL. If you forget this as well, the script will also prompt you to enter it:
+
+![Webhook URL Prompt](/Images/webhook_url.png)
 
 ## Usage
 

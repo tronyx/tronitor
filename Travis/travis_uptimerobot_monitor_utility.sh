@@ -173,6 +173,7 @@ done
 # Alert set to true, but webhook not defined
 if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
+  echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
   sed -i "21 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
