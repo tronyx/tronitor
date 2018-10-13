@@ -6,31 +6,17 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Specify UptimeRobot API key
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  apiKey="${travisApiKey}"
-else
-  apiKey=''
-fi
+apiKey="${travisApiKey}"
+
 # Specify the Discord/Slack webhook URL to send notifications to
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  if [ "${kcov}" = 'true' ]; then
-    webhookUrl="${travisWebhookUrl}"
-  else
-    webhookUrl=''
-  fi
-else
-  webhookUrl=''
-fi
+webhookUrl=''
+
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
 
 # Declare some variables
 # Temp dir and filenames
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  tempDir='Travis/'
-else
-  tempDir='/tmp/uptimerobot_monitor_utility/'
-fi
+tempDir='Travis/'
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
