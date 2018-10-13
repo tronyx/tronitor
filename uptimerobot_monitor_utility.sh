@@ -318,8 +318,6 @@ display_all_monitors() {
     echo ''
   else
     :
-    #echo 'There are currently no monitors associated with your UptimeRobot account.'
-    echo ''
   fi
 }
 
