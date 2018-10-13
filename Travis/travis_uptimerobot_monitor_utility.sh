@@ -22,11 +22,11 @@ notifyAll='false'
 
 # Declare some variables
 # Temp dir and filenames
-#if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-#  tempDir='Travis/'
-#else
-#  tempDir='/tmp/uptimerobot_monitor_utility/'
-#fi
+if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
+  tempDir='Travis/'
+else
+  tempDir='/tmp/uptimerobot_monitor_utility/'
+fi
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -188,10 +188,10 @@ create_dir() {
 }
 
 # Cleanup temp files
-#cleanup() {
-#  rm -rf "${tempDir}"*.txt || true
-#}
-#trap 'cleanup' 0 1 2 3 6 14 15
+cleanup() {
+  rm -rf "${tempDir}"*.txt || true
+}
+trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
