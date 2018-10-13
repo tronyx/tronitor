@@ -273,8 +273,6 @@ display_all_monitors() {
     echo ''
   else
     :
-    #echo 'There are currently no monitors associated with your UptimeRobot account.'
-    echo ''
   fi
 }
 
@@ -494,6 +492,7 @@ get_stats() {
 # Display all stats for single specified monitor
 get_info() {
   echo "${infoType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
+  travisThreeId=$(curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}"  -d "format=json" > foo; grep TravisThree foo |grep -Po '"id":[!0-9]*' foo |awk -F: '{print $2}')
   check_bad_monitors
   convert_friendly_monitors
   curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json"
