@@ -204,6 +204,25 @@ cmdline() {
   return 0
 }
 
+# Create directory to neatly store temp files
+create_dir() {
+  mkdir -p "${tempDir}"
+  chmod 777 "${tempDir}"
+}
+
+# Cleanup temp files
+cleanup() {
+  rm -rf "${tempDir}"*.txt || true
+}
+trap 'cleanup' 0 1 2 3 6 14 15
+
+# Exit the script if the user hits CTRL+C
+function control_c() {
+  cleanup
+  exit
+}
+trap control_c SIGINT
+
 # Some basic checks
 checks() {
 # An option is provided
@@ -217,26 +236,15 @@ done
 # Alert set to true, but webhook not defined
 if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
+  echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "12 s/webhookUrl='[^']*'/webhookUrl='${url}'/" "$0"
+  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
   webhookUrl="${url}"
 else
   :
 fi
 }
-
-# Create directory to neatly store temp files
-create_dir() {
-  mkdir -p "${tempDir}"
-  chmod 777 "${tempDir}"
-}
-
-# Cleanup temp files
-cleanup() {
-  rm -rf "${tempDir}"*.txt || true
-}
-trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
@@ -317,8 +325,6 @@ display_all_monitors() {
     echo ''
   else
     :
-    #echo 'There are currently no monitors associated with your UptimeRobot account.'
-    echo ''
   fi
 }
 
@@ -495,16 +501,12 @@ unpause_specified_monitors() {
 
 # Send Discord notification
 send_notification() {
-  #if [ "${webhookUrl}" = "" ]; then
-  #  echo -e "${org}You didn't define your Discord webhook, skipping notification.${endColor}"
-  #else
-    if [ -s "${pausedMonitorsFile}" ]; then
-      pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
-    elif [ "${notifyAll}" = "true" ]; then
-      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
-    fi
-  #fi
+  if [ -s "${pausedMonitorsFile}" ]; then
+    pausedTests=$(paste -s -d, "${pausedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+    curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+  elif [ "${notifyAll}" = "true" ]; then
+    curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
+  fi
 }
 
 # Create a new monitor
@@ -640,7 +642,7 @@ delete_specified_monitors() {
   else
     convert_friendly_monitors
   fi
-  #delete_prompt
+  delete_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')

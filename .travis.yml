@@ -12,7 +12,7 @@ jobs:
   include:
     - stage: test
       script:
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -l
+        - sudo expect ./Travis/Expects/api_key_expect.exp
         - sudo bash ./Travis/prep.sh
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c
@@ -21,7 +21,7 @@ jobs:
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne
         - sudo expect ./Travis/Expects/webhook_empty_expect_short.exp
-        - sudo expect ./Travis/Expects/webhook_empty_expect_long.exp
+        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
         - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
@@ -49,5 +49,7 @@ jobs:
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
 after_success:
+  - sed -i "9 s/apiKey='[^']*'/apiKey='${travisApiKey}'/" Travis/travis_uptimerobot_monitor_utility.sh
+  - sed -i "12 s|webhookUrl='[^']*'|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_uptimerobot_monitor_utility.sh
   - bash ./Travis/coverage.sh
   - sudo expect ./Travis/Expects/cleanup.exp

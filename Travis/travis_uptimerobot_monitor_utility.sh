@@ -6,27 +6,17 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Specify UptimeRobot API key
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  apiKey="${travisApiKey}"
-else
-  apiKey=''
-fi
+apiKey=''
+
 # Specify the Discord/Slack webhook URL to send notifications to
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  webhookUrl="${travisWebhookUrl}"
-else
-  webhookUrl=''
-fi
+webhookUrl=''
+
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
 
 # Declare some variables
 # Temp dir and filenames
-if [[ ${CI:-} == true ]] && [[ ${TRAVIS:-} == true ]]; then
-  tempDir='Travis/'
-else
-  tempDir='/tmp/uptimerobot_monitor_utility/'
-fi
+tempDir='Travis/'
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -160,6 +150,25 @@ cmdline() {
   return 0
 }
 
+# Create directory to neatly store temp files
+create_dir() {
+  mkdir -p "${tempDir}"
+  chmod 777 "${tempDir}"
+}
+
+# Cleanup temp files
+cleanup() {
+  rm -rf "${tempDir}"*.txt || true
+}
+trap 'cleanup' 0 1 2 3 6 14 15
+
+# Exit the script if the user hits CTRL+C
+function control_c() {
+  cleanup
+  exit
+}
+trap control_c SIGINT
+
 # Some basic checks
 checks() {
 # An option is provided
@@ -173,25 +182,15 @@ done
 # Alert set to true, but webhook not defined
 if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
+  echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "21 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
+  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
   webhookUrl="${url}"
 else
   :
 fi
 }
-
-# Create directory to neatly store temp files
-create_dir() {
-  mkdir -p "${tempDir}"
-}
-
-# Cleanup temp files
-cleanup() {
-  rm -rf "${tempDir}"*.txt || true
-}
-trap 'cleanup' 0 1 2 3 6 14 15
 
 # Check that provided API Key is valid
 check_api_key() {
@@ -201,17 +200,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "14 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "14 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "$0"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "49 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "35 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
       apiKeyStatus="${status}"
     fi
   fi
@@ -272,8 +271,6 @@ display_all_monitors() {
     echo ''
   else
     :
-    #echo 'There are currently no monitors associated with your UptimeRobot account.'
-    echo ''
   fi
 }
 
@@ -542,7 +539,6 @@ reset_specified_monitors() {
   else
     convert_friendly_monitors
   fi
-  reset_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
