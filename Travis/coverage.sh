@@ -73,14 +73,18 @@ echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -p all' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -p all &&
-echo 'Running kcov for short notification option' &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -w' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -w &&
-echo 'Running kcov for long notification option' &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --webhook' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --webhook &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --pause GoogleKeyword &&
 echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -n' &&
 kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -n &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -r TravisOne' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh -r TravisOne &&
+echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --reset TravisTwo' &&
+kcov coverage Travis/travis_uptimerobot_monitor_utility.sh --reset TravisTwo &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh -f' &&
 #kcov coverage Travis/expect_wrapper.sh Travis/travis_uptimerobot_monitor_utility.sh -f &&
 #echo 'Running kcov for travis_uptimerobot_monitor_utility.sh --find' &&
