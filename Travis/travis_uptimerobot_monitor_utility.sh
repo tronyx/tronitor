@@ -186,14 +186,14 @@ create_dir() {
 cleanup() {
   rm -rf "${tempDir}"*.txt || true
 }
-trap 'cleanup' 0 1 2 3 6 14 15
+trap 'cleanup' 0 1 3 6 14 15
 
 # Exit the script if the user hits CTRL+C
 function control_c() {
   cleanup
   exit
 }
-trap control_c SIGINT
+trap 'control_c' 2
 
 # Some basic checks
 checks() {
