@@ -151,27 +151,27 @@ cmdline() {
 }
 
 # Script Information
-get_scriptname() {
-    local SOURCE
-    local DIR
-    SOURCE="${BASH_SOURCE[0]}"
-    while [[ -h "${SOURCE}" ]]; do # resolve ${SOURCE} until the file is no longer a symlink
-        DIR="$( cd -P "$( dirname "${SOURCE}" )" > /dev/null && pwd )"
-        SOURCE="$(readlink "${SOURCE}")"
-        [[ ${SOURCE} != /* ]] && SOURCE="${DIR}/${SOURCE}" # if ${SOURCE} was a relative symlink, we need to resolve it relative to the path where the symlink file was located
-    done
-    echo "${SOURCE}"
-}
-
-readonly SCRIPTNAME="$(get_scriptname)"
-readonly SCRIPTPATH="$( cd -P "$( dirname "${SCRIPTNAME}" )" > /dev/null && pwd )"
+#get_scriptname() {
+#    local source
+#    local dir
+#    source="${bash_source[0]}"
+#    while [[ -h "${source}" ]]; do
+#        dir="$( cd -P "$( dirname "${source}" )" > /dev/null && pwd )"
+#        source="$(readlink "${source}")"
+#        [[ ${source} != /* ]] && source="${dir}/${source}"
+#    done
+#    echo "${source}"
+#}
+#
+#readonly scriptname="$(get_scriptname)"
+#readonly scriptpath="$( cd -P "$( dirname "${scriptname}" )" > /dev/null && pwd )"
 
 # Check whether or not user is root or used sudo
 root_check() {
   if [[ ${EUID} -ne 0 ]]; then
     echo -e "${red}You didn't run the script as root!${endColor}"
     echo -e "${red}Doing it for you now...${endColor}"
-    sudo bash "${SCRIPTNAME:-}" "${ARGS[@]:-}"
+    sudo bash "${scriptname:-}" "${ARGS[@]:-}"
     exit
   fi
 }
@@ -211,7 +211,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${SCRIPTNAME:-}"
+  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0" #"${SCRIPTNAME:-}"
   webhookUrl="${url}"
 else
   :
@@ -226,17 +226,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "${SCRIPTNAME:-}"
+    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0" #"${SCRIPTNAME:-}"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "${SCRIPTNAME:-}"
+      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "$0" #"${SCRIPTNAME:-}"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "35 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${SCRIPTNAME:-}"
+      sed -i "35 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0" #"${SCRIPTNAME:-}"
       apiKeyStatus="${status}"
     fi
   fi
