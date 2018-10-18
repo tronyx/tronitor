@@ -154,7 +154,7 @@ cmdline() {
 get_scriptname() {
     local source
     local dir
-    source="${bash_source[0]}"
+    source="${BASH_SOURCE[0]}"
     while [[ -h "${source}" ]]; do
         dir="$( cd -P "$( dirname "${source}" )" > /dev/null && pwd )"
         source="$(readlink "${source}")"
