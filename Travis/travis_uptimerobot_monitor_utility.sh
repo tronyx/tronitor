@@ -625,7 +625,7 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
-  get_scriptname
+  #get_scriptname
   root_check
   cmdline "${args[@]:-}"
   checks
