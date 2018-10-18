@@ -150,6 +150,32 @@ cmdline() {
   return 0
 }
 
+# Script Information
+get_scriptname() {
+    local SOURCE
+    local DIR
+    SOURCE="${BASH_SOURCE[0]}"
+    while [[ -h "${SOURCE}" ]]; do # resolve ${SOURCE} until the file is no longer a symlink
+        DIR="$( cd -P "$( dirname "${SOURCE}" )" > /dev/null && pwd )"
+        SOURCE="$(readlink "${SOURCE}")"
+        [[ ${SOURCE} != /* ]] && SOURCE="${DIR}/${SOURCE}" # if ${SOURCE} was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+    done
+    echo "${SOURCE}"
+}
+
+readonly SCRIPTNAME="$(get_scriptname)"
+readonly SCRIPTPATH="$( cd -P "$( dirname "${SCRIPTNAME}" )" > /dev/null && pwd )"
+
+# Check whether or not user is root or used sudo
+root_check() {
+  if [[ ${EUID} -ne 0 ]]; then
+    echo -e "${red}You didn't run the script as root!${endColor}"
+    echo -e "${red}Doing it for you now...${endColor}"
+    sudo bash "${SCRIPTNAME:-}" "${ARGS[@]:-}"
+    exit
+  fi
+}
+
 # Create directory to neatly store temp files
 create_dir() {
   mkdir -p "${tempDir}"
@@ -185,7 +211,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
+  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${SCRIPTNAME:-}"
   webhookUrl="${url}"
 else
   :
@@ -200,17 +226,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "${SCRIPTNAME:-}"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "${SCRIPTNAME:-}"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "35 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "35 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${SCRIPTNAME:-}"
       apiKeyStatus="${status}"
     fi
   fi
@@ -599,6 +625,8 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
+  get_scriptname
+  root_check
   cmdline "${args[@]:-}"
   checks
   create_dir
