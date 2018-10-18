@@ -225,6 +225,7 @@ root_check() {
   if [[ ${EUID} -ne 0 ]]; then
     echo -e "${red}You didn't run the script as root!${endColor}"
     echo -e "${red}Doing it for you now...${endColor}"
+    echo ''
     sudo bash "${scriptname:-}" "${ARGS[@]:-}"
     exit
   fi
