@@ -152,29 +152,19 @@ cmdline() {
 
 # Script Information
 get_scriptname() {
-    local source
-    local dir
-    source="${BASH_SOURCE[0]}"
-    while [[ -h "${source}" ]]; do
-        dir="$( cd -P "$( dirname "${source}" )" > /dev/null && pwd )"
-        source="$(readlink "${source}")"
-        [[ ${source} != /* ]] && source="${dir}/${source}"
-    done
-    echo "${source}"
+  local source
+  local dir
+  source="${BASH_SOURCE[0]}"
+  while [[ -h "${source}" ]]; do
+    dir="$( cd -P "$( dirname "${source}" )" > /dev/null && pwd )"
+    source="$(readlink "${source}")"
+    [[ ${source} != /* ]] && source="${dir}/${source}"
+  done
+  echo "${source}"
 }
 
 readonly scriptname="$(get_scriptname)"
 readonly scriptpath="$( cd -P "$( dirname "${scriptname}" )" > /dev/null && pwd )"
-
-# Check whether or not user is root or used sudo
-#root_check() {
-#  if [[ ${EUID} -ne 0 ]]; then
-#    echo -e "${red}You didn't run the script as root!${endColor}"
-#    echo -e "${red}Doing it for you now...${endColor}"
-#    sudo bash "${scriptname:-}" "${ARGS[@]:-}"
-#    exit
-#  fi
-#}
 
 # Create directory to neatly store temp files
 create_dir() {
