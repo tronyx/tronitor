@@ -226,7 +226,7 @@ root_check() {
     echo -e "${red}You didn't run the script as root!${endColor}"
     echo -e "${red}Doing it for you now...${endColor}"
     echo ''
-    sudo bash "${scriptname:-}" "${ARGS[@]:-}"
+    sudo bash "${scriptname:-}" "${args[@]:-}"
     exit
   fi
 }
@@ -681,7 +681,6 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
-  get_scriptname
   root_check
   cmdline "${args[@]:-}"
   checks

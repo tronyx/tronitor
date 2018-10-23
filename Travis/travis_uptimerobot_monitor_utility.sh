@@ -5,12 +5,11 @@
 set -eo pipefail
 IFS=$'\n\t'
 
+# Edit these to finish setting up the script
 # Specify UptimeRobot API key
 apiKey=''
-
 # Specify the Discord/Slack webhook URL to send notifications to
 webhookUrl=''
-
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
 
