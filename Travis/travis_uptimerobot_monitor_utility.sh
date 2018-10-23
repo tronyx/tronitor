@@ -215,17 +215,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "9 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname:-}"
+    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname:-}"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "9 s/apiKey='[^']*'/apiKey=''/" "${scriptname:-}"
+      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "${scriptname:-}"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "35 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname:-}"
+      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname:-}"
       apiKeyStatus="${status}"
     fi
   fi
