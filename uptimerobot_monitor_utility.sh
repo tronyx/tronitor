@@ -32,7 +32,7 @@ newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
 newPingMonitorConfigFile='Templates/new-ping-monitor.json'
 # Set initial API key status
 apiKeyStatus='invalid'
-#logFile="${tempDir}uptimerobot_monitor_utility.log"
+logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
 # UptimeRobot API URL
@@ -48,10 +48,10 @@ readonly lorg='\e[38;5;130m'
 readonly mgt='\e[35m'
 readonly endColor='\e[0m'
 # Log functions
-info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${LOG_FILE}" >&2 ; }
-warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${LOG_FILE}" >&2 ; }
-error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; }
-fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${LOG_FILE}" >&2 ; exit 1 ; }
+info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${logFile}" >&2 ; }
+warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${logFile}" >&2 ; }
+error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${logFile}" >&2 ; }
+fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${logFile}" >&2 ; exit 1 ; }
 
 # Define usage and script options
 usage() {
@@ -204,6 +204,33 @@ cmdline() {
   return 0
 }
 
+# Script Information
+get_scriptname() {
+    local source
+    local dir
+    source="${BASH_SOURCE[0]}"
+    while [[ -h "${source}" ]]; do
+        dir="$( cd -P "$( dirname "${source}" )" > /dev/null && pwd )"
+        source="$(readlink "${source}")"
+        [[ ${source} != /* ]] && source="${dir}/${source}"
+    done
+    echo "${source}"
+}
+
+readonly scriptname="$(get_scriptname)"
+readonly scriptpath="$( cd -P "$( dirname "${scriptname}" )" > /dev/null && pwd )"
+
+# Check whether or not user is root or used sudo
+root_check() {
+  if [[ ${EUID} -ne 0 ]]; then
+    echo -e "${red}You didn't run the script as root!${endColor}"
+    echo -e "${red}Doing it for you now...${endColor}"
+    echo ''
+    sudo bash "${scriptname:-}" "${args[@]:-}" || fatal "Please run as root using sudo ${scriptname:-} ${ARGS[*]:-}"
+    exit
+  fi
+}
+
 # Create directory to neatly store temp files
 create_dir() {
   mkdir -p "${tempDir}"
@@ -214,14 +241,14 @@ create_dir() {
 cleanup() {
   rm -rf "${tempDir}"*.txt || true
 }
-trap 'cleanup' 0 1 2 3 6 14 15
+trap 'cleanup' 0 1 3 6 14 15
 
 # Exit the script if the user hits CTRL+C
 function control_c() {
   cleanup
   exit
 }
-trap control_c SIGINT
+trap 'control_c' 2
 
 # Some basic checks
 checks() {
@@ -239,7 +266,7 @@ if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
   echo ''
   read -rp 'Enter your webhook URL: ' url
   echo ''
-  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "$0"
+  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname}"
   webhookUrl="${url}"
 else
   :
@@ -254,17 +281,17 @@ while [ "${apiKeyStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your API key: ' API
     echo ''
-    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "$0"
+    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
     apiKey="${API}"
   else
     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
     status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
     if [ "${status}" = "fail" ]; then
       echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "$0"
+      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
       apiKey=""
     elif [ "${status}" = "ok" ]; then
-      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "$0"
+      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
       apiKeyStatus="${status}"
     fi
   fi
@@ -654,6 +681,7 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
+  root_check
   cmdline "${args[@]:-}"
   checks
   create_dir

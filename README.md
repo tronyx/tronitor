@@ -6,6 +6,10 @@
 
 A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
 
+## Package Requirements
+
+cURL is required for the script to function as it submits API calls to UptimeRobot. If it is not installed before you execute the script most operations will fail.
+
 It is recommended that you install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. If you do not install you will see errors about the `jq` command not being found and it may impact the functionality of the script.
 
 ```bash
@@ -33,7 +37,7 @@ Processing triggers for man-db (2.8.3-2) ...
 To get the script working you will need to clone the repo onto your preferred machine:
 
 ```bash
-tronyx@suladan:~$ git clone https://github.com/christronyxyocum/uptimerobot-monitor-utility.git
+tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/uptimerobot-monitor-utility.git
 Cloning into 'uptimerobot-monitor-utility'...
 remote: Enumerating objects: 108, done.
 remote: Counting objects: 100% (108/108), done.
@@ -56,7 +60,9 @@ Finally, open the script with your favorite text editor and add your UptimeRobot
 
 After entering your API key, the script will check whether or not it is valid and add it to the script for you.
 
-If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`.
+If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`. The script checks whether or not you're root or are using `sudo` so, if you forget, it will get added for you.
+
+![Sudo Check](/Images/sudo.png)
 
 If you use the alert option, be sure to also enter in your Discord/Slack webhook URL. If you forget this as well, the script will also prompt you to enter it:
 
