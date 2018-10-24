@@ -226,7 +226,7 @@ root_check() {
     echo -e "${red}You didn't run the script as root!${endColor}"
     echo -e "${red}Doing it for you now...${endColor}"
     echo ''
-    sudo bash "${scriptname:-}" "${args[@]:-}" || fatal "Please run as root using sudo ${scriptname:-} ${ARGS[*]:-}"
+    sudo bash "${scriptname:-}" "${args[@]:-}" || fatal "Please run as root using sudo ${scriptname:-} ${args[*]:-}"
     exit
   fi
 }
