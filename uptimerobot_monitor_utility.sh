@@ -6,6 +6,9 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Edit these to finish setting up the script
+providerName=''
+# If your provider is StatusCake, specify your username
+scUsername=''
 # Specify UptimeRobot API key
 apiKey=''
 # Specify the Discord/Slack webhook URL to send notifications to
@@ -32,11 +35,11 @@ newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
 newPingMonitorConfigFile='Templates/new-ping-monitor.json'
 # Set initial API key status
 apiKeyStatus='invalid'
+# Set initial provider status
+providerStatus='invalid'
 logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
-# UptimeRobot API URL
-readonly apiUrl='https://api.uptimerobot.com/v2/'
 # Colors
 readonly blu='\e[34m'
 readonly lblu='\e[94m'
@@ -85,7 +88,7 @@ usage() {
                           B) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding JSON file. Each type of test
-                        (HTTP, Ping, Port, & Keyword) as a JSON template in the Templates directory.
+                        (HTTP, Ping, Port, & Keyword) as a JSOn template in the Templates directory.
                         Just edit the JSON file for the monitor type you wish to create and then run
                         the script with the corresponding monitor type, IE:
                           A) "$(echo -e "${lorg}"./uptimerobot_monitor_utility.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
@@ -206,15 +209,15 @@ cmdline() {
 
 # Script Information
 get_scriptname() {
-    local source
-    local dir
-    source="${BASH_SOURCE[0]}"
-    while [[ -h "${source}" ]]; do
-        dir="$( cd -P "$( dirname "${source}" )" > /dev/null && pwd )"
-        source="$(readlink "${source}")"
-        [[ ${source} != /* ]] && source="${dir}/${source}"
-    done
-    echo "${source}"
+  local source
+  local dir
+  source="${BASH_SOURCE[0]}"
+  while [[ -h "${source}" ]]; do
+    dir="$( cd -P "$( dirname "${source}" )" > /dev/null && pwd )"
+    source="$(readlink "${source}")"
+    [[ ${source} != /* ]] && source="${dir}/${source}"
+  done
+  echo "${source}"
 }
 
 readonly scriptname="$(get_scriptname)"
@@ -251,7 +254,7 @@ function control_c() {
 trap 'control_c' 2
 
 # Some basic checks
-checks() {
+check_empty_arg() {
 # An option is provided
 for arg in "${args[@]:-}"
 do
@@ -260,64 +263,166 @@ do
     exit
   fi
 done
-# Alert set to true, but webhook not defined
-if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
-  echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
-  echo ''
-  read -rp 'Enter your webhook URL: ' url
-  echo ''
-  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname}"
-  webhookUrl="${url}"
-else
-  :
-fi
 }
 
-# Check that provided API Key is valid
-check_api_key() {
-while [ "${apiKeyStatus}" = 'invalid' ]; do
-  if [[ -z "${apiKey}" ]]; then
-    echo -e "${red}You didn't define your API key in the script!${endColor}"
+# Check that provider is valid and not empty
+check_provider() {
+while [ "${providerStatus}" = 'invalid' ]; do
+  if [ -z "${providerName}" ]; then
+    echo -e "${red}You didn't specify your monitoring provider!${endColor}"
     echo ''
-    read -rp 'Enter your API key: ' API
+    read -rp 'Enter your provider: ' provider
     echo ''
-    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
-    apiKey="${API}"
+    sed -i "9 s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+    providerName="${provider}"
   else
-    curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
-    status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
-    if [ "${status}" = "fail" ]; then
-      echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
-      apiKey=""
-    elif [ "${status}" = "ok" ]; then
-      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
-      apiKeyStatus="${status}"
+    if [[ "${providerName}" != 'uptimerobot' && "${providerName}" != 'statuscake' ]]; then
+      echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
+      echo -e "${red}Please specify either uptimerobot or statuscake.${endColor}"
+      echo ''
+      read -rp 'Enter your provider: ' provider
+      echo ''
+      sed -i "9 s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+      providerName="${provider}"
+    else
+      sed -i "38 s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
+      providerStatus="ok"
+      if [ "${providerName}" = 'uptimerobot' ]; then
+        readonly apiUrl='https://api.uptimerobot.com/v2/'
+      elif [ "${providerName}" = 'statuscake' ]; then
+        readonly apiUrl='https://app.statuscake.com/API/'
+      fi
     fi
   fi
 done
 }
 
+# Check that username is specified when the provider is StatusCake
+check_sc_username() {
+  if [ "${providerName}" = 'statuscake' ] && [ -z "${scUsername}" ]; then
+    echo -e "${red}You didn't specify your StatusCake username!${endColor}"
+    echo ''
+    read -rp 'Enter your username: ' username
+    echo ''
+    sed -i "11 s|scUsername='[^']*'|scUsername='${username}'|" "${scriptname}"
+    scUsername="${username}"
+  else
+    :
+  fi
+}
+
+# Check that provided API Key is valid
+check_api_key() {
+if [ "${providerName}" = 'uptimerobot' ]; then
+  while [ "${apiKeyStatus}" = 'invalid' ]; do
+    if [[ -z "${apiKey}" ]]; then
+      echo -e "${red}You didn't define your API key in the script!${endColor}"
+      echo ''
+      read -rp 'Enter your API key: ' API
+      echo ''
+      sed -i "13 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
+      apiKey="${API}"
+    else
+      curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
+      status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = "fail" ]; then
+        echo -e "${red}The API Key that you provided is not valid!${endColor}"
+        sed -i "13 s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+        apiKey=""
+      elif [ "${status}" = "ok" ]; then
+        sed -i "37 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
+        apiKeyStatus="${status}"
+      fi
+    fi
+  done
+elif [ "${providerName}" = 'statuscake' ]; then
+  while [ "${apiKeyStatus}" = 'invalid' ]; do
+    if [[ -z "${apiKey}" ]]; then
+      echo -e "${red}You didn't define your API key in the script!${endColor}"
+      echo ''
+      read -rp 'Enter your API key: ' API
+      echo ''
+      sed -i "13 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
+      apiKey="${API}"
+    else
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${apiTestFullFile}"
+      scStatus=$(grep -Poc '"ErrNo"' "${apiTestFullFile}")
+      if [ "${scStatus}" = "1" ]; then
+        echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+        sed -i "13 s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+        apiKey=""
+      elif [ "${scStatus}" = "0" ]; then
+        sed -i "37 s/apiKeyStatus='[^']*'/apiKeyStatus='ok'/" "${scriptname}"
+        apiKeyStatus="ok"
+      fi
+    fi
+  done
+fi
+}
+
+# Check that webhok URL is defined if Alert is set to true
+check_webhook_url() {
+  if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
+    echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
+    echo ''
+    read -rp 'Enter your webhook URL: ' url
+    echo ''
+    sed -i "15 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname}"
+    webhookUrl="${url}"
+  else
+    :
+  fi
+}
+
+# Function to wrap all other checks into one
+checks() {
+  check_empty_arg
+  check_provider
+  if [ "${providerName}" = 'statuscake' ]; then
+    check_sc_username
+  else
+    :
+  fi
+  check_api_key
+  check_webhook_url
+}
+
 # Grab data for all monitors
 get_data() {
-  curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${urMonitorsFullFile}"
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${urMonitorsFullFile}"
+  elif [ "${providerName}" = 'statuscake' ]; then
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${urMonitorsFullFile}"
+  fi
 }
 
 # Create list of monitor IDs
 get_monitors() {
-  totalMonitors=$(grep -Po '"total":[!0-9]*' "${urMonitorsFullFile}" |awk -F: '{print $2}')
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    totalMonitors=$(grep -Po '"total":[!0-9]*' "${urMonitorsFullFile}" |awk -F: '{print $2}')
+  elif [ "${providerName}" = 'statuscake' ]; then
+    totalMonitors=$(grep -Po '"TestID":[!0-9]*' "${urMonitorsFullFile}" |wc -l)
+  fi
   if [ "${totalMonitors}" = '0' ]; then
     echo 'There are currently no monitors associated with your UptimeRobot account.'
     exit
   else
-    grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"TestID:' > "${urMonitorsFile}"
+    fi
   fi
 }
 
 # Create individual monitor files
 create_monitor_files() {
   while IFS= read -r monitor; do
-    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt
+    elif [ "${providerName}" = 'statuscake' ]; then
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt
+    fi
   done < <(cat "${urMonitorsFile}")
 }
 
@@ -325,19 +430,37 @@ create_monitor_files() {
 create_friendly_list() {
   true > "${friendlyListFile}"
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    if [ "${status}" = '0' ]; then
-      friendlyStatus="${ylw}Paused${endColor}"
-    elif [ "${status}" = '1' ]; then
-      friendlyStatus="${mgt}Not checked yet${endColor}"
-    elif [ "${status}" = '2' ]; then
-      friendlyStatus="${grn}Up${endColor}"
-    elif [ "${status}" = '8' ]; then
-      friendlyStatus="${org}Seems down${endColor}"
-    elif [ "${status}" = '9' ]; then
-      friendlyStatus="${red}Down${endColor}"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = '0' ]; then
+        friendlyStatus="${ylw}Paused${endColor}"
+      elif [ "${status}" = '1' ]; then
+        friendlyStatus="${mgt}Not checked yet${endColor}"
+      elif [ "${status}" = '2' ]; then
+        friendlyStatus="${grn}Up${endColor}"
+      elif [ "${status}" = '8' ]; then
+        friendlyStatus="${org}Seems down${endColor}"
+      elif [ "${status}" = '9' ]; then
+        friendlyStatus="${red}Down${endColor}"
+      fi
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep WebsiteName "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      status=$(grep Status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      paused=$(grep Paused "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = 'Up' ] && [ "${paused}" = 'true' ]; then
+        friendlyStatus="${ylw}Paused${endColor}"
+      #elif [ "${status}" = '1' ]; then
+        #friendlyStatus="${mgt}Not checked yet${endColor}"
+      elif [ "${status}" = 'Up' ] && [ "${paused}" = 'false' ]; then
+        friendlyStatus="${grn}Up${endColor}"
+      #elif [ "${status}" = '8' ]; then
+        #friendlyStatus="${org}Seems down${endColor}"
+      elif [ "${status}" = 'Down' ] && [ "${paused}" = 'false' ]; then
+        friendlyStatus="${red}Down${endColor}"
+      fi
     fi
     echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor} - Status: ${friendlyStatus}" >> "${friendlyListFile}"
   done < <(cat "${urMonitorsFile}")
@@ -346,7 +469,11 @@ create_friendly_list() {
 # Display friendly list of all monitors
 display_all_monitors() {
   if [ -s "${friendlyListFile}" ]; then
-    echo 'The following UptimeRobot monitors were found in your UptimeRobot account:'
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      echo 'The following monitors were found in your UptimeRobot account:'
+    elif [ "${providerName}" = 'statuscake' ]; then
+      echo 'The following monitors were found in your StatusCake account:'
+    fi
     echo ''
     column -ts- "${friendlyListFile}"
     echo ''
@@ -685,7 +812,7 @@ main() {
   cmdline "${args[@]:-}"
   checks
   create_dir
-  check_api_key
+  #check_api_key
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors
