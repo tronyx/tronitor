@@ -6,10 +6,11 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Edit these to finish setting up the script
+# Monitor provider name, IE: UptimeRobot or StatusCake
 providerName=''
 # If your provider is StatusCake, specify your username
 scUsername=''
-# Specify UptimeRobot API key
+# Specify API key
 apiKey=''
 # Specify the Discord/Slack webhook URL to send notifications to
 webhookUrl=''
@@ -19,6 +20,7 @@ notifyAll='false'
 # Declare some variables
 # Temp dir and filenames
 tempDir='/tmp/uptimerobot_monitor_utility/'
+usernameTestFile="${tempDir}sc_username_temp.txt"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -37,6 +39,9 @@ newPingMonitorConfigFile='Templates/new-ping-monitor.json'
 apiKeyStatus='invalid'
 # Set initial provider status
 providerStatus='invalid'
+# Set initial SC username status
+scUsernameStatus='invalid'
+# Define log file
 logFile="${tempDir}uptimerobot_monitor_utility.log"
 # Arguments
 readonly args=("$@")
@@ -265,6 +270,19 @@ do
 done
 }
 
+# Grab status variable line numbers
+get_line_numbers() {
+  # Line numbers for user-defined vars
+  providerNameLineNum=$(head -50 "${scriptname}" |grep -En -A1 'UptimeRobot or StatusCake' |tail -1 |awk -F- '{print $1}')
+  scUsernameLineNum=$(head -50 "${scriptname}" |grep -En -A1 'specify your username' |tail -1 |awk -F- '{print $1}')
+  apiKeyLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Specify API key' |tail -1 |awk -F- '{print $1}')
+  webhookUrlLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Discord/Slack' |tail -1 |awk -F- '{print $1}')
+  # Line numbers for status vars
+  apiStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial API key status' |tail -1 |awk -F- '{print $1}')
+  providerStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial provider status' |tail -1 |awk -F- '{print $1}')
+  scUserStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial SC username status' |tail -1 |awk -F- '{print $1}')
+}
+
 # Check that provider is valid and not empty
 check_provider() {
 while [ "${providerStatus}" = 'invalid' ]; do
@@ -273,7 +291,7 @@ while [ "${providerStatus}" = 'invalid' ]; do
     echo ''
     read -rp 'Enter your provider: ' provider
     echo ''
-    sed -i "9 s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+    sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
     providerName="${provider}"
   else
     if [[ "${providerName}" != 'uptimerobot' && "${providerName}" != 'statuscake' ]]; then
@@ -282,82 +300,146 @@ while [ "${providerStatus}" = 'invalid' ]; do
       echo ''
       read -rp 'Enter your provider: ' provider
       echo ''
-      sed -i "9 s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+      sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
       providerName="${provider}"
     else
-      sed -i "38 s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
+      sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
+      providerName="${provider}"
       providerStatus="ok"
-      if [ "${providerName}" = 'uptimerobot' ]; then
-        readonly apiUrl='https://api.uptimerobot.com/v2/'
-      elif [ "${providerName}" = 'statuscake' ]; then
-        readonly apiUrl='https://app.statuscake.com/API/'
-      fi
     fi
   fi
 done
-}
-
-# Check that username is specified when the provider is StatusCake
-check_sc_username() {
-  if [ "${providerName}" = 'statuscake' ] && [ -z "${scUsername}" ]; then
-    echo -e "${red}You didn't specify your StatusCake username!${endColor}"
-    echo ''
-    read -rp 'Enter your username: ' username
-    echo ''
-    sed -i "11 s|scUsername='[^']*'|scUsername='${username}'|" "${scriptname}"
-    scUsername="${username}"
-  else
-    :
-  fi
-}
-
-# Check that provided API Key is valid
-check_api_key() {
 if [ "${providerName}" = 'uptimerobot' ]; then
-  while [ "${apiKeyStatus}" = 'invalid' ]; do
-    if [[ -z "${apiKey}" ]]; then
-      echo -e "${red}You didn't define your API key in the script!${endColor}"
-      echo ''
-      read -rp 'Enter your API key: ' API
-      echo ''
-      sed -i "13 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
-      apiKey="${API}"
-    else
-      curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
-      status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
-      if [ "${status}" = "fail" ]; then
-        echo -e "${red}The API Key that you provided is not valid!${endColor}"
-        sed -i "13 s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
-        apiKey=""
-      elif [ "${status}" = "ok" ]; then
-        sed -i "37 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
-        apiKeyStatus="${status}"
-      fi
-    fi
-  done
+  readonly apiUrl='https://api.uptimerobot.com/v2/'
 elif [ "${providerName}" = 'statuscake' ]; then
-  while [ "${apiKeyStatus}" = 'invalid' ]; do
-    if [[ -z "${apiKey}" ]]; then
+  readonly apiUrl='https://app.statuscake.com/API/'
+fi
+}
+
+check_sc_creds() {
+  while [ "${scUsernameStatus}" = 'invalid' ] || [ "${apiKeyStatus}" = 'invalid' ]; do
+    if [ -z "${apiKey}" ]; then
       echo -e "${red}You didn't define your API key in the script!${endColor}"
       echo ''
       read -rp 'Enter your API key: ' API
       echo ''
-      sed -i "13 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
+      sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
       apiKey="${API}"
     else
       curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${apiTestFullFile}"
-      scStatus=$(grep -Poc '"ErrNo"' "${apiTestFullFile}")
+      scStatus=$(grep -Poc '"ErrNo":[0-9]' "${apiTestFullFile}")
       if [ "${scStatus}" = "1" ]; then
         echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
-        sed -i "13 s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+        sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
         apiKey=""
       elif [ "${scStatus}" = "0" ]; then
-        sed -i "37 s/apiKeyStatus='[^']*'/apiKeyStatus='ok'/" "${scriptname}"
+        sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='ok'/" "${scriptname}"
         apiKeyStatus="ok"
       fi
     fi
+    if [ -z "${scUsername}" ]; then
+      echo -e "${red}You didn't specify your StatusCake username in the script!${endColor}"
+      echo ''
+      read -rp 'Enter your username: ' username
+      echo ''
+      sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+      scUsername="${username}"
+    else
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${usernameTestFile}"
+      scStatus=$(grep -Poc '"ErrNo":[0-9]' "${usernameTestFile}")
+      if [ "${scStatus}" = "1" ]; then
+        echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+        sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername=''/" "${scriptname}"
+        scUsername=""
+        echo ''
+        read -rp 'Enter your username: ' username
+        echo ''
+        sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+        scUsername="${username}"
+      elif [ "${scStatus}" = "0" ]; then
+        sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
+        scUsernameStatus="ok"
+      fi
+    fi
   done
-fi
+}
+
+#check_sc_username() {
+#  while [ "${scUsernameStatus}" = 'invalid' ]; do
+#    if [ "${providerName}" = 'statuscake' ] && [ -z "${scUsername}" ]; then
+#      echo -e "${red}You didn't specify your StatusCake username in the script!${endColor}"
+#      echo ''
+#      read -rp 'Enter your username: ' username
+#      echo ''
+#      sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+#      scUsername="${username}"
+#    else
+#      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${usernameTestFile}"
+#      scStatus=$(grep -Po '"ErrNo":[0-9]' "${usernameTestFile}" |awk -F':' '{print $2}' |tr -d '"')
+#      if [ "${scStatus}" = "0" ]; then
+#        echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+#        sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername=''/" "${scriptname}"
+#        scUsername=""
+#        echo ''
+#        read -rp 'Enter your username: ' username
+#        echo ''
+#        sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+#        scUsername="${username}"
+#      elif [ "${scStatus}" != "0" ]; then
+#        sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
+#        scUsernameStatus="ok"
+#      fi
+#    fi
+#  done
+#}
+
+# Check that provided API Key is valid
+check_api_key() {
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    while [ "${apiKeyStatus}" = 'invalid' ]; do
+      if [[ -z "${apiKey}" ]]; then
+        echo -e "${red}You didn't define your API key in the script!${endColor}"
+        echo ''
+        read -rp 'Enter your API key: ' API
+        echo ''
+        sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
+        apiKey="${API}"
+      else
+        curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
+        status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
+        if [ "${status}" = "fail" ]; then
+          echo -e "${red}The API Key that you provided is not valid!${endColor}"
+          sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+          apiKey=""
+        elif [ "${status}" = "ok" ]; then
+          sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
+          apiKeyStatus="${status}"
+        fi
+      fi
+    done
+  #elif [ "${providerName}" = 'statuscake' ]; then
+  #  while [ "${apiKeyStatus}" = 'invalid' ]; do
+  #    if [[ -z "${apiKey}" ]]; then
+  #      echo -e "${red}You didn't define your API key in the script!${endColor}"
+  #      echo ''
+  #      read -rp 'Enter your API key: ' API
+  #      echo ''
+  #      sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
+  #      apiKey="${API}"
+  #    else
+  #      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${apiTestFullFile}"
+  #      scStatus=$(grep -Po '"ErrNo":[0-9]' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
+  #      if [ "${scStatus}" = "0" ]; then
+  #        echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+  #        sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+  #        apiKey=""
+  #      elif [ "${scStatus}" != "0" ]; then
+  #        sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='ok'/" "${scriptname}"
+  #        apiKeyStatus="ok"
+  #      fi
+  #    fi
+  #  done
+  fi
 }
 
 # Check that webhok URL is defined if Alert is set to true
@@ -367,7 +449,7 @@ check_webhook_url() {
     echo ''
     read -rp 'Enter your webhook URL: ' url
     echo ''
-    sed -i "15 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname}"
+    sed -i "${webhookUrlLineNum} s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname}"
     webhookUrl="${url}"
   else
     :
@@ -376,14 +458,15 @@ check_webhook_url() {
 
 # Function to wrap all other checks into one
 checks() {
+  get_line_numbers
   check_empty_arg
   check_provider
   if [ "${providerName}" = 'statuscake' ]; then
-    check_sc_username
+    check_sc_creds
   else
-    :
+    check_api_key
   fi
-  check_api_key
+  #check_sc_username
   check_webhook_url
 }
 
