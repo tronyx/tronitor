@@ -847,7 +847,7 @@ delete_specified_monitors() {
   else
     convert_friendly_monitors
   fi
-  delete_prompt
+  #delete_prompt
   while IFS= read -r monitor; do
     if [ "${providerName}" = 'uptimerobot' ]; then
       grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
