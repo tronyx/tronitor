@@ -49,6 +49,9 @@ jobs:
         - sudo expect ./Travis/Expects/reset_expect_long.exp
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
+        # Prep for StatusCake Tests
+        - sed -i "10 s/providerName='[^']*'/providerName=''/" Travis/travis_usmu.sh"
+        - sed -i "14 s/apiKey='[^']*'/apiKey=''/" Travis/travis_usmu.sh
         # StatusCake Tests
         - sudo expect ./Travis/Expects/sc_api_key_expect.exp
         - sudo bash ./Travis/sc_prep.sh
