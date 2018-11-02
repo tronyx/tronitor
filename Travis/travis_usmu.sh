@@ -19,7 +19,7 @@ notifyAll='false'
 
 # Declare some variables
 # Temp dir and filenames
-tempDir='/tmp/usmu/'
+tempDir='Travis/'
 usernameTestFile="${tempDir}sc_username_temp.txt"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
