@@ -8,13 +8,14 @@ addons:
       - libelf-dev
       - libdw-dev
       - cmake
-stages:
-  - uptimerobot
-  #- reset
-  - statuscake
+#stages:
+#  - uptimerobot
+#  - reset
+#  - statuscake
 jobs:
   include:
-    - stage: uptimerobot
+    - stage: test
+    #- tage: uptimerobot
       script:
         - sudo expect ./Travis/Expects/ur_api_key_expect.exp
         - sudo bash ./Travis/ur_prep.sh
@@ -52,13 +53,13 @@ jobs:
         - sudo expect ./Travis/Expects/reset_expect_long.exp
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
-    - stage: reset
-      script:
+    #- stage: reset
+    #  script:
         #- sudo bash ./Travis/reset.sh
         - sed -i "10 s/providerName='[^']*'/providerName=''/" Travis/travis_usmu.sh
         - sed -i "14 s/apiKey='[^']*'/apiKey=''/" Travis/travis_usmu.sh
-    - stage: statuscake
-      script:
+    #- stage: statuscake
+    #  script:
         - sudo expect ./Travis/Expects/sc_api_key_expect.exp
         - sudo bash ./Travis/sc_prep.sh
         - sudo bash ./Travis/travis_usmu.sh
