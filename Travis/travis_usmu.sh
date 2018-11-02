@@ -6,7 +6,11 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Edit these to finish setting up the script
-# Specify UptimeRobot API key
+# Monitor provider name, IE: UptimeRobot or StatusCake
+providerName=''
+# If your provider is StatusCake, specify your username
+scUsername=''
+# Specify API key
 apiKey=''
 # Specify the Discord/Slack webhook URL to send notifications to
 webhookUrl=''
@@ -15,7 +19,8 @@ notifyAll='false'
 
 # Declare some variables
 # Temp dir and filenames
-tempDir='Travis/'
+tempDir='/tmp/usmu/'
+usernameTestFile="${tempDir}sc_username_temp.txt"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -32,10 +37,14 @@ newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
 newPingMonitorConfigFile='Templates/new-ping-monitor.json'
 # Set initial API key status
 apiKeyStatus='invalid'
+# Set initial provider status
+providerStatus='invalid'
+# Set initial SC username status
+scUsernameStatus='invalid'
+# Define log file
+logFile="${tempDir}usmu.log"
 # Arguments
 readonly args=("$@")
-# UptimeRobot API URL
-readonly apiUrl='https://api.uptimerobot.com/v2/'
 # Colors
 readonly blu='\e[34m'
 readonly lblu='\e[94m'
@@ -46,6 +55,11 @@ readonly org='\e[38;5;202m'
 readonly lorg='\e[38;5;130m'
 readonly mgt='\e[35m'
 readonly endColor='\e[0m'
+# Log functions
+info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${logFile}" >&2 ; }
+warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${logFile}" >&2 ; }
+error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${logFile}" >&2 ; }
+fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${logFile}" >&2 ; exit 1 ; }
 
 # Source usage function
 . Travis/Config/usage.cfg
@@ -165,6 +179,17 @@ get_scriptname() {
 readonly scriptname="$(get_scriptname)"
 readonly scriptpath="$( cd -P "$( dirname "${scriptname}" )" > /dev/null && pwd )"
 
+# Check whether or not user is root or used sudo
+root_check() {
+  if [[ ${EUID} -ne 0 ]]; then
+    echo -e "${red}You didn't run the script as root!${endColor}"
+    echo -e "${red}Doing it for you now...${endColor}"
+    echo ''
+    sudo bash "${scriptname:-}" "${args[@]:-}" || fatal "Please run as root using sudo ${scriptname:-} ${args[*]:-}"
+    exit
+  fi
+}
+
 # Create directory to neatly store temp files
 create_dir() {
   mkdir -p "${tempDir}"
@@ -185,7 +210,7 @@ function control_c() {
 trap 'control_c' 2
 
 # Some basic checks
-checks() {
+check_empty_arg() {
 # An option is provided
 for arg in "${args[@]:-}"
 do
@@ -194,64 +219,196 @@ do
     exit
   fi
 done
-# Alert set to true, but webhook not defined
-if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
-  echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
-  echo ''
-  read -rp 'Enter your webhook URL: ' url
-  echo ''
-  sed -i "12 s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname:-}"
-  webhookUrl="${url}"
-else
-  :
+}
+
+# Grab status variable line numbers
+get_line_numbers() {
+  # Line numbers for user-defined vars
+  providerNameLineNum=$(head -50 "${scriptname}" |grep -En -A1 'UptimeRobot or StatusCake' |tail -1 |awk -F- '{print $1}')
+  scUsernameLineNum=$(head -50 "${scriptname}" |grep -En -A1 'specify your username' |tail -1 |awk -F- '{print $1}')
+  apiKeyLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Specify API key' |tail -1 |awk -F- '{print $1}')
+  webhookUrlLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Discord/Slack' |tail -1 |awk -F- '{print $1}')
+  # Line numbers for status vars
+  apiStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial API key status' |tail -1 |awk -F- '{print $1}')
+  providerStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial provider status' |tail -1 |awk -F- '{print $1}')
+  scUserStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial SC username status' |tail -1 |awk -F- '{print $1}')
+}
+
+# Check that provider is valid and not empty
+check_provider() {
+while [ "${providerStatus}" = 'invalid' ]; do
+  if [ -z "${providerName}" ]; then
+    echo -e "${red}You didn't specify your monitoring provider!${endColor}"
+    echo ''
+    read -rp 'Enter your provider: ' provider
+    echo ''
+    sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+    providerName="${provider}"
+  else
+    if [[ "${providerName}" != 'uptimerobot' && "${providerName}" != 'statuscake' ]]; then
+      echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
+      echo -e "${red}Please specify either uptimerobot or statuscake.${endColor}"
+      echo ''
+      read -rp 'Enter your provider: ' provider
+      echo ''
+      sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+      providerName="${provider}"
+    else
+      sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
+      providerName="${provider}"
+      providerStatus="ok"
+    fi
+  fi
+done
+if [ "${providerName}" = 'uptimerobot' ]; then
+  readonly apiUrl='https://api.uptimerobot.com/v2/'
+elif [ "${providerName}" = 'statuscake' ]; then
+  readonly apiUrl='https://app.statuscake.com/API/'
 fi
+}
+
+check_sc_creds() {
+  while [ "${scUsernameStatus}" = 'invalid' ] || [ "${apiKeyStatus}" = 'invalid' ]; do
+    if [ -z "${apiKey}" ]; then
+      echo -e "${red}You didn't define your API key in the script!${endColor}"
+      echo ''
+      read -rp 'Enter your API key: ' API
+      echo ''
+      sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
+      apiKey="${API}"
+    else
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${apiTestFullFile}"
+      set +e
+      scStatus=$(grep -Poc '"ErrNo":[0-9]' "${apiTestFullFile}")
+      set -e
+      if [ "${scStatus}" = "1" ]; then
+        echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+        sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+        apiKey=""
+      elif [ "${scStatus}" = "0" ]; then
+        sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='ok'/" "${scriptname}"
+        apiKeyStatus="ok"
+      fi
+    fi
+    if [ -z "${scUsername}" ]; then
+      echo -e "${red}You didn't specify your StatusCake username in the script!${endColor}"
+      echo ''
+      read -rp 'Enter your username: ' username
+      echo ''
+      sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+      scUsername="${username}"
+    else
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${usernameTestFile}"
+      set +e
+      scStatus=$(grep -Poc '"ErrNo":[0-9]' "${usernameTestFile}")
+      set -e
+      if [ "${scStatus}" = "1" ]; then
+        echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+        sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername=''/" "${scriptname}"
+        scUsername=""
+        echo ''
+        read -rp 'Enter your username: ' username
+        echo ''
+        sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+        scUsername="${username}"
+      elif [ "${scStatus}" = "0" ]; then
+        sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
+        scUsernameStatus="ok"
+      fi
+    fi
+  done
 }
 
 # Check that provided API Key is valid
 check_api_key() {
-while [ "${apiKeyStatus}" = 'invalid' ]; do
-  if [[ -z "${apiKey}" ]]; then
-    echo -e "${red}You didn't define your API key in the script!${endColor}"
-    echo ''
-    read -rp 'Enter your API key: ' API
-    echo ''
-    sed -i "10 s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname:-}"
-    apiKey="${API}"
-  else
-    curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
-    status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
-    if [ "${status}" = "fail" ]; then
-      echo -e "${red}The API Key that you provided is not valid!${endColor}"
-      sed -i "10 s/apiKey='[^']*'/apiKey=''/" "${scriptname:-}"
-      apiKey=""
-    elif [ "${status}" = "ok" ]; then
-      sed -i "34 s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname:-}"
-      apiKeyStatus="${status}"
-    fi
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    while [ "${apiKeyStatus}" = 'invalid' ]; do
+      if [[ -z "${apiKey}" ]]; then
+        echo -e "${red}You didn't define your API key in the script!${endColor}"
+        echo ''
+        read -rp 'Enter your API key: ' API
+        echo ''
+        sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
+        apiKey="${API}"
+      else
+        curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
+        status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" |awk -F':' '{print $2}' |tr -d '"')
+        if [ "${status}" = "fail" ]; then
+          echo -e "${red}The API Key that you provided is not valid!${endColor}"
+          sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+          apiKey=""
+        elif [ "${status}" = "ok" ]; then
+          sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
+          apiKeyStatus="${status}"
+        fi
+      fi
+    done
   fi
-done
+}
+
+# Check that webhok URL is defined if Alert is set to true
+check_webhook_url() {
+  if [ "${webhookUrl}" = "" ] && [ "${webhook}" = "true" ]; then
+    echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
+    echo ''
+    read -rp 'Enter your webhook URL: ' url
+    echo ''
+    sed -i "${webhookUrlLineNum} s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname}"
+    webhookUrl="${url}"
+  else
+    :
+  fi
+}
+
+# Function to wrap all other checks into one
+checks() {
+  get_line_numbers
+  check_empty_arg
+  check_provider
+  if [ "${providerName}" = 'statuscake' ]; then
+    check_sc_creds
+  else
+    check_api_key
+  fi
+  check_webhook_url
 }
 
 # Grab data for all monitors
 get_data() {
-  curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${urMonitorsFullFile}"
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${urMonitorsFullFile}"
+  elif [ "${providerName}" = 'statuscake' ]; then
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${urMonitorsFullFile}"
+  fi
 }
 
 # Create list of monitor IDs
 get_monitors() {
-  totalMonitors=$(grep -Po '"total":[!0-9]*' "${urMonitorsFullFile}" |awk -F: '{print $2}')
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    totalMonitors=$(grep -Po '"total":[!0-9]*' "${urMonitorsFullFile}" |awk -F: '{print $2}')
+  elif [ "${providerName}" = 'statuscake' ]; then
+    totalMonitors=$(grep -Po '"TestID":[!0-9]*' "${urMonitorsFullFile}" |wc -l)
+  fi
   if [ "${totalMonitors}" = '0' ]; then
     echo 'There are currently no monitors associated with your UptimeRobot account.'
     exit
   else
-    grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"TestID:' > "${urMonitorsFile}"
+    fi
   fi
 }
 
 # Create individual monitor files
 create_monitor_files() {
   while IFS= read -r monitor; do
-    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt
+    elif [ "${providerName}" = 'statuscake' ]; then
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt
+    fi
   done < <(cat "${urMonitorsFile}")
 }
 
@@ -259,19 +416,37 @@ create_monitor_files() {
 create_friendly_list() {
   true > "${friendlyListFile}"
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    if [ "${status}" = '0' ]; then
-      friendlyStatus="${ylw}Paused${endColor}"
-    elif [ "${status}" = '1' ]; then
-      friendlyStatus="${mgt}Not checked yet${endColor}"
-    elif [ "${status}" = '2' ]; then
-      friendlyStatus="${grn}Up${endColor}"
-    elif [ "${status}" = '8' ]; then
-      friendlyStatus="${org}Seems down${endColor}"
-    elif [ "${status}" = '9' ]; then
-      friendlyStatus="${red}Down${endColor}"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = '0' ]; then
+        friendlyStatus="${ylw}Paused${endColor}"
+      elif [ "${status}" = '1' ]; then
+        friendlyStatus="${mgt}Not checked yet${endColor}"
+      elif [ "${status}" = '2' ]; then
+        friendlyStatus="${grn}Up${endColor}"
+      elif [ "${status}" = '8' ]; then
+        friendlyStatus="${org}Seems down${endColor}"
+      elif [ "${status}" = '9' ]; then
+        friendlyStatus="${red}Down${endColor}"
+      fi
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep WebsiteName "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      status=$(grep Status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      paused=$(grep Paused "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = 'Up' ] && [ "${paused}" = 'true' ]; then
+        friendlyStatus="${ylw}Paused${endColor}"
+      #elif [ "${status}" = '1' ]; then
+        #friendlyStatus="${mgt}Not checked yet${endColor}"
+      elif [ "${status}" = 'Up' ] && [ "${paused}" = 'false' ]; then
+        friendlyStatus="${grn}Up${endColor}"
+      #elif [ "${status}" = '8' ]; then
+        #friendlyStatus="${org}Seems down${endColor}"
+      elif [ "${status}" = 'Down' ] && [ "${paused}" = 'false' ]; then
+        friendlyStatus="${red}Down${endColor}"
+      fi
     fi
     echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor} - Status: ${friendlyStatus}" >> "${friendlyListFile}"
   done < <(cat "${urMonitorsFile}")
@@ -280,7 +455,11 @@ create_friendly_list() {
 # Display friendly list of all monitors
 display_all_monitors() {
   if [ -s "${friendlyListFile}" ]; then
-    echo 'The following UptimeRobot monitors were found in your UptimeRobot account:'
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      echo 'The following monitors were found in your UptimeRobot account:'
+    elif [ "${providerName}" = 'statuscake' ]; then
+      echo 'The following monitors were found in your StatusCake account:'
+    fi
     echo ''
     column -ts- "${friendlyListFile}"
     echo ''
@@ -293,13 +472,25 @@ display_all_monitors() {
 get_paused_monitors() {
   true > "${pausedMonitorsFile}"
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    if [ "${status}" = '0' ]; then
-      echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
-    else
-      :
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      status=$(grep status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = '0' ]; then
+        echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
+      else
+        :
+      fi
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      status=$(grep Status "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      paused=$(grep Paused "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      if [ "${status}" = 'Up' ] && [ "${paused}" = 'true' ]; then
+        echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
+      else
+        :
+      fi
     fi
   done < <(cat "${urMonitorsFile}")
 }
@@ -307,11 +498,19 @@ get_paused_monitors() {
 # Display list of all paused monitors
 display_paused_monitors() {
   if [ -s "${pausedMonitorsFile}" ]; then
-    echo 'The following UptimeRobot monitors are currently paused:'
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      echo 'The following UptimeRobot monitors are currently paused:'
+    elif [ "${providerName}" = 'statuscake' ]; then
+      echo 'The following StatusCake monitors are currently paused:'
+    fi
     echo ''
     column -ts- "${pausedMonitorsFile}"
   else
-    echo 'There are currently no paused UptimeRobot monitors.'
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      echo 'There are currently no paused UptimeRobot monitors.'
+    elif [ "${providerName}" = 'statuscake' ]; then
+      echo 'There are currently no paused StatusCake monitors.'
+    fi
     echo ''
   fi
 }
@@ -405,10 +604,17 @@ convert_friendly_monitors() {
 # Pause all monitors
 pause_all_monitors() {
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    echo "Pausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Pausing ${friendlyName}:"
+      curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Pausing ${friendlyName}:"
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" |jq
+    fi
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -423,10 +629,17 @@ pause_specified_monitors() {
     convert_friendly_monitors
   fi
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    echo "Pausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Pausing ${friendlyName}:"
+      curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" |jq
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Pausing ${friendlyName}:"
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" |jq
+    fi
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
@@ -434,10 +647,17 @@ pause_specified_monitors() {
 # Unpause all monitors
 unpause_all_monitors() {
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    echo "Unpausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Unpausing ${friendlyName}:"
+      curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Pausing ${friendlyName}:"
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" |jq
+    fi
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -452,10 +672,17 @@ unpause_specified_monitors() {
     convert_friendly_monitors
   fi
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    echo "Unpausing ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Unpausing ${friendlyName}:"
+      curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Pausing ${friendlyName}:"
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" |jq
+    fi
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
@@ -463,7 +690,7 @@ unpause_specified_monitors() {
 # Send Discord notification
 send_notification() {
   if [ -s "${pausedMonitorsFile}" ]; then
-    pausedTests=$(paste -s -d, "${pausedMonitorsFile}")
+    pausedTests=$(paste -s -d, "${pausedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
     curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
   elif [ "${notifyAll}" = "true" ]; then
     curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
@@ -490,7 +717,7 @@ create_monitor() {
     newMonitorConfigFile="${newKeywordMonitorConfigFile}"
   fi
   sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
-  curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json"
+  curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
   echo ''
 }
 
@@ -498,7 +725,7 @@ create_monitor() {
 get_stats() {
   echo 'Here are the basic statistics for your UptimeRobot account:'
   echo ''
-  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json"
+  curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" |jq
   echo ''
 }
 
@@ -507,15 +734,25 @@ get_info() {
   echo "${infoType}" |tr , '\n' |tr -d '"' > "${specifiedMonitorsFile}"
   check_bad_monitors
   convert_friendly_monitors
-  curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json"
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json" |jq
+  elif [ "${providerName}" = 'statuscake' ]; then
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" |jq
+  fi
   echo ''
 }
 
 # Display all alert contacts
 get_alert_contacts() {
-  echo 'The following alert contacts have been found for your UptimeRobot account:'
-  echo ''
-  curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json"
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    echo 'The following alert contacts have been found for your UptimeRobot account:'
+    echo ''
+    curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" |jq
+  elif [ "${providerName}" = 'statuscake' ]; then
+    echo 'The following alert contacts have been found for your StatusCake account:'
+    echo ''
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}ContactGroups" |jq
+  fi
   echo ''
 }
 
@@ -540,7 +777,7 @@ reset_all_monitors() {
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Resetting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
+    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -554,11 +791,12 @@ reset_specified_monitors() {
   else
     convert_friendly_monitors
   fi
+  reset_prompt
   while IFS= read -r monitor; do
     grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
     friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
     echo "Resetting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
+    curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
@@ -585,10 +823,17 @@ delete_prompt() {
 delete_all_monitors() {
   delete_prompt
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    echo "Deleting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Deleting ${friendlyName}:"
+      curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Deleting ${friendlyName}:"
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" |jq
+    fi
     echo ''
   done < <(cat "${urMonitorsFile}")
 }
@@ -602,24 +847,29 @@ delete_specified_monitors() {
   else
     convert_friendly_monitors
   fi
-  #delete_prompt
+  delete_prompt
   while IFS= read -r monitor; do
-    grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
-    friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-    echo "Deleting ${friendlyName}:"
-    curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Deleting ${friendlyName}:"
+      curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
+    elif [ "${providerName}" = 'statuscake' ]; then
+      grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+      friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+      echo "Deleting ${friendlyName}:"
+      curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" |jq
+    fi
     echo ''
   done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
 # Run functions
 main() {
-  get_scriptname
-  #root_check
+  root_check
   cmdline "${args[@]:-}"
   checks
   create_dir
-  check_api_key
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors
@@ -639,9 +889,16 @@ main() {
         unpause_prompt
           if [[ "$unpausePrompt" =~ ^(yes|y)$ ]]; then
             while IFS= read -r monitor; do
-              friendlyName=$(grep "${monitor}" "${pausedMonitorsFile}" |awk '{print $1}')
-              echo "Unpausing ${friendlyName}:"
-              curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1"
+              if [ "${providerName}" = 'uptimerobot' ]; then
+                friendlyName=$(grep "${monitor}" "${pausedMonitorsFile}" |awk '{print $1}')
+                echo "Unpausing ${friendlyName}:"
+                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" |jq
+              elif [ "${providerName}" = 'statuscake' ]; then
+                grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
+                friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
+                echo "Pausing ${friendlyName}:"
+                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" |jq
+              fi
               echo ''
             done < <(awk -F: '{print $2}' "${pausedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g' |tr -d ' ')
           elif [[ "$unpausePrompt" =~ ^(no|n)$ ]]; then

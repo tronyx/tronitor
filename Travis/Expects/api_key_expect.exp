@@ -7,8 +7,8 @@ set apiKey $::env(travisApiKey)
 
 spawn sudo bash Travis/travis_usmu.sh -l
 
-#expect "Enter your provider: "
-#send -- "uptimerobot\r"
+expect "Enter your provider: "
+send -- "uptimerobot\r"
 
 expect "Enter your API key: "
 send -- "this-is-a-bad-api-key\r"
