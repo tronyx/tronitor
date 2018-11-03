@@ -8,17 +8,14 @@ addons:
       - libelf-dev
       - libdw-dev
       - cmake
-#stages:
-#  - uptimerobot
-#  - reset
-#  - statuscake
 jobs:
   include:
     - stage: test
-    #- tage: uptimerobot
       script:
+        # UptimeRobot Tests
         - sudo expect ./Travis/Expects/ur_api_key_expect.exp
         - sudo bash ./Travis/ur_prep.sh
+        - sudo bash ./Travis/sleep.sh
         - sudo bash ./Travis/travis_usmu.sh
         - sudo bash ./Travis/travis_usmu.sh -c
         - sudo bash ./Travis/travis_usmu.sh -x
@@ -53,17 +50,16 @@ jobs:
         - sudo expect ./Travis/Expects/reset_expect_long.exp
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
-    #- stage: reset
-    #  script:
-        #- sudo bash ./Travis/reset.sh
+        # Reset some vars
         - sed -i "10 s/providerName='[^']*'/providerName=''/" Travis/travis_usmu.sh
         - sed -i "14 s/apiKey='[^']*'/apiKey=''/" Travis/travis_usmu.sh
+        - sed -i "16 s|webhookUrl='[^']*'|webhookUrl=''|" Travis/travis_usmu.sh
         - sed -i "46 s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/travis_usmu.sh
         - sed -i "48 s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/travis_usmu.sh
-    #- stage: statuscake
-    #  script:
+        # StatusCake Tests
         - sudo expect ./Travis/Expects/sc_api_key_expect.exp
         - sudo bash ./Travis/sc_prep.sh
+        - sudo bash ./Travis/sleep.sh
         - sudo bash ./Travis/travis_usmu.sh
         - sudo bash ./Travis/travis_usmu.sh -c
         - sudo bash ./Travis/travis_usmu.sh -x
@@ -75,11 +71,10 @@ jobs:
         - sudo bash ./Travis/travis_usmu.sh --list
         - sudo bash ./Travis/travis_usmu.sh -n
         - sudo bash ./Travis/travis_usmu.sh --no-prompt
-        #- sudo bash ./Travis/travis_usmu.sh -c http
-        #- sudo bash ./Travis/travis_usmu.sh --create ping
-        #- sudo bash ./Travis/travis_usmu.sh -c port
-        #- sudo bash ./Travis/travis_usmu.sh --create keyword
-        #- sudo bash ./Travis/travis_usmu.sh -c foobar
+        - sudo bash ./Travis/travis_usmu.sh -c http
+        - sudo bash ./Travis/travis_usmu.sh --create ping
+        - sudo bash ./Travis/travis_usmu.sh -c port
+        - sudo bash ./Travis/travis_usmu.sh --create foobar
         - sudo bash ./Travis/travis_usmu.sh -a
         - sudo bash ./Travis/travis_usmu.sh --alerts
         #- sudo bash ./Travis/travis_usmu.sh -s
@@ -88,7 +83,7 @@ jobs:
         - sudo bash ./Travis/travis_usmu.sh --info 'travistwo'
         - sudo bash ./Travis/travis_usmu.sh -d 'travisone'
         - sudo bash ./Travis/travis_usmu.sh --delete 'travistwo'
-        - sudo bash ./Travis/travis_usmu.sh -p travisthree
+        - sudo bash ./Travis/travis_usmu.sh -p GooglePing
         - sudo bash ./Travis/travis_usmu.sh --pause all
         - sudo expect ./Travis/Expects/find_expect_short.exp
         - sudo expect ./Travis/Expects/find_expect_long.exp

@@ -36,14 +36,12 @@ kcov coverage Travis/travis_usmu.sh --no-prompt &&
 #kcov coverage Travis/expect_wrapper.sh Travis/webhook_empty_expect_short.exp &&
 #echo 'Running kcov for empty long webhook' &&
 #kcov coverage Travis/expect_wrapper.sh Travis/webhook_empty_expect_long.exp &&
-##echo 'Running kcov for travis_usmu.sh -c http' &&
-##kcov coverage Travis/travis_usmu.sh -c http &&
-##echo 'Running kcov for travis_usmu.sh --create ping' &&
-##kcov coverage Travis/travis_usmu.sh --create ping &&
-##echo 'Running kcov for travis_usmu.sh -c port' &&
-##kcov coverage Travis/travis_usmu.sh -c port &&
-##echo 'Running kcov for travis_usmu.sh --create keyword' &&
-##kcov coverage Travis/travis_usmu.sh --create keyword &&
+echo 'Running kcov for travis_usmu.sh -c http' &&
+kcov coverage Travis/travis_usmu.sh -c http &&
+echo 'Running kcov for travis_usmu.sh --create ping' &&
+kcov coverage Travis/travis_usmu.sh --create ping &&
+echo 'Running kcov for travis_usmu.sh -c port' &&
+kcov coverage Travis/travis_usmu.sh -c port &&
 echo 'Testing create with bad monitor type' &&
 kcov coverage Travis/travis_usmu.sh -c foobar &&
 echo 'Running kcov for travis_usmu.sh -a' &&
@@ -66,9 +64,9 @@ echo 'Running kcov for info option with invalid monitor friendly name' &&
 kcov coverage Travis/travis_usmu.sh -i foobar &&
 echo 'Running kcov for info option with invalid monitor ID' &&
 kcov coverage Travis/travis_usmu.sh -i 123456789 &&
-##echo 'Running kcov for info option with valid monitor ID' &&
-##travisThreeId=$(curl -s -X POST getMonitors -d "api_key=${travisApiKey}"  -d "format=json" > foo; grep TravisThree foo |grep -Po '"id":[!0-9]*' foo |awk -F: '{print $2}')
-##kcov coverage Travis/travis_usmu.sh -i "${travisThreeId}" &&
+echo 'Running kcov for info option with valid monitor ID' &&
+travisThreeId=$(curl -s -H "API: ${travisSCApiKeyapiKey}" -H "Username: ${travisSCUsername}" -X GET https://app.statuscake.com/API/Tests/ > foo; grep TravisThree foo |grep -Po '"TestID":[!0-9]*' foo |awk -F: '{print $2}')
+kcov coverage Travis/travis_usmu.sh -i "${travisThreeId}" &&
 echo 'Running kcov for travis_usmu.sh -n' &&
 kcov coverage Travis/travis_usmu.sh -n &&
 echo 'Running kcov for travis_usmu.sh -p all' &&

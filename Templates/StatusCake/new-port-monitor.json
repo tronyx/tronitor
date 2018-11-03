@@ -1,12 +1,7 @@
 {
-      "api_key": "",
-      "friendly_name": "GooglePort",
-      "url": "https://google.com",
-      "type": 4,
-      "sub_type": "2",
-      "port": "443",
-      "interval": 300,
-      "alert_contacts":  "",
-      "ignore_ssl_errors": "false",
-      "format": "json"
-    }
+      "WebsiteName": "GoogleHttp",
+      "WebsiteURL": "https://google.com",
+      "Port": 443,
+      "CheckRate": 300,
+      "TestType": "TCP"
+}
