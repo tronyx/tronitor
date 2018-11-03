@@ -889,8 +889,8 @@ delete_specified_monitors() {
 main() {
   root_check
   cmdline "${args[@]:-}"
-  checks
   create_dir
+  checks
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors

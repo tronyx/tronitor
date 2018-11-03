@@ -74,33 +74,33 @@ usage() {
   Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
 
   $(echo -e "${grn}"-s/--stats"${endColor}")            List account statistics.
-  $(echo -e "${grn}"-l/--list"${endColor}")             List all UptimeRobot monitors.
-  $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused UptimeRobot monitors.
-  $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused UptimeRobot monitors without an unpause prompt.
-  $(echo -e "${grn}"-w/--webhook"${endColor}")          Find all paused UptimeRobot monitors without an unpause prompt and
+  $(echo -e "${grn}"-l/--list"${endColor}")             List all monitors.
+  $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused monitors.
+  $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused monitors without an unpause prompt.
+  $(echo -e "${grn}"-w/--webhook"${endColor}")          Find all paused monitors without an unpause prompt and
                         send an alert to the Discord webhook specified in the script.
   $(echo -e "${grn}"-i/--info"${endColor}" "${ylw}"VALUE"${endColor}")       List all information for the specified monitor.
                           A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"18095689"${endColor}")"
                           B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--info"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
                           C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
   $(echo -e "${grn}"-a/--alerts"${endColor}")           List all alert contacts.
-  $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified UptimeRobot monitors.
+  $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
                         of monitors by ID or Friendly Name. Friendly Name should be wrapped in
                         a set of single or double quotes, IE:
                           A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
-  $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified UptimeRobot monitors.
+  $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
                         of monitors by ID or Friendly Name. Friendly Name should be wrapped in
                         a set of single or double quotes, IE:
                           A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
                           B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
                           C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
-  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding JSON file. Each type of test
-                        (HTTP, Ping, Port, & Keyword) as a JSOn template in the Templates directory.
-                        Just edit the JSON file for the monitor type you wish to create and then run
+  $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding template file. Each type of test
+                        (HTTP, Ping, Port, & Keyword) has a template file in the Templates directory.
+                        Just edit the template file for the monitor type you wish to create and then run
                         the script with the corresponding monitor type, IE:
                           A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
                           B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"port"${endColor}")"
@@ -938,8 +938,8 @@ delete_specified_monitors() {
 main() {
   root_check
   cmdline "${args[@]:-}"
-  checks
   create_dir
+  checks
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors
