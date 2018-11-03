@@ -736,9 +736,9 @@ create_monitor() {
   fi
   sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
   if [ "${providerName}" = 'uptimerobot' ]; then
-    curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+    curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json"
   elif [ "${providerName}" = 'statuscake' ]; then
-    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" @"${newMonitorConfigFile}" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" |jq
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" @"${newMonitorConfigFile}" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update"
   fi
   echo ''
 }
