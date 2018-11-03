@@ -27,14 +27,20 @@ convertedMonitorsFile="${tempDir}converted_monitors.txt"
 friendlyListFile="${tempDir}friendly_list.txt"
 pausedMonitorsFile="${tempDir}paused_monitors.txt"
 specifiedMonitorsFile="${tempDir}specified_monitors.txt"
-urMonitorsFile="${tempDir}ur_monitors.txt"
-urMonitorsFullFile="${tempDir}ur_monitors_full.txt"
+monitorsFile="${tempDir}ur_monitors.txt"
+monitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
-newHttpMonitorConfigFile='Templates/new-http-monitor.json'
-newPortMonitorConfigFile='Templates/new-port-monitor.json'
-newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
-newPingMonitorConfigFile='Templates/new-ping-monitor.json'
+if [ "${providerName}" = 'uptimerobot' ]; then
+  newHttpMonitorConfigFile='Templates/UptimeRobot/new-http-monitor.json'
+  newPortMonitorConfigFile='Templates/UptimeRobot/new-port-monitor.json'
+  newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
+  newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
+elif [ "${providerName}" = 'statuscake' ]; then
+  newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.json'
+  newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.json'
+  newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.json'
+fi
 # Set initial API key status
 apiKeyStatus='invalid'
 # Set initial provider status
@@ -425,27 +431,27 @@ checks() {
 # Grab data for all monitors
 get_data() {
   if [ "${providerName}" = 'uptimerobot' ]; then
-    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${urMonitorsFullFile}"
+    curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}"
   elif [ "${providerName}" = 'statuscake' ]; then
-    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${urMonitorsFullFile}"
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${monitorsFullFile}"
   fi
 }
 
 # Create list of monitor IDs
 get_monitors() {
   if [ "${providerName}" = 'uptimerobot' ]; then
-    totalMonitors=$(grep -Po '"total":[!0-9]*' "${urMonitorsFullFile}" |awk -F: '{print $2}')
+    totalMonitors=$(grep -Po '"total":[!0-9]*' "${monitorsFullFile}" |awk -F: '{print $2}')
   elif [ "${providerName}" = 'statuscake' ]; then
-    totalMonitors=$(grep -Po '"TestID":[!0-9]*' "${urMonitorsFullFile}" |wc -l)
+    totalMonitors=$(grep -Po '"TestID":[!0-9]*' "${monitorsFullFile}" |wc -l)
   fi
   if [ "${totalMonitors}" = '0' ]; then
     echo 'There are currently no monitors associated with your UptimeRobot account.'
     exit
   else
     if [ "${providerName}" = 'uptimerobot' ]; then
-      grep -Po '"id":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"id:' > "${urMonitorsFile}"
+      grep -Po '"id":[!0-9]*' "${monitorsFullFile}" |tr -d '"id:' > "${monitorsFile}"
     elif [ "${providerName}" = 'statuscake' ]; then
-      grep -Po '"TestID":[!0-9]*' "${urMonitorsFullFile}" |tr -d '"TestID:' > "${urMonitorsFile}"
+      grep -Po '"TestID":[!0-9]*' "${monitorsFullFile}" |tr -d '"TestID:' > "${monitorsFile}"
     fi
   fi
 }
@@ -458,7 +464,7 @@ create_monitor_files() {
     elif [ "${providerName}" = 'statuscake' ]; then
       curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt
     fi
-  done < <(cat "${urMonitorsFile}")
+  done < <(cat "${monitorsFile}")
 }
 
 # Create friendly output of all monitors
@@ -498,7 +504,7 @@ create_friendly_list() {
       fi
     fi
     echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor} - Status: ${friendlyStatus}" >> "${friendlyListFile}"
-  done < <(cat "${urMonitorsFile}")
+  done < <(cat "${monitorsFile}")
 }
 
 # Display friendly list of all monitors
@@ -541,7 +547,7 @@ get_paused_monitors() {
         :
       fi
     fi
-  done < <(cat "${urMonitorsFile}")
+  done < <(cat "${monitorsFile}")
 }
 
 # Display list of all paused monitors
@@ -665,7 +671,7 @@ pause_all_monitors() {
       curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" |jq
     fi
     echo ''
-  done < <(cat "${urMonitorsFile}")
+  done < <(cat "${monitorsFile}")
 }
 
 # Pause specified monitors
@@ -708,7 +714,7 @@ unpause_all_monitors() {
       curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" |jq
     fi
     echo ''
-  done < <(cat "${urMonitorsFile}")
+  done < <(cat "${monitorsFile}")
 }
 
 # Unpause specified monitors
@@ -748,13 +754,24 @@ send_notification() {
 
 # Create a new monitor
 create_monitor() {
-  if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
-    echo -e "${red}You did not specify a valid monitor type!${endColor}"
-    echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
-    echo ''
-    exit
-  else
-    :
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
+      echo -e "${red}You did not specify a valid monitor type!${endColor}"
+      echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
+      echo ''
+      exit
+    else
+      :
+    fi
+  elif [ "${providerName}" = 'statuscake' ]; then
+    if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' ]]; then
+      echo -e "${red}You did not specify a valid monitor type!${endColor}"
+      echo -e "${red}Your choices are http, ping, or port.${endColor}"
+      echo ''
+      exit
+    else
+      :
+    fi
   fi
   if [ "${createType}" = 'http' ]; then
     newMonitorConfigFile="${newHttpMonitorConfigFile}"
@@ -766,7 +783,11 @@ create_monitor() {
     newMonitorConfigFile="${newKeywordMonitorConfigFile}"
   fi
   sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
-  curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+  elif [ "${providerName}" = 'statuscake' ]; then
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" @"${newMonitorConfigFile}" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" |jq
+  fi
   echo ''
 }
 
@@ -828,7 +849,7 @@ reset_all_monitors() {
     echo "Resetting ${friendlyName}:"
     curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" |jq
     echo ''
-  done < <(cat "${urMonitorsFile}")
+  done < <(cat "${monitorsFile}")
 }
 
 # Reset specified monitors
@@ -884,7 +905,7 @@ delete_all_monitors() {
       curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" |jq
     fi
     echo ''
-  done < <(cat "${urMonitorsFile}")
+  done < <(cat "${monitorsFile}")
 }
 
 # Delete specified monitors

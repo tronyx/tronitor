@@ -1,0 +1,10 @@
+{
+      "api_key": "",
+      "friendly_name": "GooglePing",
+      "url": "https://google.com",
+      "type": 3,
+      "interval": 300,
+      "alert_contacts":  "",
+      "ignore_ssl_errors": "false",
+      "format": "json"
+    }

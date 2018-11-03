@@ -1,0 +1,14 @@
+{
+      "api_key": "",
+      "friendly_name": "GoogleKeyword",
+      "url": "https://google.de",
+      "type": 2,
+      "http_username": "",
+      "http_password": "",
+      "keyword_type": "2",
+      "keyword_value": "About",
+      "interval": 300,
+      "alert_contacts":  "",
+      "ignore_ssl_errors": "false",
+      "format": "json"
+    }

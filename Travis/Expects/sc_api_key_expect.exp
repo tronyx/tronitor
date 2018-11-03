@@ -5,7 +5,7 @@ set timeout 10
 
 set apiKey $::env(travisSCApiKey)
 
-spawn sudo bash Travis/travis_usmu.sh -l
+spawn sudo bash -x Travis/travis_usmu.sh -l
 
 expect "Enter your provider: "
 send -- "statuscake\r"

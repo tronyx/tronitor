@@ -31,10 +31,17 @@ monitorsFile="${tempDir}monitors.txt"
 monitorsFullFile="${tempDir}monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
-newHttpMonitorConfigFile='Templates/new-http-monitor.json'
-newPortMonitorConfigFile='Templates/new-port-monitor.json'
-newKeywordMonitorConfigFile='Templates/new-keyword-monitor.json'
-newPingMonitorConfigFile='Templates/new-ping-monitor.json'
+if [ "${providerName}" = 'uptimerobot' ]; then
+  newHttpMonitorConfigFile='Templates/UptimeRobot/new-http-monitor.json'
+  newPortMonitorConfigFile='Templates/UptimeRobot/new-port-monitor.json'
+  newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
+  newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
+elif [ "${providerName}" = 'statuscake' ]; then
+  newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.json'
+  newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.json'
+  newKeywordMonitorConfigFile='Templates/StatusCake/new-keyword-monitor.json'
+  newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.json'
+fi
 # Set initial API key status
 apiKeyStatus='invalid'
 # Set initial provider status
@@ -699,13 +706,24 @@ send_notification() {
 
 # Create a new monitor
 create_monitor() {
-  if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
-    echo -e "${red}You did not specify a valid monitor type!${endColor}"
-    echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
-    echo ''
-    exit
-  else
-    :
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
+      echo -e "${red}You did not specify a valid monitor type!${endColor}"
+      echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
+      echo ''
+      exit
+    else
+      :
+    fi
+  elif [ "${providerName}" = 'statuscake' ]; then
+    if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' ]]; then
+      echo -e "${red}You did not specify a valid monitor type!${endColor}"
+      echo -e "${red}Your choices are http, ping, or port.${endColor}"
+      echo ''
+      exit
+    else
+      :
+    fi
   fi
   if [ "${createType}" = 'http' ]; then
     newMonitorConfigFile="${newHttpMonitorConfigFile}"
@@ -717,7 +735,11 @@ create_monitor() {
     newMonitorConfigFile="${newKeywordMonitorConfigFile}"
   fi
   sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
-  curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json"
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
+  elif [ "${providerName}" = 'statuscake' ]; then
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" @"${newMonitorConfigFile}" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" |jq
+  fi
   echo ''
 }
 
