@@ -54,11 +54,11 @@ tronyx@suladan:~$ cd uptimerobot-statuscake-monitor-utility
 tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ chmod a+x usmu.sh
 ```
 
-Finally, open the script with your favorite text editor and add your UptimeRobot API key. If you forget this step the script will prompt you to enter your API key:
+Finally, open the script with your favorite text editor and add your provider's name (either UptimeRobot or StatusCake), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
 
-![API Key Prompt](/Images/api_key.png)
+![User Data Prompt](/Images/user_data.png)
 
-After entering your API key, the script will check whether or not it is valid and add it to the script for you.
+After entering the information, the script will check whether or not it is valid and then add it to the script for you.
 
 If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`. The script checks whether or not you're root or are using `sudo` so, if you forget, it will get added for you.
 
@@ -113,7 +113,7 @@ Find and display all monitors in your account that are currently paused:
 
 ```json
 tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -f
-The following UptimeRobot monitors are currently paused:
+The following StatusCake monitors are currently paused:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
 Sonarr (ID: 780859962)
@@ -319,12 +319,12 @@ Unpausing Radarr:
 
 Monitors can be created using this option.
 
-Modify the settings of the corresponding monitor type JSON file in the `Templates` directory, IE: creating a new HTTP(s) monitor so modify the `Templates/new-http-monitor.json` file. The full API documentation can be found [HERE](https://uptimerobot.com/api) for information on monitor types and any required values and what they're for.
+Modify the settings of the corresponding monitor type template file in the corresponding `Templates` directory for your provider, IE: creating a new HTTP(s) monitor for UptimeRobot would require you to modify the `Templates/UptimeRobot/new-http-monitor.json` file. The full API documentation for the two providers can be found [HERE](https://uptimerobot.com/api) and [HERE](https://www.statuscake.com/api/index.md) for information on monitor types and any required values and what they're for.
 
 The below example is for creating a new HTTP(s) monitor for Google:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ cat Templates/new-http-monitor.json
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ cat Templates/UptimeRobot/new-http-monitor.json
 {
       "api_key": "",
       "friendly_name": "Google",
