@@ -15,7 +15,7 @@ jobs:
         # UptimeRobot Tests
         - sudo expect ./Travis/Expects/ur_api_key_expect.exp
         - sudo bash ./Travis/ur_prep.sh
-        - sudo bash ./Travis/sleep.sh
+        #- sudo bash ./Travis/sleep.sh
         - sudo bash ./Travis/travis_usmu.sh
         - sudo bash ./Travis/travis_usmu.sh -c
         - sudo bash ./Travis/travis_usmu.sh -x
@@ -59,7 +59,7 @@ jobs:
         # StatusCake Tests
         - sudo expect ./Travis/Expects/sc_api_key_expect.exp
         - sudo bash ./Travis/sc_prep.sh
-        - sudo bash ./Travis/sleep.sh
+        #- sudo bash ./Travis/sleep.sh
         - sudo bash ./Travis/travis_usmu.sh
         - sudo bash ./Travis/travis_usmu.sh -c
         - sudo bash ./Travis/travis_usmu.sh -x
@@ -91,7 +91,7 @@ jobs:
         - sudo bash ./Travis/travis_usmu.sh --unpause all
         #- sudo expect ./Travis/Expects/reset_expect_short.exp
         #- sudo expect ./Travis/Expects/reset_expect_long.exp
-        #- sudo expect ./Travis/Expects/pause_invalid_expect.exp
+        - sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
 after_success:
   - sed -i "10 s/providerName='[^']*'/providerName='uptimerobot'/" Travis/travis_usmu.sh
