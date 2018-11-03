@@ -887,7 +887,7 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
-  root_check
+  #root_check
   cmdline "${args[@]:-}"
   create_dir
   checks

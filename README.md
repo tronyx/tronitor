@@ -37,8 +37,8 @@ Processing triggers for man-db (2.8.3-2) ...
 To get the script working you will need to clone the repo onto your preferred machine:
 
 ```bash
-tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/uptimerobot-monitor-utility.git
-Cloning into 'uptimerobot-monitor-utility'...
+tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility.git
+Cloning into 'uptimerobot-statuscake-monitor-utility'...
 remote: Enumerating objects: 108, done.
 remote: Counting objects: 100% (108/108), done.
 remote: Compressing objects: 100% (75/75), done.
@@ -318,6 +318,8 @@ Unpausing Radarr:
 ### Create a new monitor
 
 Monitors can be created using this option.
+
+NOTE: StatusCake's API is dumb and WILL let you create more tests than you're supposed to have with the limit and it can cause some very odd behavior with the monitors.
 
 Modify the settings of the corresponding monitor type template file in the corresponding `Templates` directory for your provider, IE: creating a new HTTP(s) monitor for UptimeRobot would require you to modify the `Templates/UptimeRobot/new-http-monitor.json` file. The full API documentation for the two providers can be found [HERE](https://uptimerobot.com/api) and [HERE](https://www.statuscake.com/api/index.md) for information on monitor types and any required values and what they're for.
 
