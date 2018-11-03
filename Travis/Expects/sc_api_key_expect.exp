@@ -4,6 +4,7 @@
 set timeout 10
 
 set apiKey $::env(travisSCApiKey)
+set username $::env(travisSCUsername)
 
 spawn sudo bash -x Travis/travis_usmu.sh -l
 
@@ -11,9 +12,9 @@ expect "Enter your provider: "
 send -- "statuscake\r"
 
 expect "Enter your API key: "
-send -- "this-is-a-bad-api-key\r"
-
-expect "Enter your API key: "
 send -- "$apiKey\r"
+
+expect "Enter your username: "
+send -- "$username\r"
 
 expect eof
