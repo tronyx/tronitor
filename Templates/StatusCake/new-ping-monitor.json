@@ -1,6 +1,1 @@
-{
-      "WebsiteName": "GooglePing",
-      "WebsiteURL": "https://google.com",
-      "CheckRate": 300,
-      "TestType": "PING"
-}
+WebsiteName=GooglePing&WebsiteURL=https://google.com&CheckRate300&TestType=PING

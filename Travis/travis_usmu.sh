@@ -37,10 +37,9 @@ if [ "${providerName}" = 'uptimerobot' ]; then
   newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
   newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
 elif [ "${providerName}" = 'statuscake' ]; then
-  newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.json'
-  newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.json'
-  newKeywordMonitorConfigFile='Templates/StatusCake/new-keyword-monitor.json'
-  newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.json'
+  newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.txt'
+  newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.txt'
+  newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.txt'
 fi
 # Set initial API key status
 apiKeyStatus='invalid'
@@ -738,7 +737,7 @@ create_monitor() {
   if [ "${providerName}" = 'uptimerobot' ]; then
     curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json"
   elif [ "${providerName}" = 'statuscake' ]; then
-    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" @"${newMonitorConfigFile}" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update"
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update"
   fi
   echo ''
 }

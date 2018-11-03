@@ -1,7 +1,1 @@
-{
-      "WebsiteName": "GoogleHttp",
-      "WebsiteURL": "https://google.com",
-      "Port": 443,
-      "CheckRate": 300,
-      "TestType": "TCP"
-}
+WebsiteName=GoogleHttp&WebsiteURL=https://google.com&Port=443&CheckRate=300&TestType=TCP

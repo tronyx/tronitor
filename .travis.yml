@@ -67,7 +67,7 @@ jobs:
         - sudo bash ./Travis/travis_usmu.sh --help
         - sudo bash ./Travis/travis_usmu.sh -p TravisOne
         - sudo expect ./Travis/Expects/webhook_empty_expect_short.exp
-        - sudo bash ./Travis/travis_usmu.sh --webhook
+        - sudo bash -x ./Travis/travis_usmu.sh --webhook
         - sudo bash ./Travis/travis_usmu.sh --list
         - sudo bash ./Travis/travis_usmu.sh -n
         - sudo bash ./Travis/travis_usmu.sh --no-prompt

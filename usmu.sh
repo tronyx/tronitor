@@ -786,7 +786,7 @@ create_monitor() {
   if [ "${providerName}" = 'uptimerobot' ]; then
     curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" |jq
   elif [ "${providerName}" = 'statuscake' ]; then
-    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" @"${newMonitorConfigFile}" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" |jq
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" |jq
   fi
   echo ''
 }
