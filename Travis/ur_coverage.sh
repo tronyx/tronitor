@@ -15,7 +15,7 @@ mkdir -p coverage &&
 echo 'Running kcov for no monitors within account' &&
 kcov coverage Travis/travis_usmu.sh -l &&
 echo 'Creating Travis test monitors' &&
-kcov coverage Travis/prep.sh &&
+kcov coverage Travis/ur_prep.sh &&
 echo 'Sleeping to allow tests to be checked' &&
 kcov coverage Travis/sleep.sh &&
 echo 'Running kcov for travis_usmu.sh' &&
