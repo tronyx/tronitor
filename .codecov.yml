@@ -1,10 +1,13 @@
 coverage:
   ignore:
     - "Travis/Expects/*"
-    - "Travis/prep.sh"
-    - "Travis/coverage.sh"
+    - "Travis/sc_prep.sh"
+    - "Travis/ur_prep.sh"
+    - "Travis/sc_coverage.sh"
+    - "Travis/ur_coverage.sh"
     - "Travis/cleanup.sh"
     - "Travis/sleep.sh"
+    - "Travis/reset.sh"
     - "Travis/Config/*"
   status:
     patch: false

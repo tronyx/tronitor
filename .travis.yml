@@ -12,44 +12,92 @@ jobs:
   include:
     - stage: test
       script:
-        - sudo expect ./Travis/Expects/api_key_expect.exp
-        - sudo bash ./Travis/prep.sh
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -x
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -h
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --help
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p TravisOne
+        # UptimeRobot Tests
+        - sudo expect ./Travis/Expects/ur_api_key_expect.exp
+        - sudo bash ./Travis/ur_prep.sh
+        - sudo bash ./Travis/travis_usmu.sh
+        - sudo bash ./Travis/travis_usmu.sh -c
+        - sudo bash ./Travis/travis_usmu.sh -x
+        - sudo bash ./Travis/travis_usmu.sh -h
+        - sudo bash ./Travis/travis_usmu.sh --help
+        - sudo bash ./Travis/travis_usmu.sh -p TravisOne
         - sudo expect ./Travis/Expects/webhook_empty_expect_short.exp
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --webhook
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --list
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -n
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --no-prompt
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c http
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create ping
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c port
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --create keyword
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -c foobar
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -a
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --alerts
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -s
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --stats
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -i 'travisone'
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --info 'travistwo'
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -d 'travisone'
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --delete 'travistwo'
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -p GooglePing
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --pause all
+        - sudo bash ./Travis/travis_usmu.sh --webhook
+        - sudo bash ./Travis/travis_usmu.sh --list
+        - sudo bash ./Travis/travis_usmu.sh -n
+        - sudo bash ./Travis/travis_usmu.sh --no-prompt
+        - sudo bash ./Travis/travis_usmu.sh -c http
+        - sudo bash ./Travis/travis_usmu.sh --create ping
+        - sudo bash ./Travis/travis_usmu.sh -c port
+        - sudo bash ./Travis/travis_usmu.sh --create keyword
+        - sudo bash ./Travis/travis_usmu.sh -c foobar
+        - sudo bash ./Travis/travis_usmu.sh -a
+        - sudo bash ./Travis/travis_usmu.sh --alerts
+        - sudo bash ./Travis/travis_usmu.sh -s
+        - sudo bash ./Travis/travis_usmu.sh --stats
+        - sudo bash ./Travis/travis_usmu.sh -i 'travisone'
+        - sudo bash ./Travis/travis_usmu.sh --info 'travistwo'
+        - sudo bash ./Travis/travis_usmu.sh -d 'travisone'
+        - sudo bash ./Travis/travis_usmu.sh --delete 'travistwo'
+        - sudo bash ./Travis/travis_usmu.sh -p GooglePing
+        - sudo bash ./Travis/travis_usmu.sh --pause all
         - sudo expect ./Travis/Expects/find_expect_short.exp
         - sudo expect ./Travis/Expects/find_expect_long.exp
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh -u all
-        - sudo bash ./Travis/travis_uptimerobot_monitor_utility.sh --unpause all
+        - sudo bash ./Travis/travis_usmu.sh -u all
+        - sudo bash ./Travis/travis_usmu.sh --unpause all
         - sudo expect ./Travis/Expects/reset_expect_short.exp
         - sudo expect ./Travis/Expects/reset_expect_long.exp
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
+        # Reset some vars
+        - sed -i "10s/.*/providerName=''/" Travis/travis_usmu.sh
+        - sed -i "14s/.*/apiKey=''/" Travis/travis_usmu.sh
+        - sed -i "16s|.*|webhookUrl=''|" Travis/travis_usmu.sh
+        - sed -i "45s/.*/apiKeyStatus='invalid'/" Travis/travis_usmu.sh
+        - sed -i "47s/.*/providerStatus='invalid'/" Travis/travis_usmu.sh
+        - sed -i "49s/.*/scUsernameStatus='invalid'/" Travis/travis_usmu.sh
+        # StatusCake Tests
+        - sudo expect ./Travis/Expects/sc_api_key_expect.exp
+        - sudo bash ./Travis/travis_usmu.sh -s
+        - sudo bash ./Travis/sc_prep.sh
+        - sudo bash ./Travis/travis_usmu.sh
+        - sudo bash ./Travis/travis_usmu.sh -c
+        - sudo bash ./Travis/travis_usmu.sh -x
+        - sudo bash ./Travis/travis_usmu.sh -h
+        - sudo bash ./Travis/travis_usmu.sh --help
+        - sudo bash ./Travis/travis_usmu.sh -p TravisOne
+        - sudo expect ./Travis/Expects/webhook_empty_expect_short.exp
+        - sudo bash ./Travis/travis_usmu.sh --webhook
+        - sudo bash ./Travis/travis_usmu.sh --list
+        - sudo bash ./Travis/travis_usmu.sh -n
+        - sudo bash ./Travis/travis_usmu.sh --no-prompt
+        - sudo bash ./Travis/travis_usmu.sh -c http
+        - sudo bash ./Travis/travis_usmu.sh --create ping
+        - sudo bash ./Travis/travis_usmu.sh -c port
+        - sudo bash ./Travis/travis_usmu.sh --create foobar
+        - sudo bash ./Travis/travis_usmu.sh -a
+        - sudo bash ./Travis/travis_usmu.sh --alerts
+        - sudo bash ./Travis/travis_usmu.sh -i 'travisone'
+        - sudo bash ./Travis/travis_usmu.sh --info 'travistwo'
+        - sudo bash ./Travis/travis_usmu.sh -d 'travisone'
+        - sudo bash ./Travis/travis_usmu.sh --delete 'travistwo'
+        - sudo bash ./Travis/travis_usmu.sh -p GooglePing
+        - sudo bash ./Travis/travis_usmu.sh --pause all
+        - sudo expect ./Travis/Expects/find_expect_short.exp
+        - sudo expect ./Travis/Expects/find_expect_long.exp
+        - sudo bash ./Travis/travis_usmu.sh -u all
+        - sudo bash ./Travis/travis_usmu.sh --unpause all
+        - sudo expect ./Travis/Expects/pause_invalid_expect.exp
+        - sudo expect ./Travis/Expects/cleanup.exp
 after_success:
-  - sed -i "9 s/apiKey='[^']*'/apiKey='${travisApiKey}'/" Travis/travis_uptimerobot_monitor_utility.sh
-  - sed -i "12 s|webhookUrl='[^']*'|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_uptimerobot_monitor_utility.sh
-  - bash ./Travis/coverage.sh
+  - sed -i "10s/.*/providerName='uptimerobot'/" Travis/travis_usmu.sh
+  - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/travis_usmu.sh
+  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_usmu.sh
+  - bash ./Travis/ur_coverage.sh
+  - sudo expect ./Travis/Expects/cleanup.exp
+  - sed -i "10s/.*/providerName='statuscake'/" Travis/travis_usmu.sh
+  - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/travis_usmu.sh
+  - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/travis_usmu.sh
+  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_usmu.sh
+  - bash ./Travis/sc_coverage.sh
   - sudo expect ./Travis/Expects/cleanup.exp

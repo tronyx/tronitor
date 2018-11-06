@@ -3,7 +3,7 @@
 
 set timeout 10
 
-spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh -p GoogleHttp,foobar
+spawn sudo bash Travis/travis_usmu.sh -p GoogleHttp,foobar
 
 expect "\[Y\]es or \[N\]o):"
 send -- "n\r"

@@ -3,7 +3,7 @@
 
 set timeout 10
 
-spawn sudo bash Travis/travis_uptimerobot_monitor_utility.sh -w
+spawn sudo bash Travis/travis_usmu.sh -w
 
 expect "Enter your webhook URL: "
 send -- "https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack\r"
