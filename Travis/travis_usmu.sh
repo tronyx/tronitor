@@ -85,13 +85,13 @@ cmdline() {
       --find)       local_args="${local_args}-f " ;;
       --no-prompt)  local_args="${local_args}-n " ;;
       --webhook)    local_args="${local_args}-w " ;;
-      --info)       local_args="${local_args}-i " ;;
+      --info)       local_args="${local_args:-}-i " ;;
       --alerts)     local_args="${local_args}-a " ;;
-      --create)     local_args="${local_args}-c " ;;
-      --pause)      local_args="${local_args}-p " ;;
-      --unpause)    local_args="${local_args}-u " ;;
-      --reset)      local_args="${local_args}-r " ;;
-      --delete)     local_args="${local_args}-d " ;;
+      --create)     local_args="${local_args:-}-c " ;;
+      --pause)      local_args="${local_args:-}-p " ;;
+      --unpause)    local_args="${local_args:-}-u " ;;
+      --reset)      local_args="${local_args:-}-r " ;;
+      --delete)     local_args="${local_args:-}-d " ;;
       --help)       local_args="${local_args}-h " ;;
       # Pass through anything else
       *) [[ "${arg:0:1}" == "-" ]] || delim="\""
@@ -273,6 +273,16 @@ elif [ "${providerName}" = 'statuscake' ]; then
 fi
 }
 
+# Inform user of options that don't work with StatusCake
+check_sc_opts() {
+  if [[ "${arg}" == '-r' || "${arg}" == '-s' ]]; then
+    echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
+  else
+    :
+  fi
+}
+
+# Check that StatusCake credentials are valid
 check_sc_creds() {
   while [ "${scUsernameStatus}" = 'invalid' ] || [ "${apiKeyStatus}" = 'invalid' ]; do
     if [ -z "${apiKey}" ]; then
@@ -369,6 +379,7 @@ check_webhook_url() {
 # Function to wrap all other checks into one
 checks() {
   get_line_numbers
+  check_sc_opts
   check_empty_arg
   check_provider
   if [ "${providerName}" = 'statuscake' ]; then
