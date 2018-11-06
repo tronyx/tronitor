@@ -98,9 +98,9 @@ kcov coverage Travis/travis_usmu.sh --list &&
 echo 'Running kcov for travis_usmu.sh -d TravisOne' &&
 kcov coverage Travis/travis_usmu.sh -d TravisOne &&
 echo 'Running kcov for travis_usmu.sh --delete TravisTwo' &&
-kcov coverage Travis/travis_usmu.sh --delete TravisTwo &&
+kcov coverage Travis/travis_usmu.sh --delete TravisTwo
 #echo 'Running kcov for travis_usmu.sh -r all' &&
 #kcov coverage Travis/expect_wrapper.sh Travis/reset_expect_short.exp &&
 #echo 'Running kcov for travis_usmu.sh --reset all' &&
 #kcov coverage Travis/expect_wrapper.sh Travis/reset_expect_long.exp &&
-bash <(curl -s https://codecov.io/bash)
+#bash <(curl -s https://codecov.io/bash)
