@@ -56,8 +56,8 @@ jobs:
         - sed -i "45 s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/travis_usmu.sh
         - sed -i "47 s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/travis_usmu.sh
         # StatusCake Tests
-        - sudo bash ./Travis/travis_usmu.sh -s
         - sudo expect ./Travis/Expects/sc_api_key_expect.exp
+        - sudo bash ./Travis/travis_usmu.sh -s
         - sudo bash ./Travis/sc_prep.sh
         - sudo bash ./Travis/travis_usmu.sh
         - sudo bash ./Travis/travis_usmu.sh -c
