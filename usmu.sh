@@ -264,16 +264,15 @@ function control_c() {
 }
 trap 'control_c' 2
 
-# Some basic checks
+# Check for empty arg
 check_empty_arg() {
-# An option is provided
-for arg in "${args[@]:-}"
-do
-  if [ -z "${arg}" ]; then
-    usage
-    exit
-  fi
-done
+  for arg in "${args[@]:-}"
+  do
+    if [ -z "${arg}" ]; then
+      usage
+      exit
+    fi
+  done
 }
 
 # Grab status variable line numbers
@@ -291,44 +290,34 @@ get_line_numbers() {
 
 # Check that provider is valid and not empty
 check_provider() {
-while [ "${providerStatus}" = 'invalid' ]; do
-  if [ -z "${providerName}" ]; then
-    echo -e "${red}You didn't specify your monitoring provider!${endColor}"
-    echo ''
-    read -rp 'Enter your provider: ' provider
-    echo ''
-    sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
-    providerName="${provider}"
-  else
-    if [[ "${providerName}" != 'uptimerobot' && "${providerName}" != 'statuscake' ]]; then
-      echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
-      echo -e "${red}Please specify either uptimerobot or statuscake.${endColor}"
+  while [ "${providerStatus}" = 'invalid' ]; do
+    if [ -z "${providerName}" ]; then
+      echo -e "${red}You didn't specify your monitoring provider!${endColor}"
       echo ''
       read -rp 'Enter your provider: ' provider
       echo ''
       sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
       providerName="${provider}"
     else
-      sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
-      providerName="${provider}"
-      providerStatus="ok"
+      if [[ "${providerName}" != 'uptimerobot' && "${providerName}" != 'statuscake' ]]; then
+        echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
+        echo -e "${red}Please specify either uptimerobot or statuscake.${endColor}"
+        echo ''
+        read -rp 'Enter your provider: ' provider
+        echo ''
+        sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+        providerName="${provider}"
+      else
+        sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
+        providerName="${provider}"
+        providerStatus="ok"
+      fi
     fi
-  fi
-done
-if [ "${providerName}" = 'uptimerobot' ]; then
-  readonly apiUrl='https://api.uptimerobot.com/v2/'
-elif [ "${providerName}" = 'statuscake' ]; then
-  readonly apiUrl='https://app.statuscake.com/API/'
-fi
-}
-
-# Inform user of options that don't work with StatusCake
-check_sc_opts() {
-  if [[ "${arg}" == '-r' || "${arg}" == '-s' ]]; then
-    echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
-    exit
-  else
-    :
+  done
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    readonly apiUrl='https://api.uptimerobot.com/v2/'
+  elif [ "${providerName}" = 'statuscake' ]; then
+    readonly apiUrl='https://app.statuscake.com/API/'
   fi
 }
 
@@ -429,7 +418,6 @@ check_webhook_url() {
 # Function to wrap all other checks into one
 checks() {
   get_line_numbers
-  check_sc_opts
   check_empty_arg
   check_provider
   if [ "${providerName}" = 'statuscake' ]; then
@@ -1020,6 +1008,12 @@ main() {
       unpause_specified_monitors
     fi
   elif [ "${reset}" = 'true' ]; then
+    if [ "${providerName}" = 'statuscake' ]; then
+      echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
+      exit
+    else
+      :
+    fi
     if [ "${resetType}" = 'all' ]; then
       get_data
       get_monitors
@@ -1046,7 +1040,12 @@ main() {
       delete_specified_monitors
     fi
   elif [ "${stats}" = 'true' ]; then
-    get_stats
+    if [ "${providerName}" = 'statuscake' ]; then
+      echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
+      exit
+    else
+      get_stats
+    fi
   elif [ "${create}" = 'true' ]; then
     create_monitor
   elif [ "${alerts}" = 'true' ]; then

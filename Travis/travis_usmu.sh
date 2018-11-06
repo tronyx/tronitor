@@ -273,16 +273,6 @@ elif [ "${providerName}" = 'statuscake' ]; then
 fi
 }
 
-# Inform user of options that don't work with StatusCake
-check_sc_opts() {
-  if [[ "${arg}" == '-r' || "${arg}" == '-s' ]]; then
-    echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
-    exit
-  else
-    :
-  fi
-}
-
 # Check that StatusCake credentials are valid
 check_sc_creds() {
   while [ "${scUsernameStatus}" = 'invalid' ] || [ "${apiKeyStatus}" = 'invalid' ]; do
@@ -380,7 +370,6 @@ check_webhook_url() {
 # Function to wrap all other checks into one
 checks() {
   get_line_numbers
-  check_sc_opts
   check_empty_arg
   check_provider
   if [ "${providerName}" = 'statuscake' ]; then
@@ -971,6 +960,12 @@ main() {
       unpause_specified_monitors
     fi
   elif [ "${reset}" = 'true' ]; then
+    if [ "${providerName}" = 'statuscake' ]; then
+      echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
+      exit
+    else
+      :
+    fi
     if [ "${resetType}" = 'all' ]; then
       get_data
       get_monitors
@@ -997,7 +992,12 @@ main() {
       delete_specified_monitors
     fi
   elif [ "${stats}" = 'true' ]; then
-    get_stats
+    if [ "${providerName}" = 'statuscake' ]; then
+      echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
+      exit
+    else
+      get_stats
+    fi
   elif [ "${create}" = 'true' ]; then
     create_monitor
   elif [ "${alerts}" = 'true' ]; then
