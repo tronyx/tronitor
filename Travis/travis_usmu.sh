@@ -662,7 +662,7 @@ unpause_all_monitors() {
     elif [ "${providerName}" = 'statuscake' ]; then
       grep -Po '"TestID":[!0-9]*|"WebsiteName":["^][^"]*"|"Status":["^][^"]*"|"Paused":[!a-z]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
       friendlyName=$(grep Website "${tempDir}${monitor}"_short.txt |awk -F':' '{print $2}' |tr -d '"')
-      echo "Pausing ${friendlyName}:"
+      echo "Unpausing ${friendlyName}:"
       curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update"
     fi
     echo ''

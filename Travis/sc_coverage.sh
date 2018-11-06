@@ -43,7 +43,7 @@ kcov coverage Travis/travis_usmu.sh -i foobar &&
 echo 'Running kcov for info option with invalid monitor ID' &&
 kcov coverage Travis/travis_usmu.sh -i 123456789 &&
 echo 'Running kcov for info option with valid monitor ID' &&
-travisThreeId=$(curl -s -H "API: ${travisSCApiKeyapiKey}" -H "Username: ${travisSCUsername}" -X GET https://app.statuscake.com/API/Tests/ > foo; grep TravisThree foo |grep -Po '"TestID":[!0-9]*' foo |awk -F: '{print $2}')
+travisThreeId=$(curl -s -H "API: ${travisSCApiKeyapiKey}" -H "Username: ${travisSCUsername}" -X GET https://app.statuscake.com/API/Tests/ > foo; grep TravisThree foo |grep -Po '"TestID":[!0-9]*' foo |awk -F: '{print $2}') &&
 kcov coverage Travis/travis_usmu.sh -i "${travisThreeId}" &&
 echo 'Running kcov for travis_usmu.sh -n' &&
 kcov coverage Travis/travis_usmu.sh -n &&
