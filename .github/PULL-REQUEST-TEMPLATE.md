@@ -1,5 +1,5 @@
 **By submitting this pull request, I confirm the following:**
-*please fill any appropriate checkboxes, e.g: [X]*
+*Please fill in any appropriate checkboxes, e.g: [X]*
 
 -   [ ]   I have read and understood the [contributors guide](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/blob/master/.github/CONTRIBUTING.md), as well as this entire template.
 -   [ ]   I have made only one major change in my proposed changes.
