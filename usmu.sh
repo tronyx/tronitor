@@ -748,7 +748,11 @@ unpause_specified_monitors() {
 send_notification() {
   if [ -s "${pausedMonitorsFile}" ]; then
     pausedTests=$(paste -s -d, "${pausedMonitorsFile}" |sed 's/\x1B\[[0-9;]*[JKmsu]//g')
-    curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+    if [ "${providerName}" = 'uptimerobot' ]; then
+      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+    elif [ "${providerName}" = 'statuscake' ]; then
+      curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused StatusCake monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+    fi
   elif [ "${notifyAll}" = "true" ]; then
     curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
   fi
