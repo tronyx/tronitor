@@ -15,7 +15,6 @@ jobs:
         # UptimeRobot Tests
         - sudo expect ./Travis/Expects/ur_api_key_expect.exp
         - sudo bash ./Travis/ur_prep.sh
-        #- sudo bash ./Travis/sleep.sh
         - sudo bash ./Travis/travis_usmu.sh
         - sudo bash ./Travis/travis_usmu.sh -c
         - sudo bash ./Travis/travis_usmu.sh -x
@@ -57,9 +56,9 @@ jobs:
         - sed -i "45 s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/travis_usmu.sh
         - sed -i "47 s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/travis_usmu.sh
         # StatusCake Tests
+        - sudo bash ./Travis/travis_usmu.sh -s
         - sudo expect ./Travis/Expects/sc_api_key_expect.exp
         - sudo bash ./Travis/sc_prep.sh
-        #- sudo bash ./Travis/sleep.sh
         - sudo bash ./Travis/travis_usmu.sh
         - sudo bash ./Travis/travis_usmu.sh -c
         - sudo bash ./Travis/travis_usmu.sh -x
@@ -77,8 +76,6 @@ jobs:
         - sudo bash ./Travis/travis_usmu.sh --create foobar
         - sudo bash ./Travis/travis_usmu.sh -a
         - sudo bash ./Travis/travis_usmu.sh --alerts
-        #- sudo bash ./Travis/travis_usmu.sh -s
-        #- sudo bash ./Travis/travis_usmu.sh --stats
         - sudo bash ./Travis/travis_usmu.sh -i 'travisone'
         - sudo bash ./Travis/travis_usmu.sh --info 'travistwo'
         - sudo bash ./Travis/travis_usmu.sh -d 'travisone'
@@ -89,8 +86,6 @@ jobs:
         - sudo expect ./Travis/Expects/find_expect_long.exp
         - sudo bash ./Travis/travis_usmu.sh -u all
         - sudo bash ./Travis/travis_usmu.sh --unpause all
-        #- sudo expect ./Travis/Expects/reset_expect_short.exp
-        #- sudo expect ./Travis/Expects/reset_expect_long.exp
         #- sudo expect ./Travis/Expects/pause_invalid_expect.exp
         - sudo expect ./Travis/Expects/cleanup.exp
 after_success:
@@ -98,8 +93,8 @@ after_success:
   - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/travis_usmu.sh
   - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_usmu.sh
   - bash ./Travis/ur_coverage.sh
-  - sed -i "10s/.*/providerName='statuscake'/" Travis/travis_usmu.sh
-  - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/travis_usmu.sh
-  - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/travis_usmu.sh
-  - bash ./Travis/sc_coverage.sh
+  #- sed -i "10s/.*/providerName='statuscake'/" Travis/travis_usmu.sh
+  #- sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/travis_usmu.sh
+  #- sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/travis_usmu.sh
+  #- bash ./Travis/sc_coverage.sh
   - sudo expect ./Travis/Expects/cleanup.exp

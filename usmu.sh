@@ -326,6 +326,7 @@ fi
 check_sc_opts() {
   if [[ "${arg}" == '-r' || "${arg}" == '-s' ]]; then
     echo -e "${red}Sorry, but that option is not valid for StatusCake!${endColor}"
+    exit
   else
     :
   fi
