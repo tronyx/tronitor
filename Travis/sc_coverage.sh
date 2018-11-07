@@ -66,5 +66,5 @@ kcov coverage Travis/travis_usmu.sh --list &&
 echo 'Running kcov for travis_usmu.sh -d TravisOne' &&
 kcov coverage Travis/travis_usmu.sh -d TravisOne &&
 echo 'Running kcov for travis_usmu.sh --delete TravisTwo' &&
-kcov coverage Travis/travis_usmu.sh --delete TravisTwo &&
-bash <(curl -s https://codecov.io/bash)
+kcov coverage Travis/travis_usmu.sh --delete TravisTwo
+#bash <(curl -s https://codecov.io/bash)
