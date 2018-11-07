@@ -99,5 +99,5 @@ after_success:
   - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/travis_usmu.sh
   - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/travis_usmu.sh
   - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_usmu.sh
-  - bash ./Travis/sc_coverage.sh
+  - bash -x ./Travis/sc_coverage.sh
   - sudo expect ./Travis/Expects/cleanup.exp
