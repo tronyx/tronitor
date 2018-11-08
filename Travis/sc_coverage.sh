@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
 #
+#wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
+#tar xzf master.tar.gz &&
+#cd kcov-master &&
+#mkdir build &&
+#cd build &&
+#cmake .. &&
+#make &&
+#sudo make install &&
+#cd ../.. &&
+#rm -rf kcov-master &&
+#mkdir -p coverage &&
 echo 'Running kcov for bad StatusCake option' &&
 kcov coverage Travis/travis_usmu.sh -s &&
 echo 'Running kcov for no monitors within account' &&
@@ -43,7 +54,7 @@ kcov coverage Travis/travis_usmu.sh -i foobar &&
 echo 'Running kcov for info option with invalid monitor ID' &&
 kcov coverage Travis/travis_usmu.sh -i 123456789 &&
 echo 'Running kcov for info option with valid monitor ID' &&
-travisThreeId=$(curl -s -H "API: ${travisSCApiKeyapiKey}" -H "Username: ${travisSCUsername}" -X GET https://app.statuscake.com/API/Tests/ > foo; grep TravisThree foo |grep -Po '"TestID":[!0-9]*' foo |awk -F: '{print $2}') &&
+travisThreeId=$(curl -s -H "API: ${travisSCApiKeyapiKey}" -H "Username: ${travisSCUsername}" -X GET https://app.statuscake.com/API/Tests/ > foo; grep TravisThree foo |grep -Po '"TestID":[!0-9]*' foo |awk -F: '{print $2}')
 kcov coverage Travis/travis_usmu.sh -i "${travisThreeId}" &&
 echo 'Running kcov for travis_usmu.sh -n' &&
 kcov coverage Travis/travis_usmu.sh -n &&
@@ -67,4 +78,4 @@ echo 'Running kcov for travis_usmu.sh -d TravisOne' &&
 kcov coverage Travis/travis_usmu.sh -d TravisOne &&
 echo 'Running kcov for travis_usmu.sh --delete TravisTwo' &&
 kcov coverage Travis/travis_usmu.sh --delete TravisTwo &&
-bash <(curl -s https://codecov.io/bash)
+bash <(curl -s https://codecov.io/bash -s coverage/kcov-merged)
