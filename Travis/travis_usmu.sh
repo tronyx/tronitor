@@ -186,15 +186,15 @@ readonly scriptname="$(get_scriptname)"
 readonly scriptpath="$( cd -P "$( dirname "${scriptname}" )" > /dev/null && pwd )"
 
 # Check whether or not user is root or used sudo
-root_check() {
-  if [[ ${EUID} -ne 0 ]]; then
-    echo -e "${red}You didn't run the script as root!${endColor}"
-    echo -e "${red}Doing it for you now...${endColor}"
-    echo ''
-    sudo bash "${scriptname:-}" "${args[@]:-}" || fatal "Please run as root using sudo ${scriptname:-} ${args[*]:-}"
-    exit
-  fi
-}
+#root_check() {
+#  if [[ ${EUID} -ne 0 ]]; then
+#    echo -e "${red}You didn't run the script as root!${endColor}"
+#    echo -e "${red}Doing it for you now...${endColor}"
+#    echo ''
+#    sudo bash "${scriptname:-}" "${args[@]:-}" || fatal "Please run as root using sudo ${scriptname:-} ${args[*]:-}"
+#    exit
+#  fi
+#}
 
 # Create directory to neatly store temp files
 create_dir() {
@@ -888,7 +888,7 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
-  root_check
+  #root_check
   cmdline "${args[@]:-}"
   create_dir
   checks
