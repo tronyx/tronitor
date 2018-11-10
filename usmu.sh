@@ -309,6 +309,7 @@ check_provider() {
       echo ''
       sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
       providerName="${provider}"
+      convert_provider_name
     else
       if [[ "${providerName}" != 'uptimerobot' && "${providerName}" != 'statuscake' ]]; then
         echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
@@ -318,9 +319,11 @@ check_provider() {
         echo ''
         sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
         providerName="${provider}"
+        convert_provider_name
       else
         sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
         providerName="${provider}"
+        convert_provider_name
         providerStatus="ok"
       fi
     fi
