@@ -703,9 +703,9 @@ create_monitor() {
     newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
     newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
   elif [ "${providerName}" = 'statuscake' ]; then
-    newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.json'
-    newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.json'
-    newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.json'
+    newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.txt'
+    newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.txt'
+    newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.txt'
   fi
   if [ "${providerName}" = 'uptimerobot' ]; then
     if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
