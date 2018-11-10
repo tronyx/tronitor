@@ -102,3 +102,11 @@ after_success:
   - bash ./Travis/sc_coverage.sh
   - sudo expect ./Travis/Expects/cleanup.exp
   #- bash <(curl -s https://codecov.io/bash -s coverage/kcov-merged)
+after_failure:
+  - sed -i "10s/.*/providerName='uptimerobot'/" Travis/travis_usmu.sh
+  - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/travis_usmu.sh
+  - sudo expect ./Travis/Expects/cleanup.exp
+  - sed -i "10s/.*/providerName='statuscake'/" Travis/travis_usmu.sh
+  - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/travis_usmu.sh
+  - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/travis_usmu.sh
+  - sudo expect ./Travis/Expects/cleanup.exp
