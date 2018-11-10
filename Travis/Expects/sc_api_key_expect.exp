@@ -9,7 +9,7 @@ set username $::env(travisSCUsername)
 spawn sudo bash Travis/travis_usmu.sh -l
 
 expect "Enter your provider: "
-send -- "statuscake\r"
+send -- "StatusCake\r"
 
 expect "Enter your API key: "
 send -- "$apiKey\r"

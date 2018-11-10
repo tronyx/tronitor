@@ -31,16 +31,6 @@ monitorsFile="${tempDir}ur_monitors.txt"
 monitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
-if [ "${providerName}" = 'uptimerobot' ]; then
-  newHttpMonitorConfigFile='Templates/UptimeRobot/new-http-monitor.json'
-  newPortMonitorConfigFile='Templates/UptimeRobot/new-port-monitor.json'
-  newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
-  newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
-elif [ "${providerName}" = 'statuscake' ]; then
-  newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.json'
-  newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.json'
-  newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.json'
-fi
 # Set initial API key status
 apiKeyStatus='invalid'
 # Set initial provider status
@@ -290,6 +280,15 @@ get_line_numbers() {
   scUserStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial SC username status' |tail -1 |awk -F- '{print $1}')
 }
 
+# Make sure provider name is lowercase and, if not, convert it
+convert_provider_name() {
+  if [[ "${providerName}" =~ [[:upper:]] ]]; then
+    providerName=$(echo "${providerName}" |awk '{print tolower($0)}')
+  else
+    :
+  fi
+}
+
 # Check that provider is valid and not empty
 check_provider() {
   while [ "${providerStatus}" = 'invalid' ]; do
@@ -300,6 +299,7 @@ check_provider() {
       echo ''
       sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
       providerName="${provider}"
+      convert_provider_name
     else
       if [[ "${providerName}" != 'uptimerobot' && "${providerName}" != 'statuscake' ]]; then
         echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
@@ -309,9 +309,11 @@ check_provider() {
         echo ''
         sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
         providerName="${provider}"
+        convert_provider_name
       else
         sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
         providerName="${provider}"
+        convert_provider_name
         providerStatus="ok"
       fi
     fi
@@ -761,6 +763,16 @@ send_notification() {
 # Create a new monitor
 create_monitor() {
   if [ "${providerName}" = 'uptimerobot' ]; then
+    newHttpMonitorConfigFile='Templates/UptimeRobot/new-http-monitor.json'
+    newPortMonitorConfigFile='Templates/UptimeRobot/new-port-monitor.json'
+    newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
+    newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
+  elif [ "${providerName}" = 'statuscake' ]; then
+    newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.txt'
+    newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.txt'
+    newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.txt'
+  fi
+  if [ "${providerName}" = 'uptimerobot' ]; then
     if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
       echo -e "${red}You did not specify a valid monitor type!${endColor}"
       echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
@@ -945,6 +957,7 @@ main() {
   root_check
   cmdline "${args[@]:-}"
   create_dir
+  convert_provider_name
   checks
   if [ "${list}" = 'true' ]; then
     get_data
