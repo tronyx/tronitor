@@ -53,9 +53,9 @@ jobs:
         - sed -i "10s/.*/providerName=''/" Travis/travis_usmu.sh
         - sed -i "14s/.*/apiKey=''/" Travis/travis_usmu.sh
         - sed -i "16s|.*|webhookUrl=''|" Travis/travis_usmu.sh
-        - sed -i "45s/.*/apiKeyStatus='invalid'/" Travis/travis_usmu.sh
-        - sed -i "47s/.*/providerStatus='invalid'/" Travis/travis_usmu.sh
-        - sed -i "49s/.*/scUsernameStatus='invalid'/" Travis/travis_usmu.sh
+        - sed -i "35s/.*/apiKeyStatus='invalid'/" Travis/travis_usmu.sh
+        - sed -i "37s/.*/providerStatus='invalid'/" Travis/travis_usmu.sh
+        - sed -i "39s/.*/scUsernameStatus='invalid'/" Travis/travis_usmu.sh
         # StatusCake Tests
         - sudo expect ./Travis/Expects/sc_api_key_expect.exp
         - sudo bash ./Travis/travis_usmu.sh -s
