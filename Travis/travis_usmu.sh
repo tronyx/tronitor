@@ -229,6 +229,15 @@ get_line_numbers() {
   scUserStatusLineNum=$(head -50 "${scriptname}" |grep -En -A1 'Set initial SC username status' |tail -1 |awk -F- '{print $1}')
 }
 
+# Make sure provider name is lowercase and, if not, convert it
+convert_provider_name() {
+  if [[ "${providerName}" =~ [[:upper:]] ]]; then
+    providerName=$(echo "${providerName}" |awk '{print tolower($0)}')
+  else
+    :
+  fi
+}
+
 # Check that provider is valid and not empty
 check_provider() {
 while [ "${providerStatus}" = 'invalid' ]; do
@@ -367,15 +376,6 @@ checks() {
     check_api_key
   fi
   check_webhook_url
-}
-
-# Make sure provider name is lowercase and, if not, convert it
-convert_provider_name() {
-  if [[ "${providerName}" =~ [[:upper:]] ]]; then
-    providerName=$(echo "${providerName}" |awk '{print tolower($0)}')
-  else
-    :
-  fi
 }
 
 # Grab data for all monitors
@@ -888,8 +888,8 @@ delete_specified_monitors() {
 main() {
   cmdline "${args[@]:-}"
   create_dir
-  checks
   convert_provider_name
+  checks
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors
