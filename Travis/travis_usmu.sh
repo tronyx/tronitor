@@ -760,7 +760,7 @@ get_info() {
   if [ "${providerName}" = 'uptimerobot' ]; then
     curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})" -d "format=json"
   elif [ "${providerName}" = 'statuscake' ]; then
-    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}"
+    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})"
   fi
   echo ''
 }
