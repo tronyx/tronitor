@@ -430,6 +430,15 @@ checks() {
   check_webhook_url
 }
 
+# Make sure provider name is lowercase and, if not, convert it
+convert_provider_name() {
+  if [[ "${providerName}" =~ [[:upper:]] ]]; then
+    providerName=$(echo "${providerName}" |awk '{print tolower($0)}')
+  else
+    :
+  fi
+}
+
 # Grab data for all monitors
 get_data() {
   if [ "${providerName}" = 'uptimerobot' ]; then
@@ -946,6 +955,7 @@ main() {
   cmdline "${args[@]:-}"
   create_dir
   checks
+  convert_provider_name
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors

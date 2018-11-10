@@ -185,17 +185,6 @@ get_scriptname() {
 readonly scriptname="$(get_scriptname)"
 readonly scriptpath="$( cd -P "$( dirname "${scriptname}" )" > /dev/null && pwd )"
 
-# Check whether or not user is root or used sudo
-#root_check() {
-#  if [[ ${EUID} -ne 0 ]]; then
-#    echo -e "${red}You didn't run the script as root!${endColor}"
-#    echo -e "${red}Doing it for you now...${endColor}"
-#    echo ''
-#    sudo bash "${scriptname:-}" "${args[@]:-}" || fatal "Please run as root using sudo ${scriptname:-} ${args[*]:-}"
-#    exit
-#  fi
-#}
-
 # Create directory to neatly store temp files
 create_dir() {
   mkdir -p "${tempDir}"
@@ -378,6 +367,15 @@ checks() {
     check_api_key
   fi
   check_webhook_url
+}
+
+# Make sure provider name is lowercase and, if not, convert it
+convert_provider_name() {
+  if [[ "${providerName}" =~ [[:upper:]] ]]; then
+    providerName=$(echo "${providerName}" |awk '{print tolower($0)}')
+  else
+    :
+  fi
 }
 
 # Grab data for all monitors
@@ -888,10 +886,10 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
-  #root_check
   cmdline "${args[@]:-}"
   create_dir
   checks
+  convert_provider_name
   if [ "${list}" = 'true' ]; then
     get_data
     get_monitors
