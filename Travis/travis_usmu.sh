@@ -38,7 +38,7 @@ providerStatus='invalid'
 # Set initial SC username status
 scUsernameStatus='invalid'
 # Define log file
-logFile="${tempDir}usmu.log"
+#logFile="${tempDir}usmu.log"
 # Arguments
 readonly args=("$@")
 # Colors
@@ -52,10 +52,10 @@ readonly lorg='\e[38;5;130m'
 readonly mgt='\e[35m'
 readonly endColor='\e[0m'
 # Log functions
-info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${logFile}" >&2 ; }
-warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${logFile}" >&2 ; }
-error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${logFile}" >&2 ; }
-fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${logFile}" >&2 ; exit 1 ; }
+#info()    { echo -e "$(date +"%F %T") ${blu}[INFO]${endColor}       $*" | tee -a "${logFile}" >&2 ; }
+#warning() { echo -e "$(date +"%F %T") ${ylw}[WARNING]${endColor}    $*" | tee -a "${logFile}" >&2 ; }
+#error()   { echo -e "$(date +"%F %T") ${org}[ERROR]${endColor}      $*" | tee -a "${logFile}" >&2 ; }
+#fatal()   { echo -e "$(date +"%F %T") ${red}[FATAL]${endColor}      $*" | tee -a "${logFile}" >&2 ; exit 1 ; }
 
 # Source usage function
 . Travis/Config/usage.cfg
