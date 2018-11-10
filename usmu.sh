@@ -31,16 +31,6 @@ monitorsFile="${tempDir}ur_monitors.txt"
 monitorsFullFile="${tempDir}ur_monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
-if [ "${providerName}" = 'uptimerobot' ]; then
-  newHttpMonitorConfigFile='Templates/UptimeRobot/new-http-monitor.json'
-  newPortMonitorConfigFile='Templates/UptimeRobot/new-port-monitor.json'
-  newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
-  newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
-elif [ "${providerName}" = 'statuscake' ]; then
-  newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.json'
-  newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.json'
-  newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.json'
-fi
 # Set initial API key status
 apiKeyStatus='invalid'
 # Set initial provider status
@@ -772,6 +762,16 @@ send_notification() {
 
 # Create a new monitor
 create_monitor() {
+  if [ "${providerName}" = 'uptimerobot' ]; then
+    newHttpMonitorConfigFile='Templates/UptimeRobot/new-http-monitor.json'
+    newPortMonitorConfigFile='Templates/UptimeRobot/new-port-monitor.json'
+    newKeywordMonitorConfigFile='Templates/UptimeRobot/new-keyword-monitor.json'
+    newPingMonitorConfigFile='Templates/UptimeRobot/new-ping-monitor.json'
+  elif [ "${providerName}" = 'statuscake' ]; then
+    newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.json'
+    newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.json'
+    newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.json'
+  fi
   if [ "${providerName}" = 'uptimerobot' ]; then
     if [[ "${createType}" != 'http' && "${createType}" != 'ping' && "${createType}" != 'port' && "${createType}" != 'keyword' ]]; then
       echo -e "${red}You did not specify a valid monitor type!${endColor}"
