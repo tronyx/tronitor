@@ -1,4 +1,4 @@
-language: bash
+language: generic
 sudo: required
 addons:
   apt:
@@ -88,7 +88,6 @@ jobs:
         - sudo bash ./Travis/travis_usmu.sh -u all
         - sudo bash ./Travis/travis_usmu.sh --unpause all
         - sudo expect ./Travis/Expects/pause_invalid_expect.exp
-        #- sudo expect ./Travis/Expects/cleanup.exp
 after_success:
   - sed -i "10s/.*/providerName='uptimerobot'/" Travis/travis_usmu.sh
   - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/travis_usmu.sh
@@ -101,7 +100,6 @@ after_success:
   - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/travis_usmu.sh
   - bash ./Travis/sc_coverage.sh
   - sudo expect ./Travis/Expects/cleanup.exp
-  #- bash <(curl -s https://codecov.io/bash -s coverage/kcov-merged)
 after_failure:
   - sed -i "10s/.*/providerName='uptimerobot'/" Travis/travis_usmu.sh
   - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/travis_usmu.sh
