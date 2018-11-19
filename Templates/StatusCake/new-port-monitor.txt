@@ -1,0 +1,1 @@
+WebsiteName=GooglePort&WebsiteURL=https://google.com&Port=443&CheckRate=300&TestType=TCP

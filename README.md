@@ -1,10 +1,16 @@
-# UptimeRobot Monitor Utility
+# USMU (UptimeRobot/StatusCake Monitor Utility)
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-monitor-utility&amp;utm_campaign=Badge_Grade) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-monitor-utility/blob/master/LICENSE.md)
+[![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](http://isitmaintained.com/project/christronyxyocum/uptimerobot-statuscake-monitor-utility "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](http://isitmaintained.com/project/christronyxyocum/uptimerobot-statuscake-monitor-utility "Percentage of issues still open")
 
-A bash script to work with [UptimeRobot](https://uptimerobot.com) monitors via the API. It checks to make sure that the API key that you provided is valid before performing any requested operations.
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-statuscake-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-statuscake-monitor-utility&amp;utm_campaign=Badge_Grade) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/christronyxyocum/uptimerobot-statuscake-monitor-utility) [![codecov.io](https://codecov.io/gh/christronyxyocum/uptimerobot-statuscake-monitor-utility/branch/develop/graphs/badge.svg?branch=develop)](http://codecov.io/github/christronyxyocum/uptimerobot-statuscake-monitor-utility?branch=develop)
 
-It is recommended that you install the JQ package as the script uses it to automatically format the JSON output into a much more human-readable and colorized output. If you do not install you will see errors about the `jq` command not being found and it may impact the functionality of the script.
+A bash script to work with [UptimeRobot](https://uptimerobot.com) and [StatusCake](https://www.statuscake.com) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
+
+## Package Requirements
+
+cURL is required for the script to function as it submits API calls to UptimeRobot and StatusCake. If it is not installed before you execute the script most, if not all, operations will fail.
+
+It is recommended that you also install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. If you do not install it you will see errors about the `jq` command not being found and it may impact the functionality of the script.
 
 ```bash
 tronyx@suladan:~$ sudo apt install jq
@@ -31,8 +37,8 @@ Processing triggers for man-db (2.8.3-2) ...
 To get the script working you will need to clone the repo onto your preferred machine:
 
 ```bash
-tronyx@suladan:~$ git clone https://github.com/christronyxyocum/uptimerobot-monitor-utility.git
-Cloning into 'uptimerobot-monitor-utility'...
+tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility.git
+Cloning into 'uptimerobot-statuscake-monitor-utility'...
 remote: Enumerating objects: 108, done.
 remote: Counting objects: 100% (108/108), done.
 remote: Compressing objects: 100% (75/75), done.
@@ -44,19 +50,23 @@ Resolving deltas: 100% (143/143), done.
 Then `cd` into the new directory and make the script executable with the `chmod` command:
 
 ```bash
-tronyx@suladan:~$ cd uptimerobot-monitor-utility
-tronyx@suladan:~/uptimerobot-monitor-utility$ chmod a+x uptimerobot_monitor_utility.sh
+tronyx@suladan:~$ cd uptimerobot-statuscake-monitor-utility
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ chmod a+x usmu.sh
 ```
 
-Finally, open the script with your favorite text editor and add your UptimeRobot API key. If you forget this step the script will prompt you to enter your API key:
+Finally, open the script with your favorite text editor and add your provider's name (either UptimeRobot or StatusCake), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
 
-![API Key Prompt](/Images/api_key.png)
+![User Data Prompt](/Images/user_data.png)
 
-After entering your API key, the script will check whether or not it is valid and add it to the script for you.
+After entering the information, the script will check whether or not it is valid and then add it to the script for you.
 
-If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`.
+If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`. The script checks whether or not you're root or are using `sudo` so, if you forget, it will get added for you.
 
-If you use the alert option, be sure to also enter in your Discord/Slack webhook URL.
+![Sudo Check](/Images/sudo.png)
+
+If you use the alert option, be sure to also enter in your Discord/Slack webhook URL. If you forget this as well, the script will also prompt you to enter it:
+
+![Webhook URL Prompt](/Images/webhook_url.png)
 
 ## Usage
 
@@ -68,7 +78,7 @@ If you use the alert option, be sure to also enter in your Discord/Slack webhook
 Display basic statistics for your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -s
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -s
 Here are the basic statistics for your UptimeRobot account:
 
 {
@@ -89,7 +99,7 @@ Here are the basic statistics for your UptimeRobot account:
 Display all monitors associated with your account and their current status:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -l
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
 Radarr (ID: 780859973) - Status: Down
@@ -102,8 +112,8 @@ Tautulli (ID: 780859975) - Status: Seems down
 Find and display all monitors in your account that are currently paused:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -f
-The following UptimeRobot monitors are currently paused:
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -f
+The following StatusCake monitors are currently paused:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
 Sonarr (ID: 780859962)
@@ -119,7 +129,7 @@ You can also use the `-n` option to display the same list, but not display a pro
 Display all information for a single monitor:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -i 'plex'
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -i 'plex'
 {
   "stat": "ok",
   "pagination": {
@@ -152,11 +162,7 @@ tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility
 Displays a list of all of the alert contacts configured for the account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -a
-You didn't define your API key in the script!
-
-Enter your API key: u526944-e14f448afd3ce288452edd48
-
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -a
 The following alert contacts have been found for your UptimeRobot account:
 
 {
@@ -190,7 +196,7 @@ This can be helpful when creating a new monitor as you can use the `id` field of
 Pause all monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p all
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -p all
 Pausing Plex:
 {
   "stat": "ok",
@@ -229,7 +235,7 @@ Pausing Tautulli:
 Pause specific monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -p 'Plex',780859973
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -p 'Plex',780859973
 Pausing Plex:
 {
   "stat": "ok",
@@ -252,7 +258,7 @@ Pausing Radarr:
 Unpause all monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u all
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -u all
 Unpausing Plex:
 {
   "stat": "ok",
@@ -291,7 +297,7 @@ Unpausing Tautulli:
 Unpause specific monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -u 'Plex',780859973
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -u 'Plex',780859973
 Unpausing Plex:
 {
   "stat": "ok",
@@ -313,12 +319,14 @@ Unpausing Radarr:
 
 Monitors can be created using this option.
 
-Modify the settings of the corresponding monitor type JSON file in the `Templates` directory, IE: creating a new HTTP(s) monitor so modify the `Templates/new-http-monitor.json` file. The full API documentation can be found [HERE](https://uptimerobot.com/api) for information on monitor types and any required values and what they're for.
+NOTE: StatusCake's API is dumb and WILL let you create more tests than you're supposed to have with the limit for your account and it can cause some very odd behavior with the monitors.
+
+Modify the settings of the corresponding monitor type template file in the corresponding `Templates` directory for your provider, IE: creating a new HTTP(s) monitor for UptimeRobot would require you to modify the `Templates/UptimeRobot/new-http-monitor.json` file. The full API documentation for the two providers can be found [HERE (UR)](https://uptimerobot.com/api) and [HERE (SC)](https://www.statuscake.com/api/index.md) for information on monitor types and any required values and what they're for.
 
 The below example is for creating a new HTTP(s) monitor for Google:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ cat Templates/new-http-monitor.json
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ cat Templates/UptimeRobot/new-http-monitor.json
 {
       "api_key": "",
       "friendly_name": "Google",
@@ -338,7 +346,7 @@ The `api_key` field is filled in automatically by the script, but you can still 
 Then just execute the script to create the monitor:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -c http
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -c http
 {
   "stat": "ok",
   "monitor": {
@@ -353,7 +361,7 @@ tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility
 Reset (deleting all stats and response time data) all or specific monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -r google
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -r google
 
 ***WARNING*** This will reset ALL data for the specified monitors!!!
 Are you sure you wish to continue? ([Y]es or [N]o):
@@ -373,7 +381,7 @@ Resetting Google:
 Delete a specific monitor from your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-monitor-utility$ sudo ./uptimerobot_monitor_utility.sh -d plex
+tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -d plex
 
 ***WARNING*** This will delete the specified monitor from your account!!!
 Are you sure you wish to continue? ([Y]es or [N]o):

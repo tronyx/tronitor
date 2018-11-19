@@ -1,0 +1,19 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+set apiKey $::env(travisApiKey)
+
+spawn sudo bash Travis/travis_usmu.sh -l
+
+expect "Enter your provider: "
+send -- "UptimeRobot\r"
+
+expect "Enter your API key: "
+send -- "this-is-a-bad-api-key\r"
+
+expect "Enter your API key: "
+send -- "$apiKey\r"
+
+expect eof

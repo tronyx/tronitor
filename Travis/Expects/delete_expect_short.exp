@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+spawn sudo bash Travis/travis_usmu.sh -d travistwo
+
+expect "Are you sure you wish to continue? (\[Y\]es or \[N\]o):"
+send -- "y\r"
+
+expect eof

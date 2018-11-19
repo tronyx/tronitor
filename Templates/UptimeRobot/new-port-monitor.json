@@ -1,12 +1,12 @@
 {
       "api_key": "",
-      "friendly_name": "Google",
+      "friendly_name": "GooglePort",
       "url": "https://google.com",
-      "type": 1,
-      "http_username": "",
-      "http_password": "",
+      "type": 4,
+      "sub_type": "2",
+      "port": "443",
       "interval": 300,
-      "alert_contacts": "",
+      "alert_contacts":  "",
       "ignore_ssl_errors": "false",
       "format": "json"
-}
+    }

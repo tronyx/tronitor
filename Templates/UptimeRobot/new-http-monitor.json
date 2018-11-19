@@ -1,10 +1,12 @@
 {
       "api_key": "",
-      "friendly_name": "Google",
+      "friendly_name": "GoogleHttp",
       "url": "https://google.com",
-      "type": 3,
+      "type": 1,
+      "http_username": "",
+      "http_password": "",
       "interval": 300,
-      "alert_contacts":  "",
+      "alert_contacts": "",
       "ignore_ssl_errors": "false",
       "format": "json"
-    }
+}

@@ -1,0 +1,15 @@
+coverage:
+  ignore:
+    - "Travis/Expects/*"
+    - "Travis/sc_prep.sh"
+    - "Travis/ur_prep.sh"
+    - "Travis/sc_coverage.sh"
+    - "Travis/ur_coverage.sh"
+    - "Travis/cleanup.sh"
+    - "Travis/sleep.sh"
+    - "Travis/Config/*"
+  status:
+    patch: false
+  range: 50...75
+  round: up
+  precision: 2
