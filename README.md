@@ -429,7 +429,7 @@ If you like this project and/or it's made your life easier, feel free to buy me 
 
 ## Contributors
 
-[![GitHub contributors](https://img.shields.io/github/contributors/cdnjs/cdnjs.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/)
+[![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/graphs/contributors/)
 
 Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less simpler than what it's become.
 
