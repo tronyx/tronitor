@@ -12,6 +12,11 @@ jobs:
   include:
     - stage: test
       script:
+        # Dockerized SHFMT on Shell scripts
+        - sudo service docker start
+        - sudo wget https://raw.githubusercontent.com/jamesmstone/dockerfiles/master/shfmt/Dockerfile
+        - sudo docker build -t jamesmstone/shfmt .
+        - sudo docker run -it --rm -v "$(pwd)":/sh -w /sh jamesmstone/shfmt -s -i 2 -ci -sr Travis/travis_usmu.sh
         # UptimeRobot Tests
         - sudo expect ./Travis/Expects/ur_api_key_expect.exp
         - sudo bash ./Travis/ur_prep.sh
