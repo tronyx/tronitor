@@ -1,5 +1,7 @@
 language: generic
 sudo: required
+services:
+  - docker
 addons:
   apt:
     packages:
@@ -13,7 +15,7 @@ jobs:
     - stage: test
       script:
         # Dockerized SHFMT on Shell scripts
-        - sudo service docker start
+        #- sudo service docker start
         - sudo wget https://raw.githubusercontent.com/jamesmstone/dockerfiles/master/shfmt/Dockerfile
         - sudo docker build -t jamesmstone/shfmt .
         - sudo docker run -it --rm -v "$(pwd)":/sh -w /sh jamesmstone/shfmt -s -i 2 -ci -sr Travis/travis_usmu.sh
