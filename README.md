@@ -420,3 +420,9 @@ Deleting Plex:
 Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
 
 ![Discord/Slack Notification](/Images/webhook.png)
+
+## Support Me
+
+If you like this project and it's made your life easier, feel free to buy me a beer!
+
+[![Beerpay](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility/badge.svg?style=flat)](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility)
