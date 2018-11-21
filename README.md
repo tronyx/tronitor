@@ -423,6 +423,14 @@ Using the `-w` option will check for any paused monitors and, if there are any, 
 
 ## Support Me
 
-If you like this project and it's made your life easier, feel free to buy me a beer!
+If you like this project and/or it's made your life easier, feel free to buy me a beer!
 
 [![Beerpay](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility/badge.svg?style=flat)](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility)
+
+## Contributors
+
+[![GitHub contributors](https://img.shields.io/github/contributors/cdnjs/cdnjs.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/)
+
+Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less simpler than what it's become.
+
+Feel free to check out their work and buy them a beer too!
