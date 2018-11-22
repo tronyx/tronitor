@@ -7,10 +7,21 @@
 A bash script to work with [UptimeRobot](https://uptimerobot.com) and [StatusCake](https://www.statuscake.com) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
 
 ## Package Requirements
+### cURL
 
 cURL is required for the script to function as it submits API calls to UptimeRobot and StatusCake. If it is not installed before you execute the script most, if not all, operations will fail.
 
-It is recommended that you also install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. If you do not install it you will see errors about the `jq` command not being found and it may impact the functionality of the script.
+### JQ
+
+It is recommended that you also install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. There is a variable at the beginning of the script to set the `jq` command to true or false. I've personally encountered some issues with it when using the script within a cronjob and not using `jq` to format the output resolves them. It is set to `true` by default.
+
+```bash
+# Set JQ to false to disable the use of the JQ command.
+# This works better for using the script with cronjobs, etc.
+jq='true'
+```
+
+Installing on Ubuntu Server 18.04.1:
 
 ```bash
 tronyx@suladan:~$ sudo apt install jq
@@ -31,6 +42,14 @@ Unpacking jq (1.5+dfsg-2) ...
 Setting up jq (1.5+dfsg-2) ...
 Processing triggers for man-db (2.8.3-2) ...
 ```
+
+Sample output using `jq`:
+
+![JQ True](/Images/jq_sample.png)
+
+Sample output without `jq`:
+
+![JQ False](/Images/no_jq_sample.png)
 
 ## Setting it up
 
@@ -401,3 +420,17 @@ Deleting Plex:
 Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
 
 ![Discord/Slack Notification](/Images/webhook.png)
+
+## Support Me
+
+If you like this project and/or it's made your life easier, feel free to buy me a beer!
+
+[![Beerpay](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility/badge.svg?style=flat)](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility)
+
+## Contributors
+
+[![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/graphs/contributors/)
+
+Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less simpler than what it's become.
+
+Feel free to check out their work and buy them a beer too!

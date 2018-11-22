@@ -1,5 +1,7 @@
 language: generic
 sudo: required
+services:
+  - docker
 addons:
   apt:
     packages:
@@ -12,6 +14,11 @@ jobs:
   include:
     - stage: test
       script:
+        # Dockerized SHFMT on Shell scripts
+        - sudo wget https://raw.githubusercontent.com/jamesmstone/dockerfiles/master/shfmt/Dockerfile
+        - sudo docker build -t jamesmstone/shfmt .
+        - sudo docker run -it --rm -v /home/travis/build/christronyxyocum/uptimerobot-statuscake-monitor-utility/Travis:/sh -w /sh jamesmstone/shfmt -s -i 4 -ci -sr -d travis_usmu.sh
+        - sudo docker run -it --rm -v /home/travis/build/christronyxyocum/uptimerobot-statuscake-monitor-utility:/sh -w /sh jamesmstone/shfmt -s -i 4 -ci -sr -d usmu.sh
         # UptimeRobot Tests
         - sudo expect ./Travis/Expects/ur_api_key_expect.exp
         - sudo bash ./Travis/ur_prep.sh
