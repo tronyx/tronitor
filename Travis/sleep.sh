@@ -3,5 +3,5 @@
 end=$((SECONDS + 300))
 
 while [ $SECONDS -lt $end ]; do
-  :
+    :
 done
