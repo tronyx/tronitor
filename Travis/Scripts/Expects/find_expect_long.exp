@@ -3,7 +3,7 @@
 
 set timeout 10
 
-spawn sudo bash Travis/Travis/Scripts/travis_usmu.sh --find
+spawn sudo bash Travis/Scripts/travis_usmu.sh --find
 
 expect "Would you like to unpause the paused monitors? (\[Y\]es or \[N\]o): "
 send -- "n\r"
