@@ -7,6 +7,7 @@ coverage:
     - "Travis/Scripts/ur_coverage.sh"
     - "Travis/Scripts/cleanup.sh"
     - "Travis/Scripts/sleep.sh"
+    - "Travis/Scripts/shfmt.sh"
     - "Travis/Config/*"
   status:
     patch: false
