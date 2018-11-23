@@ -3,7 +3,7 @@
 
 set timeout 10
 
-spawn sudo bash Travis/travis_usmu.sh -d travistwo
+spawn sudo bash Travis/Travis/Scripts/travis_usmu.sh -d travistwo
 
 expect "Are you sure you wish to continue? (\[Y\]es or \[N\]o):"
 send -- "y\r"

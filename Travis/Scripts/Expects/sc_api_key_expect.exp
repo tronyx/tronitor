@@ -6,7 +6,7 @@ set timeout 10
 set apiKey $::env(travisSCApiKey)
 set username $::env(travisSCUsername)
 
-spawn sudo bash Travis/travis_usmu.sh -l
+spawn sudo bash Travis/Scripts/travis_usmu.sh -l
 
 expect "Enter your provider: "
 send -- "StatusCake\r"
