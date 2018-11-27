@@ -53,7 +53,7 @@ Sample output without `jq`:
 
 ## Setting it up
 
-To get the script working you will need to clone the repo onto your preferred machine:
+The best method to get the script working is to clone the repository onto your preferred machine:
 
 ```bash
 tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility.git
@@ -65,6 +65,8 @@ remote: Total 262 (delta 60), reused 76 (delta 32), pack-reused 154
 Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
 Resolving deltas: 100% (143/143), done.
 ```
+
+NOTE: You CAN get away with just grabbing a copy of `usmu.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
 Then `cd` into the new directory and make the script executable with the `chmod` command:
 
