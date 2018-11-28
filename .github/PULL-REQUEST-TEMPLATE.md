@@ -20,4 +20,4 @@
 
 ---
 -   You must follow the template instructions. Failure to do so will result in your pull request being closed.
--   Please respect that UMU is developed by volunteers, IE: me, who can only reply in their spare time.
+-   Please respect that USMU is developed by volunteers, IE: me, who can only reply in their spare time.
