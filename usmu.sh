@@ -296,7 +296,7 @@ check_provider() {
             providerName="${provider}"
             convert_provider_name
         else
-            if [[ ${providerName} != 'uptimerobot' && ${providerName} != 'statuscake' ]]; then
+            if [[ ${providerName} != 'uptimerobot' && ${providerName} != 'statuscake'  && ${providerName} != 'healthchecks' ]]; then
                 echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
                 echo -e "${red}Please specify either uptimerobot or statuscake.${endColor}"
                 echo ''
@@ -317,6 +317,8 @@ check_provider() {
         readonly apiUrl='https://api.uptimerobot.com/v2/'
     elif [ "${providerName}" = 'statuscake' ]; then
         readonly apiUrl='https://app.statuscake.com/API/'
+    elif [ "${providerName}" = 'healthchecks' ]; then
+        readonly apiUrl='https://healthchecks.io/api/v1/'
     fi
 }
 
@@ -375,7 +377,7 @@ check_sc_creds() {
 
 # Check that provided API Key is valid
 check_api_key() {
-    if [ "${providerName}" = 'uptimerobot' ]; then
+    if [[ "${providerName}" = 'uptimerobot' ]] || [[ "${providerName}" = 'healthchecks' ]]; then
         while [ "${apiKeyStatus}" = 'invalid' ]; do
             if [[ -z ${apiKey} ]]; then
                 echo -e "${red}You didn't define your API key in the script!${endColor}"
@@ -385,15 +387,28 @@ check_api_key() {
                 sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey='${API}'/" "${scriptname}"
                 apiKey="${API}"
             else
-                curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
-                status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" | awk -F':' '{print $2}' | tr -d '"')
-                if [ "${status}" = "fail" ]; then
-                    echo -e "${red}The API Key that you provided is not valid!${endColor}"
-                    sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
-                    apiKey=""
-                elif [ "${status}" = "ok" ]; then
-                    sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
-                    apiKeyStatus="${status}"
+                if [ "${providerName}" = 'uptimerobot' ]; then
+                    curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
+                    status=$(grep -Po '"stat":"[a-z]*"' "${apiTestFullFile}" | awk -F':' '{print $2}' | tr -d '"')
+                    if [ "${status}" = "fail" ]; then
+                        echo -e "${red}The API Key that you provided is not valid!${endColor}"
+                        sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+                        apiKey=""
+                    elif [ "${status}" = "ok" ]; then
+                        sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
+                        apiKeyStatus="${status}"
+                    fi
+                elif [ "${providerName}" = 'healthchecks' ]; then
+                    curl -s -H "X-Api-Key: ${apiKey}" -X GET "${apiUrl}"checks/ |jq .error > "${apiTestFullFile}"
+                    status=$(cat "${apiTestFullFile}")
+                    if [ "${status}" != 'null' ]; then
+                        echo -e "${red}The API Key that you provided is not valid!${endColor}"
+                        sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
+                        apiKey=""
+                    elif [ "${status}" = "null" ]; then
+                        sed -i "${apiStatusLineNum} s/apiKeyStatus='[^']*'/apiKeyStatus='${status}'/" "${scriptname}"
+                        apiKeyStatus="${status}"
+                    fi
                 fi
             fi
         done
