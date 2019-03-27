@@ -296,7 +296,7 @@ check_provider() {
             providerName="${provider}"
             convert_provider_name
         else
-            if [[ ${providerName} != 'uptimerobot' && ${providerName} != 'statuscake'  && ${providerName} != 'healthchecks' ]]; then
+            if [[ ${providerName} != 'uptimerobot' ]] && [[ ${providerName} != 'statuscake' ]] && [[ ${providerName} != 'healthchecks' ]]; then
                 echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
                 echo -e "${red}Please specify either uptimerobot or statuscake.${endColor}"
                 echo ''
@@ -448,6 +448,8 @@ get_data() {
         curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}"
     elif [ "${providerName}" = 'statuscake' ]; then
         curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${monitorsFullFile}"
+    elif [ "${providerName}" = 'healthchecks' ]; then
+        curl -s -H "X-Api-Key: ${apiKey}" -X GET "${apiUrl}"checks/ > "${monitorsFullFile}"
     fi
 }
 
@@ -457,6 +459,8 @@ get_monitors() {
         totalMonitors=$(grep -Po '"total":[!0-9]*' "${monitorsFullFile}" | awk -F: '{print $2}')
     elif [ "${providerName}" = 'statuscake' ]; then
         totalMonitors=$(grep -Po '"TestID":[!0-9]*' "${monitorsFullFile}" | wc -l)
+    elif [ "${providerName}" = 'healthchecks' ]; then
+        totalMonitors=$(jq .checks[].name "${monitorsFullFile}" | wc -l)
     fi
     if [ "${totalMonitors}" = '0' ]; then
         echo 'There are currently no monitors associated with your UptimeRobot account.'
@@ -466,6 +470,8 @@ get_monitors() {
             grep -Po '"id":[!0-9]*' "${monitorsFullFile}" | tr -d '"id:' > "${monitorsFile}"
         elif [ "${providerName}" = 'statuscake' ]; then
             grep -Po '"TestID":[!0-9]*' "${monitorsFullFile}" | tr -d '"TestID:' > "${monitorsFile}"
+        elif [ "${providerName}" = 'healthchecks' ]; then
+            jq .checks[].ping_url "${monitorsFullFile}" |tr -d '"' |cut -c21- > "${monitorsFile}"
         fi
     fi
 }
@@ -477,6 +483,8 @@ create_monitor_files() {
             curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt
         elif [ "${providerName}" = 'statuscake' ]; then
             curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt
+        elif [ "${providerName}" = 'healthchecks' ]; then
+            curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ |jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))' > "${tempDir}${monitor}".txt
         fi
     done < <(cat "${monitorsFile}")
 }
@@ -516,6 +524,19 @@ create_friendly_list() {
             elif [ "${status}" = 'Down' ] && [ "${paused}" = 'false' ]; then
                 friendlyStatus="${red}Down${endColor}"
             fi
+        elif [ "${providerName}" = 'healthchecks' ]; then
+            cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
+            friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt |tr -d '"')
+            status=$(jq .status "${tempDir}${monitor}"_short.txt |tr -d '"')
+            if [ "${status}" = 'up' ]; then
+                friendlyStatus="${grn}Up${endColor}"
+            elif [ "${status}" = 'down' ]; then
+                friendlyStatus="${red}Down${endColor}"
+            elif [ "${status}" = 'paused' ]; then
+                friendlyStatus="${ylw}Paused${endColor}"
+            elif [ "${status}" = 'late' ]; then
+                friendlyStatus="${org}Late${endColor}"
+            fi
         fi
         echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor} - Status: ${friendlyStatus}" >> "${friendlyListFile}"
     done < <(cat "${monitorsFile}")
@@ -528,6 +549,8 @@ display_all_monitors() {
             echo 'The following monitors were found in your UptimeRobot account:'
         elif [ "${providerName}" = 'statuscake' ]; then
             echo 'The following monitors were found in your StatusCake account:'
+        elif [ "${providerName}" = 'healthchecks' ]; then
+            echo 'The following monitors were found in your HealthChecks.io account:'
         fi
         echo ''
         column -ts- "${friendlyListFile}"
