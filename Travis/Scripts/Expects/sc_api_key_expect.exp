@@ -1,4 +1,4 @@
-#!/usr/bin/expect -f
+#!/usr/bin/expect -df
 #!/usr/bin/env bash
 
 set timeout 10
