@@ -6,6 +6,20 @@
 
 A bash script to work with [UptimeRobot](https://uptimerobot.com), [StatusCake](https://www.statuscake.com), and [HealthChecks.io](https://healthchecks.io) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
 
+## Support Me
+
+If you like this project and/or it's made your life easier, feel free to show me some love and buy me a beer!
+
+[![Beerpay](https://beerpay.io/christronyxyocum/tronitor/badge.svg?style=flat)](https://beerpay.io/christronyxyocum/tronitor)
+
+## Contributors
+
+[![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/tronitor.svg)](https://github.com/christronyxyocum/tronitor/graphs/contributors/)
+
+Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less simpler than what it's become.
+
+Feel free to check out their work and buy them a beer too!
+
 ## Package Requirements
 
 ### cURL
@@ -423,17 +437,3 @@ Deleting Plex:
 Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
 
 ![Discord/Slack Notification](/Images/webhook.png)
-
-## Support Me
-
-If you like this project and/or it's made your life easier, feel free to buy me a beer!
-
-[![Beerpay](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility/badge.svg?style=flat)](https://beerpay.io/christronyxyocum/uptimerobot-statuscake-monitor-utility)
-
-## Contributors
-
-[![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/tronitor.svg)](https://github.com/christronyxyocum/tronitor/graphs/contributors/)
-
-Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less simpler than what it's become.
-
-Feel free to check out their work and buy them a beer too!
