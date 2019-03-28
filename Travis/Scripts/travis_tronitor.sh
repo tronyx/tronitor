@@ -856,6 +856,8 @@ create_monitor() {
         newHttpMonitorConfigFile='Templates/StatusCake/new-http-monitor.txt'
         newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.txt'
         newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.txt'
+    elif [ "${providerName}" = 'healthchecks' ]; then
+        newPingMonitorConfigFile='Templates/HealthChecks/new-monitor.txt'
     fi
     if [ "${providerName}" = 'uptimerobot' ]; then
         if [[ ${createType} != 'http' && ${createType} != 'ping' && ${createType} != 'port' && ${createType} != 'keyword' ]]; then
@@ -870,6 +872,15 @@ create_monitor() {
         if [[ ${createType} != 'http' && ${createType} != 'ping' && ${createType} != 'port' ]]; then
             echo -e "${red}You did not specify a valid monitor type!${endColor}"
             echo -e "${red}Your choices are http, ping, or port.${endColor}"
+            echo ''
+            exit
+        else
+            :
+        fi
+    elif [ "${providerName}" = 'healthchecks' ]; then
+        if [[ ${createType} != 'ping' ]]; then
+            echo -e "${red}You did not specify a valid monitor type!${endColor}"
+            echo -e "${red}Your only choice is ping.${endColor}"
             echo ''
             exit
         else
@@ -897,6 +908,12 @@ create_monitor() {
             curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" | jq
         elif [ "${jq}" = 'false' ]; then
             curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update"
+        fi
+    elif [ "${providerName}" = 'healthchecks' ]; then
+        if [ "${jq}" = 'true' ]; then
+            curl "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" | jq
+        elif [ "${jq}" = 'false' ]; then
+            curl "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})"
         fi
     fi
     echo ''
