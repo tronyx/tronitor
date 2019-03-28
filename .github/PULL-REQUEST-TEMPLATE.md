@@ -1,7 +1,7 @@
 **By submitting this pull request, I confirm the following:**
-*Please fill in any appropriate checkboxes, e.g: [X]*
+*Please fill in any appropriate check-boxes, e.g: [X]*
 
--   [ ]   I have read and understood the [contributors guide](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/blob/master/.github/CONTRIBUTING.md), as well as this entire template.
+-   [ ]   I have read and understood the [contributors guide](https://github.com/christronyxyocum/tronitor/blob/master/.github/CONTRIBUTING.md), as well as this entire template.
 -   [ ]   I have made only one major change in my proposed changes.
 -   [ ]   I have commented my proposed changes within the code.
 -   [ ]   I have tested my proposed changes, and have included unit tests where possible.
@@ -20,4 +20,4 @@
 
 ---
 -   You must follow the template instructions. Failure to do so will result in your pull request being closed.
--   Please respect that USMU is developed by volunteers, IE: me, who can only reply in their spare time.
+-   Please respect that Tronitor is developed by volunteers, IE: me, who can only reply in their spare time.
