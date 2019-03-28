@@ -42,8 +42,10 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --stats
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        - sudo expect ./Travis/Scripts/Expects/delete_expect_short.exp
+        - sudo expect ./Travis/Scripts/Expects/delete_expect_long.exp
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --pause all
         - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
@@ -84,8 +86,10 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --alerts
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        - sudo expect ./Travis/Scripts/Expects/delete_expect_short.exp
+        - sudo expect ./Travis/Scripts/Expects/delete_expect_long.exp
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --pause all
         - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
@@ -123,8 +127,10 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --alerts
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        - sudo expect ./Travis/Scripts/Expects/delete_expect_short.exp
+        - sudo expect ./Travis/Scripts/Expects/delete_expect_long.exp
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --pause all
         - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
