@@ -173,17 +173,6 @@ get_scriptname() {
 readonly scriptname="$(get_scriptname)"
 readonly scriptpath="$(cd -P "$(dirname "${scriptname}")" > /dev/null && pwd)"
 
-# Check whether or not user is root or used sudo
-root_check() {
-    if [[ ${EUID} -ne 0 ]]; then
-        echo -e "${red}You didn't run the script as root!${endColor}"
-        echo -e "${red}Doing it for you now...${endColor}"
-        echo ''
-        sudo bash "${scriptname:-}" "${args[@]:-}"
-        exit
-    fi
-}
-
 # Create directory to neatly store temp files
 create_dir() {
     mkdir -p "${tempDir}"
@@ -1025,7 +1014,7 @@ reset_specified_monitors() {
     else
         convert_friendly_monitors
     fi
-    reset_prompt
+    #reset_prompt
     while IFS= read -r monitor; do
         grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
         friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt | awk -F':' '{print $2}' | tr -d '"')
@@ -1102,7 +1091,7 @@ delete_specified_monitors() {
     else
         convert_friendly_monitors
     fi
-    delete_prompt
+    #delete_prompt
     while IFS= read -r monitor; do
         if [ "${providerName}" = 'uptimerobot' ]; then
             grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
@@ -1138,7 +1127,6 @@ delete_specified_monitors() {
 
 # Run functions
 main() {
-    root_check
     cmdline "${args[@]:-}"
     create_dir
     convert_provider_name
