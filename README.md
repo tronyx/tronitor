@@ -16,7 +16,7 @@ If you like this project and/or it's made your life easier, feel free to show me
 
 [![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/tronitor.svg)](https://github.com/christronyxyocum/tronitor/graphs/contributors/)
 
-Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less simpler than what it's become.
+Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less complicated than what it's become.
 
 Feel free to check out their work and buy them a beer too!
 
