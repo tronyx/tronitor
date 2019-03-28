@@ -5,7 +5,7 @@ set timeout 10
 
 set apiKey $::env(travisApiKey)
 
-spawn sudo bash Travis/Scripts/travis_usmu.sh -l
+spawn sudo bash Travis/Scripts/travis_tronitor.sh -l
 
 expect "Enter your provider: "
 send -- "UptimeRobot\r"
