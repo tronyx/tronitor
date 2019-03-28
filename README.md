@@ -1,15 +1,16 @@
-# USMU (UptimeRobot/StatusCake Monitor Utility)
+# Tronitor
 
 [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](http://isitmaintained.com/project/christronyxyocum/uptimerobot-statuscake-monitor-utility "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](http://isitmaintained.com/project/christronyxyocum/uptimerobot-statuscake-monitor-utility "Percentage of issues still open")
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-statuscake-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-statuscake-monitor-utility&amp;utm_campaign=Badge_Grade) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/christronyxyocum/uptimerobot-statuscake-monitor-utility) [![codecov.io](https://codecov.io/gh/christronyxyocum/uptimerobot-statuscake-monitor-utility/branch/develop/graphs/badge.svg?branch=develop)](http://codecov.io/github/christronyxyocum/uptimerobot-statuscake-monitor-utility?branch=develop) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/)
 
-A bash script to work with [UptimeRobot](https://uptimerobot.com) and [StatusCake](https://www.statuscake.com) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
+A bash script to work with [UptimeRobot](https://uptimerobot.com), [StatusCake](https://www.statuscake.com), and [HealthChecks.io](https://healthchecks.io) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
 
 ## Package Requirements
+
 ### cURL
 
-cURL is required for the script to function as it submits API calls to UptimeRobot and StatusCake. If it is not installed before you execute the script most, if not all, operations will fail.
+cURL is required for the script to function as it's used to submit API calls . If it is not installed before you execute the script most, if not all, operations will fail.
 
 ### JQ
 
@@ -21,7 +22,7 @@ It is recommended that you also install the JQ package as the script uses it to 
 jq='true'
 ```
 
-Installing on Ubuntu Server 18.04.1:
+Installing on Ubuntu Server 18.04:
 
 ```bash
 tronyx@suladan:~$ sudo apt install jq
@@ -75,7 +76,7 @@ tronyx@suladan:~$ cd uptimerobot-statuscake-monitor-utility
 tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ chmod a+x usmu.sh
 ```
 
-Finally, open the script with your favorite text editor and add your provider's name (either UptimeRobot or StatusCake), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
+Finally, open the script with your favorite text editor and add your provider's name (either UptimeRobot, StatusCake, or HealthChecks), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
 
 ![User Data Prompt](/Images/user_data.png)
 

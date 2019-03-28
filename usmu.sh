@@ -6,7 +6,7 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Edit these to finish setting up the script
-# Monitor provider name, IE: UptimeRobot or StatusCake
+# Monitor provider name, IE: UptimeRobot, StatusCake, or HealthChecks
 providerName=''
 # If your provider is StatusCake, specify your username
 scUsername=''
@@ -22,7 +22,7 @@ jq='true'
 
 # Declare some variables
 # Temp dir and filenames
-tempDir='/tmp/usmu/'
+tempDir='/tmp/tronitor/'
 usernameTestFile="${tempDir}sc_username_temp.txt"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
@@ -61,49 +61,49 @@ usage() {
 
   Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
 
-  $(echo -e "${grn}"-s/--stats*"${endColor}")           List account statistics.
+  $(echo -e "${grn}"-s/--stats"${endColor}${red}"*"${endColor}")           List account statistics.
   $(echo -e "${grn}"-l/--list"${endColor}")             List all monitors.
   $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused monitors.
   $(echo -e "${grn}"-n/--no-prompt"${endColor}")        Find all paused monitors without an unpause prompt.
   $(echo -e "${grn}"-w/--webhook"${endColor}")          Find all paused monitors without an unpause prompt and
                         send an alert to the Discord webhook specified in the script.
   $(echo -e "${grn}"-i/--info"${endColor}" "${ylw}"VALUE"${endColor}")       List all information for the specified monitor.
-                          A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"18095689"${endColor}")"
-                          B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--info"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
-                          C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"18095689"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--info"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-i"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
   $(echo -e "${grn}"-a/--alerts"${endColor}")           List all alert contacts.
   $(echo -e "${grn}"-p/--pause"${endColor}" "${ylw}"VALUE"${endColor}")      Pause specified monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
                         of monitors by ID or Friendly Name. Friendly Name should be wrapped in
                         a set of single or double quotes, IE:
-                          A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
-                          B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
-                          C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--pause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-p"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-u/--unpause"${endColor}" "${ylw}"VALUE"${endColor}")    Unpause specified monitors.
                         Option accepts arguments in the form of "$(echo -e "${ylw}"all"${endColor}")" or a comma-separated list
                         of monitors by ID or Friendly Name. Friendly Name should be wrapped in
                         a set of single or double quotes, IE:
-                          A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
-                          B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
-                          C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
+                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"all"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--unpause"${endColor}" "${ylw}"18095687,18095688,18095689"${endColor}")"
+                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-u"${endColor}" "${ylw}"\'Plex\',\"Tautulli\",18095689"${endColor}")"
   $(echo -e "${grn}"-c/--create"${endColor}" "${ylw}"VALUE"${endColor}")     Create a new monitor using the corresponding template file. Each type of test
                         (HTTP, Ping, Port, & Keyword) has a template file in the Templates directory.
                         Just edit the template file for the monitor type you wish to create and then run
                         the script with the corresponding monitor type, IE:
-                          A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
-                          B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"port"${endColor}")"
-                          C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"keyword"${endColor}")"
+                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"http"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--create"${endColor}" "${ylw}"port"${endColor}")"
+                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-c"${endColor}" "${ylw}"keyword"${endColor}")"
   $(echo -e "${grn}"-d/--delete"${endColor}" "${ylw}"VALUE"${endColor}")     Delete the specified monitor, IE:
-                          A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
-                          B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--delete"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
-                          C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"18095688"${endColor}")"
-  $(echo -e "${grn}"-r/--reset*"${endColor}" "${ylw}"VALUE"${endColor}")     Reset the specified monitor, IE:
-                          A) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
-                          B) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"--reset"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
-                          C) "$(echo -e "${lorg}"./usmu.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"18095688"${endColor}")"
+                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--delete"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-d"${endColor}" "${ylw}"18095688"${endColor}")"
+  $(echo -e "${grn}"-r/--reset"${endColor}${red}"*"${endColor}" "${ylw}"VALUE"${endColor}")     Reset the specified monitor, IE:
+                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"\'Plex\'"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--reset"${endColor}" "${ylw}"\"Tautulli\""${endColor}")"
+                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-r"${endColor}" "${ylw}"18095688"${endColor}")"
   $(echo -e "${grn}"-h/--help"${endColor}")             Display this usage dialog.
 
-  $(echo -e "${ylw}"\* - Option is not compatible with StatusCake."${endColor}")
+  $(echo -e "${red}"\*"${endColor}${ylw}" - Option is not compatible with StatusCake or HealthChecks.io."${endColor}")
 
 EOF
 
@@ -267,7 +267,7 @@ check_empty_arg() {
 # Grab status variable line numbers
 get_line_numbers() {
     # Line numbers for user-defined vars
-    providerNameLineNum=$(head -50 "${scriptname}" | grep -En -A1 'UptimeRobot or StatusCake' | tail -1 | awk -F- '{print $1}')
+    providerNameLineNum=$(head -50 "${scriptname}" | grep -En -A1 'UptimeRobot, StatusCake, or HealthChecks' | tail -1 | awk -F- '{print $1}')
     scUsernameLineNum=$(head -50 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
     apiKeyLineNum=$(head -50 "${scriptname}" | grep -En -A1 'Specify API key' | tail -1 | awk -F- '{print $1}')
     webhookUrlLineNum=$(head -50 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
@@ -300,7 +300,7 @@ check_provider() {
         else
             if [[ ${providerName} != 'uptimerobot' ]] && [[ ${providerName} != 'statuscake' ]] && [[ ${providerName} != 'healthchecks' ]]; then
                 echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
-                echo -e "${red}Please specify either uptimerobot or statuscake.${endColor}"
+                echo -e "${red}Please specify either uptimerobot, statuscake, or healthchecks.${endColor}"
                 echo ''
                 read -rp 'Enter your provider: ' provider
                 echo ''
