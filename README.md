@@ -1,8 +1,8 @@
 # Tronitor
 
-[![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](http://isitmaintained.com/project/christronyxyocum/uptimerobot-statuscake-monitor-utility "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](http://isitmaintained.com/project/christronyxyocum/uptimerobot-statuscake-monitor-utility "Percentage of issues still open")
+[![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/tronitor/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/christronyxyocum/tronitor.svg)](http://isitmaintained.com/project/christronyxyocum/tronitor "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/christronyxyocum/tronitor.svg)](http://isitmaintained.com/project/christronyxyocum/tronitor "Percentage of issues still open")
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/uptimerobot-statuscake-monitor-utility?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/uptimerobot-statuscake-monitor-utility&amp;utm_campaign=Badge_Grade) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/christronyxyocum/uptimerobot-statuscake-monitor-utility) [![codecov.io](https://codecov.io/gh/christronyxyocum/uptimerobot-statuscake-monitor-utility/branch/develop/graphs/badge.svg?branch=develop)](http://codecov.io/github/christronyxyocum/uptimerobot-statuscake-monitor-utility?branch=develop) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/da395757a07e45e9a57f8e23bd9aa614)](https://www.codacy.com/app/christronyxyocum/tronitor?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=christronyxyocum/tronitor&amp;utm_campaign=Badge_Grade) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/christronyxyocum/tronitor) [![codecov.io](https://codecov.io/gh/christronyxyocum/tronitor/branch/develop/graphs/badge.svg?branch=develop)](http://codecov.io/github/christronyxyocum/tronitor?branch=develop) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/)
 
 A bash script to work with [UptimeRobot](https://uptimerobot.com), [StatusCake](https://www.statuscake.com), and [HealthChecks.io](https://healthchecks.io) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
 
@@ -57,8 +57,8 @@ Sample output without `jq`:
 The best method to get the script working is to clone the repository onto your preferred machine:
 
 ```bash
-tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility.git
-Cloning into 'uptimerobot-statuscake-monitor-utility'...
+tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/tronitor.git
+Cloning into 'tronitor'...
 remote: Enumerating objects: 108, done.
 remote: Counting objects: 100% (108/108), done.
 remote: Compressing objects: 100% (75/75), done.
@@ -67,13 +67,13 @@ Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
 Resolving deltas: 100% (143/143), done.
 ```
 
-NOTE: You CAN get away with just grabbing a copy of `usmu.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
+NOTE: You CAN get away with just grabbing a copy of `tronitor.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
 Then `cd` into the new directory and make the script executable with the `chmod` command:
 
 ```bash
-tronyx@suladan:~$ cd uptimerobot-statuscake-monitor-utility
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ chmod a+x usmu.sh
+tronyx@suladan:~$ cd tronitor
+tronyx@suladan:~/tronitor$ chmod a+x tronitor.sh
 ```
 
 Finally, open the script with your favorite text editor and add your provider's name (either UptimeRobot, StatusCake, or HealthChecks), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
@@ -100,7 +100,7 @@ If you use the alert option, be sure to also enter in your Discord/Slack webhook
 Display basic statistics for your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -s
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -s
 Here are the basic statistics for your UptimeRobot account:
 
 {
@@ -121,7 +121,7 @@ Here are the basic statistics for your UptimeRobot account:
 Display all monitors associated with your account and their current status:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -l
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
 Radarr (ID: 780859973) - Status: Down
@@ -134,7 +134,7 @@ Tautulli (ID: 780859975) - Status: Seems down
 Find and display all monitors in your account that are currently paused:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -f
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -f
 The following StatusCake monitors are currently paused:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
@@ -151,7 +151,7 @@ You can also use the `-n` option to display the same list, but not display a pro
 Display all information for a single monitor:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -i 'plex'
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -i 'plex'
 {
   "stat": "ok",
   "pagination": {
@@ -184,7 +184,7 @@ tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -i 'plex
 Displays a list of all of the alert contacts configured for the account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -a
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -a
 The following alert contacts have been found for your UptimeRobot account:
 
 {
@@ -218,7 +218,7 @@ This can be helpful when creating a new monitor as you can use the `id` field of
 Pause all monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -p all
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -p all
 Pausing Plex:
 {
   "stat": "ok",
@@ -257,7 +257,7 @@ Pausing Tautulli:
 Pause specific monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -p 'Plex',780859973
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -p 'Plex',780859973
 Pausing Plex:
 {
   "stat": "ok",
@@ -280,7 +280,7 @@ Pausing Radarr:
 Unpause all monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -u all
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -u all
 Unpausing Plex:
 {
   "stat": "ok",
@@ -319,7 +319,7 @@ Unpausing Tautulli:
 Unpause specific monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -u 'Plex',780859973
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -u 'Plex',780859973
 Unpausing Plex:
 {
   "stat": "ok",
@@ -348,7 +348,7 @@ Modify the settings of the corresponding monitor type template file in the corre
 The below example is for creating a new HTTP(s) monitor for Google:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ cat Templates/UptimeRobot/new-http-monitor.json
+tronyx@suladan:~/tronitor$ cat Templates/UptimeRobot/new-http-monitor.json
 {
       "api_key": "",
       "friendly_name": "Google",
@@ -368,7 +368,7 @@ The `api_key` field is filled in automatically by the script, but you can still 
 Then just execute the script to create the monitor:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -c http
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -c http
 {
   "stat": "ok",
   "monitor": {
@@ -383,7 +383,7 @@ tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -c http
 Reset (deleting all stats and response time data) all or specific monitors in your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -r google
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -r google
 
 ***WARNING*** This will reset ALL data for the specified monitors!!!
 Are you sure you wish to continue? ([Y]es or [N]o):
@@ -403,7 +403,7 @@ Resetting Google:
 Delete a specific monitor from your account:
 
 ```json
-tronyx@suladan:~/uptimerobot-statuscake-monitor-utility$ sudo ./usmu.sh -d plex
+tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -d plex
 
 ***WARNING*** This will delete the specified monitor from your account!!!
 Are you sure you wish to continue? ([Y]es or [N]o):
@@ -432,7 +432,7 @@ If you like this project and/or it's made your life easier, feel free to buy me 
 
 ## Contributors
 
-[![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/uptimerobot-statuscake-monitor-utility.svg)](https://github.com/christronyxyocum/uptimerobot-statuscake-monitor-utility/graphs/contributors/)
+[![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/tronitor.svg)](https://github.com/christronyxyocum/tronitor/graphs/contributors/)
 
 Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less simpler than what it's become.
 
