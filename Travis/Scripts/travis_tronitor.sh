@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Script to utilize the UptimeRobot API to retrieve and work with monitors.
+# Script to utilize the UptimeRobot, StatusCake, and HealthChecks.io APIs to retrieve and work with monitors.
 # Tronyx
 set -eo pipefail
 IFS=$'\n\t'
