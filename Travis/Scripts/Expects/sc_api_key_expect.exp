@@ -8,13 +8,13 @@ set username $::env(travisSCUsername)
 
 spawn sudo bash Travis/Scripts/travis_tronitor.sh -l
 
-expect "Enter your provider: "
+expect "Enter your provider: \r"
 send -- "StatusCake\r"
 
-expect "Enter your API key: "
+expect "Enter your API key: \r"
 send -- "$apiKey\r"
 
-expect "Enter your username: "
+expect "Enter your username: \r"
 send -- "$username\r"
 
 expect eof

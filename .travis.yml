@@ -63,7 +63,7 @@ jobs:
         - sed -i "39s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # StatusCake Tests
         - sudo expect ./Travis/Scripts/Expects/sc_api_key_expect.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -s
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/sc_prep.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
@@ -102,7 +102,7 @@ jobs:
         - sed -i "39s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # HealthChecks Tests
         - sudo expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -s
+        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/hc_prep.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
