@@ -910,7 +910,7 @@ create_monitor() {
         newPortMonitorConfigFile='Templates/StatusCake/new-port-monitor.txt'
         newPingMonitorConfigFile='Templates/StatusCake/new-ping-monitor.txt'
     elif [ "${providerName}" = 'healthchecks' ]; then
-        newPingMonitorConfigFile='Templates/HealthChecks/new-monitor.txt'
+        newPingMonitorConfigFile='Templates/HealthChecks/new-monitor.json'
     fi
     if [ "${providerName}" = 'uptimerobot' ]; then
         if [[ ${createType} != 'http' && ${createType} != 'ping' && ${createType} != 'port' && ${createType} != 'keyword' ]]; then
@@ -1031,9 +1031,9 @@ get_alert_contacts() {
         fi
     elif [ "${providerName}" = 'healthchecks' ]; then
         if [ "${jq}" = 'true' ]; then
-            curl "${apiUrl}"channels/ -X GET -H "X-Api-Key: ${apiKey}" | jq
+            curl -s -X GET "${apiUrl}"channels/ -H "X-Api-Key: ${apiKey}" | jq
         elif [ "${jq}" = 'false' ]; then
-            curl "${apiUrl}"channels/ -X POST -H "X-Api-Key: ${apiKey}"
+            curl -s -X GET "${apiUrl}"channels/ -H "X-Api-Key: ${apiKey}"
         fi
     fi
     echo ''

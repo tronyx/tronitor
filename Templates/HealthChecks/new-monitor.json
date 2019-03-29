@@ -1,6 +1,6 @@
 {
       "api_key": "${travisHCApiKey}",
-      "name": "TestName",
+      "name": "TravisOne",
       "tags": "prod www",
       "timeout": 3600,
       "grace": 60,
