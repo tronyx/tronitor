@@ -103,7 +103,7 @@ jobs:
         # HealthChecks Tests
         - sudo expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
         #- sudo bash ./Travis/Scripts/travis_tronitor.sh -s
-        - sudo bash -x ./Travis/Scripts/hc_prep.sh
+        - sudo bash ./Travis/Scripts/hc_prep.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
