@@ -3,7 +3,7 @@
 
 set timeout 10
 
-set apiKey $::env(travisApiKey)
+set apiKey $::env(travisHCApiKey)
 
 spawn sudo bash Travis/Scripts/travis_tronitor.sh -l
 

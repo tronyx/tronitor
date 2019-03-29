@@ -538,6 +538,8 @@ create_friendly_list() {
                 friendlyStatus="${ylw}Paused${endColor}"
             elif [ "${status}" = 'late' ]; then
                 friendlyStatus="${org}Late${endColor}"
+            elif [ "${status}" = 'new' ]; then
+                friendlyStatus="${mgt}New${endColor}"
             fi
         fi
         echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor} | Status: ${friendlyStatus}" >> "${friendlyListFile}"
