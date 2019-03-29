@@ -1003,9 +1003,9 @@ get_info() {
         fi
     elif [ "${providerName}" = 'healthchecks' ]; then
         if [ "${jq}" = 'true' ]; then
-            curl "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))'
+            curl -s "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))'
         elif [ "${jq}" = 'false' ]; then
-            curl "${apiUrl}checks/${monitor}" -X POST -H "X-Api-Key: ${apiKey}"
+            curl -s "${apiUrl}checks/${monitor}" -X POST -H "X-Api-Key: ${apiKey}"
         fi
     fi
     echo ''
