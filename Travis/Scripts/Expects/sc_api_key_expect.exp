@@ -1,20 +1,20 @@
 #!/usr/bin/expect -df
 #!/usr/bin/env bash
 
-set timeout 10
+set timeout -1
 
 set apiKey $::env(travisSCApiKey)
 set username $::env(travisSCUsername)
 
 spawn sudo bash Travis/Scripts/travis_tronitor.sh -l
 
-expect "Enter your provider: \r"
+expect "Enter your provider: "
 send -- "StatusCake\r"
 
-expect "Enter your API key: \r"
+expect "Enter your API key: "
 send -- "$apiKey\r"
 
-expect "Enter your username: \r"
+expect "Enter your username: "
 send -- "$username\r"
 
 expect eof
