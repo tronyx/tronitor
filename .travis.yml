@@ -116,7 +116,7 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -n
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c ping
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh --create ping
+        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create ping
         #- sudo bash ./Travis/Scripts/travis_tronitor.sh -c port
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --create foobar
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -a
