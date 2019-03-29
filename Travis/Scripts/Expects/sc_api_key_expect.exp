@@ -1,7 +1,7 @@
 #!/usr/bin/expect -df
 #!/usr/bin/env bash
 
-set timeout -1
+set timeout 10
 
 set apiKey $::env(travisSCApiKey)
 set username $::env(travisSCUsername)
