@@ -681,9 +681,9 @@ pause_all_monitors() {
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             echo "Pausing ${friendlyName}:"
             if [ "${jq}" = 'true' ]; then
-                curl "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq
+                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq
             elif [ "${jq}" = 'false' ]; then
-                curl "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data ""
+                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data ""
             fi
         fi
         echo ''
@@ -723,9 +723,9 @@ pause_specified_monitors() {
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             echo "Pausing ${friendlyName}:"
             if [ "${jq}" = 'true' ]; then
-                curl "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq
+                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq
             elif [ "${jq}" = 'false' ]; then
-                curl "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data ""
+                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data ""
             fi
         fi
         echo ''
@@ -902,9 +902,9 @@ create_monitor() {
         fi
     elif [ "${providerName}" = 'healthchecks' ]; then
         if [ "${jq}" = 'true' ]; then
-            curl "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" | jq
+            curl -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" | jq
         elif [ "${jq}" = 'false' ]; then
-            curl "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})"
+            curl -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})"
         fi
     fi
     echo ''
