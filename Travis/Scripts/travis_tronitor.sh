@@ -526,6 +526,7 @@ get_paused_monitors() {
                 :
             fi
         elif [ "${providerName}" = 'healthchecks' ]; then
+            cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             status=$(jq .status "${tempDir}${monitor}"_short.txt | tr -d '"')
             if [ "${status}" = 'paused' ]; then
@@ -567,8 +568,9 @@ unpause_prompt() {
     echo -e "Would you like to unpause the paused monitors? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
     read -r unpausePrompt
     echo ''
-    if ! [[ $unpausePrompt =~ ^(yes|y|no|n)$ ]]; then
+    if ! [[ $unpausePrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+        read -r unpausePrompt
     else
         :
     fi
@@ -583,8 +585,9 @@ invalid_prompt() {
     echo -e "${grn}[Y]${endColor}es or ${red}[N]${endColor}o):"
     read -r invalidPrompt
     echo ''
-    if ! [[ $invalidPrompt =~ ^(yes|y|no|n)$ ]]; then
+    if ! [[ $invalidPrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+        read -r invalidPrompt
     else
         :
     fi
@@ -694,8 +697,8 @@ pause_all_monitors() {
 pause_specified_monitors() {
     echo "${pauseType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
-    if [[ ${invalidPrompt} == @(n|no) ]]; then
-        exit
+    if [[ ${invalidPrompt} == @(N|No|n|no) ]]; then
+        exit 0
     else
         convert_friendly_monitors
     fi
@@ -773,8 +776,8 @@ unpause_all_monitors() {
 unpause_specified_monitors() {
     echo "${unpauseType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
-    if [[ ${invalidPrompt} == @(n|no) ]]; then
-        exit
+    if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
+        exit 0
     else
         convert_friendly_monitors
     fi
@@ -855,7 +858,7 @@ create_monitor() {
             echo -e "${red}You did not specify a valid monitor type!${endColor}"
             echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
             echo ''
-            exit
+            exit 0
         else
             :
         fi
@@ -864,7 +867,7 @@ create_monitor() {
             echo -e "${red}You did not specify a valid monitor type!${endColor}"
             echo -e "${red}Your choices are http, ping, or port.${endColor}"
             echo ''
-            exit
+            exit 0
         else
             :
         fi
@@ -873,7 +876,7 @@ create_monitor() {
             echo -e "${red}You did not specify a valid monitor type!${endColor}"
             echo -e "${red}Your only choice is ping.${endColor}"
             echo ''
-            exit
+            exit 0
         else
             :
         fi
@@ -986,6 +989,7 @@ reset_prompt() {
     echo ''
     if ! [[ $resetPrompt =~ ^(yes|y|no|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+        read -r resetPrompt
     else
         :
     fi
@@ -1011,8 +1015,8 @@ reset_all_monitors() {
 reset_specified_monitors() {
     echo "${resetType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
-    if [[ ${invalidPrompt} == @(n|no) ]]; then
-        exit
+    if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
+        exit 0
     else
         convert_friendly_monitors
     fi
@@ -1041,7 +1045,7 @@ delete_prompt() {
     echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
     read -r deletePrompt
     echo ''
-    if ! [[ $deletePrompt =~ ^(yes|y|no|n)$ ]]; then
+    if ! [[ $deletePrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
     else
         :
@@ -1088,8 +1092,8 @@ delete_all_monitors() {
 delete_specified_monitors() {
     echo "${deleteType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
-    if [[ ${invalidPrompt} == @(n|no) ]]; then
-        exit
+    if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
+        exit 0
     else
         convert_friendly_monitors
     fi
@@ -1150,7 +1154,7 @@ main() {
                 :
             else
                 unpause_prompt
-                if [[ $unpausePrompt =~ ^(yes|y)$ ]]; then
+                if [[ $unpausePrompt =~ ^(Yes|yes|Y|y)$ ]]; then
                     while IFS= read -r monitor; do
                         if [ "${providerName}" = 'uptimerobot' ]; then
                             friendlyName=$(grep "${monitor}" "${pausedMonitorsFile}" | awk '{print $1}')
@@ -1169,11 +1173,22 @@ main() {
                             elif [ "${jq}" = 'false' ]; then
                                 curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update"
                             fi
+                        elif [ "${providerName}" = 'healthchecks' ]; then
+                            cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
+                            friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
+                            pingURL=$(jq .ping_url "${tempDir}${monitor}"_short.txt | tr -d '"')
+                            echo "Unpausing ${friendlyName} by sending a ping:"
+                            pingResponse=$(curl -fsS --retry 3 "${pingURL}")
+                            if [ "${pingResponse}" = 'OK' ]; then
+                                echo -e "${grn}Success!${endColor}"
+                            else
+                                echo -e "${red}Unable to unpause ${friendlyName}!${endColor}"
+                            fi
                         fi
                         echo ''
                     done < <(awk -F: '{print $2}' "${pausedMonitorsFile}" | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | tr -d ' ')
-                elif [[ $unpausePrompt =~ ^(no|n)$ ]]; then
-                    exit 1
+                elif [[ $unpausePrompt =~ ^(No|no|N|n)$ ]]; then
+                    exit 0
                 fi
             fi
         else
@@ -1211,7 +1226,7 @@ main() {
     elif [ "${reset}" = 'true' ]; then
         if [[ ${providerName} == 'statuscake' ]] || [[ ${providerName} == 'healthchecks' ]]; then
             echo -e "${red}Sorry, but that option is not valid for your specified provider!${endColor}"
-            exit
+            exit 0
         else
             :
         fi
@@ -1243,7 +1258,7 @@ main() {
     elif [ "${stats}" = 'true' ]; then
         if [[ ${providerName} == 'statuscake' ]] || [[ ${providerName} == 'healthchecks' ]]; then
             echo -e "${red}Sorry, but that option is not valid for your specified provider!${endColor}"
-            exit
+            exit 0
         else
             get_stats
         fi
