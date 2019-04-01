@@ -14,9 +14,11 @@
     echo 'Running kcov for no monitors within account' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -l &&
     echo 'Creating Travis test monitors' &&
-    kcov coverage Travis/Scripts/ur_prep.sh &&
-    echo 'Sleeping to allow tests to be checked' &&
-    kcov coverage Travis/Scripts/sleep.sh &&
+    kcov coverage Travis/Scripts/hc_prep.sh &&
+    #echo 'Sleeping to allow tests to be checked' &&
+    #kcov coverage Travis/Scripts/sleep.sh &&
+    echo 'Running kcov for travis_tronitor.sh --unpause all' &&
+    kcov coverage Travis/Scripts/travis_tronitor.sh --unpause all &&
     echo 'Running kcov for travis_tronitor.sh' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh &&
     echo 'Running kcov for travis_tronitor.sh -h' &&
@@ -81,8 +83,8 @@
     #kcov coverage Travis/Scripts/travis_tronitor.sh --reset TravisTwo &&
     echo 'Running kcov for travis_tronitor.sh -u TravisTwo' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -u TravisTwo &&
-    echo 'Running kcov for travis_tronitor.sh --unpause all' &&
-    kcov coverage Travis/Scripts/travis_tronitor.sh --unpause all &&
+    #echo 'Running kcov for travis_tronitor.sh --unpause all' &&
+    #kcov coverage Travis/Scripts/travis_tronitor.sh --unpause all &&
     echo 'Running kcov for travis_tronitor.sh --list' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh --list &&
     echo 'Running kcov for travis_tronitor.sh -d TravisOne' &&
