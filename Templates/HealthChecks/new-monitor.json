@@ -1,6 +1,6 @@
 {
       "api_key": "${travisHCApiKey}",
-      "name": "TravisOne",
+      "name": "GoogleHttp",
       "tags": "prod www",
       "timeout": 3600,
       "grace": 60,
