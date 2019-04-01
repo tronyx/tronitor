@@ -132,7 +132,7 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --pause all
         - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
         - sudo expect ./Travis/Scripts/Expects/find_expect_long.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -u all
+        - sudo bash ./Travis/Scripts/travis_tronitor.sh -u GooglePing
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --unpause all
         - sudo expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
 after_success:
