@@ -642,11 +642,15 @@ convert_friendly_monitors() {
         :
     fi
     if [ "${providerName}" = 'healthchecks' ]; then
-        if [[ $(echo "${monitor}" | tr -d ' ') =~ $uuidPattern ]]; then
-            curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
-        else
-            echo "${monitor}" >> "${convertedMonitorsFile}"
-        fi
+        while IFS= read -r monitor; do
+            if [[ $(echo "${monitor}" | tr -d ' ') =~ $uuidPattern ]]; then
+                echo "${monitor}" >> "${convertedMonitorsFile}"
+                #curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
+            else
+                curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
+                #echo "${monitor}" >> "${convertedMonitorsFile}"
+            fi
+        done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     else
         while IFS= read -r monitor; do
             if [[ $(echo "${monitor}" | tr -d ' ') =~ [A-Za-z] ]]; then
@@ -694,6 +698,12 @@ pause_all_monitors() {
         fi
         echo ''
     done < <(cat "${monitorsFile}")
+    if [ "${providerName}" = 'healthchecks' ]; then
+        echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
+        echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
+    else
+        :
+    fi
 }
 
 # Pause specified monitors
@@ -739,6 +749,12 @@ pause_specified_monitors() {
         fi
         echo ''
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
+    if [ "${providerName}" = 'healthchecks' ]; then
+        echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
+        echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
+    else
+        :
+    fi
 }
 
 # Unpause all monitors
