@@ -1095,9 +1095,9 @@ delete_all_monitors() {
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             echo "Deleting ${friendlyName}:"
             if [ "${jq}" = 'true' ]; then
-                curl "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq
+                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq
             elif [ "${jq}" = 'false' ]; then
-                curl "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}"
+                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}"
             fi
         fi
         echo ''
@@ -1138,9 +1138,9 @@ delete_specified_monitors() {
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             echo "Deleting ${friendlyName}:"
             if [ "${jq}" = 'true' ]; then
-                curl "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq
+                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq
             elif [ "${jq}" = 'false' ]; then
-                curl "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}"
+                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}"
             fi
         fi
         echo ''

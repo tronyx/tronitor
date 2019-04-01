@@ -112,6 +112,7 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -h
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --help
+        - sudo bash ./Travis/Scripts/travis_tronitor.sh --unpause all
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
         - sudo expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --webhook
@@ -119,7 +120,7 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -n
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c ping
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create ping
+        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create
         #- sudo bash ./Travis/Scripts/travis_tronitor.sh -c port
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --create foobar
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -a
@@ -133,8 +134,7 @@ jobs:
         - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
         - sudo expect ./Travis/Scripts/Expects/find_expect_long.exp
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -u GooglePing
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --unpause all
-        - sudo expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
+        - sudo expect ./Travis/Scripts/Expects/hc_pause_invalid_expect.exp
 after_success:
   - sed -i "10s/.*/providerName='uptimerobot'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
