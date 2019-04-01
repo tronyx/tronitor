@@ -20,6 +20,7 @@ jobs:
         # UptimeRobot Tests
         - sudo expect ./Travis/Scripts/Expects/ur_api_key_expect.exp
         - sudo bash ./Travis/Scripts/ur_prep.sh
+        - sudo sleep 60
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
@@ -65,6 +66,7 @@ jobs:
         - sudo expect ./Travis/Scripts/Expects/sc_api_key_expect.exp
         #- sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/sc_prep.sh
+        - sudo sleep 60
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
@@ -104,6 +106,7 @@ jobs:
         - sudo expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
         #- sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/hc_prep.sh
+        - sudo sleep 60
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
