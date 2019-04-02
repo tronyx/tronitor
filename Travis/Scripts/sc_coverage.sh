@@ -29,6 +29,10 @@
     kcov coverage Travis/Scripts/travis_tronitor.sh -c &&
     echo 'Running kcov for non-existent option' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -x &&
+    echo 'Running kcov for unavailable reset option' &&
+    kcov coverage Travis/Scripts/travis_tronitor.sh -r &&
+    echo 'Running kcov for unavailable reset option' &&
+    kcov coverage Travis/Scripts/travis_tronitor.sh --reset &&
     echo 'Running kcov for travis_tronitor.sh -n' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -n &&
     echo 'Running kcov for travis_tronitor.sh --no-prompt' &&

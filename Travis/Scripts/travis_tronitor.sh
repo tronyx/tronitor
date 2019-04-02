@@ -15,7 +15,7 @@ apiKey=''
 # Specify the Discord/Slack webhook URL to send notifications to
 webhookUrl=''
 # Set notifyAll to true for notification to apply for all running state as well
-notifyAll='false'
+#notifyAll='false'
 # Set JQ to false to disable the use of the JQ command.
 # This works better for using the script with cronjobs, etc.
 #jq='false'
@@ -470,12 +470,12 @@ create_friendly_list() {
             status=$(jq .status "${tempDir}${monitor}"_short.txt | tr -d '"')
             if [ "${status}" = 'up' ]; then
                 friendlyStatus="${grn}Up${endColor}"
-            elif [ "${status}" = 'down' ]; then
-                friendlyStatus="${red}Down${endColor}"
+            #elif [ "${status}" = 'down' ]; then
+            #    friendlyStatus="${red}Down${endColor}"
             elif [ "${status}" = 'paused' ]; then
                 friendlyStatus="${ylw}Paused${endColor}"
-            elif [ "${status}" = 'late' ]; then
-                friendlyStatus="${org}Late${endColor}"
+            #elif [ "${status}" = 'late' ]; then
+            #    friendlyStatus="${org}Late${endColor}"
             elif [ "${status}" = 'new' ]; then
                 friendlyStatus="${mgt}New${endColor}"
             fi
@@ -803,15 +803,15 @@ send_notification() {
         elif [ "${providerName}" = 'healthchecks' ]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused HealthChecks.io monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
         fi
-    elif [ "${notifyAll}" = "true" ]; then
-        curl -s -H "Content-Type: application/json" -X POST -d '{"content": ""}' ${webhookUrl}
-        if [ "${providerName}" = 'uptimerobot' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
-        elif [ "${providerName}" = 'statuscake' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All StatusCake monitors are currently running."}' ${webhookUrl}
-        elif [ "${providerName}" = 'healthchecks' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All HealthChecks.io monitors are currently running."}' ${webhookUrl}
-        fi
+    #elif [ "${notifyAll}" = "true" ]; then
+    #    curl -s -H "Content-Type: application/json" -X POST -d '{"content": ""}' ${webhookUrl}
+    #    if [ "${providerName}" = 'uptimerobot' ]; then
+    #        curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
+    #    elif [ "${providerName}" = 'statuscake' ]; then
+    #        curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All StatusCake monitors are currently running."}' ${webhookUrl}
+    #    elif [ "${providerName}" = 'healthchecks' ]; then
+    #        curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All HealthChecks.io monitors are currently running."}' ${webhookUrl}
+    #    fi
     fi
 }
 
