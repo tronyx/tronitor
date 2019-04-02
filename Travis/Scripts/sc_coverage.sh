@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 #
 #wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
-#tar xzf master.tar.gz &&
-#cd kcov-master &&
-#mkdir build &&
-#cd build &&
-#cmake .. &&
-#make &&
-#sudo make install &&
-#cd ../.. &&
-#rm -rf kcov-master &&
-#mkdir -p coverage &&
-echo 'Running kcov for bad StatusCake option' &&
+#   tar xzf master.tar.gz &&
+#   cd kcov-master &&
+#   mkdir build &&
+#   cd build &&
+#   cmake .. &&
+#   make &&
+#   sudo make install &&
+#   cd ../.. &&
+#   rm -rf kcov-master &&
+#   mkdir -p coverage &&
+    echo 'Running kcov for bad StatusCake option' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -s &&
     echo 'Running kcov for no monitors within account' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -l &&
