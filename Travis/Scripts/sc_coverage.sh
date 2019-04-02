@@ -58,7 +58,7 @@
         curl -s -H "API: ${travisSCApiKeyapiKey}" -H "Username: ${travisSCUsername}" -X GET https://app.statuscake.com/API/Tests/ > foo
         grep TravisThree foo | grep -Po '"TestID":[!0-9]*' foo | awk -F: '{print $2}'
     )
-kcov coverage Travis/Scripts/travis_tronitor.sh -i "${travisThreeId}" &&
+    kcov coverage Travis/Scripts/travis_tronitor.sh -i "${travisThreeId}" &&
     echo 'Running kcov for travis_tronitor.sh -n' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -n &&
     echo 'Running kcov for travis_tronitor.sh -p all' &&

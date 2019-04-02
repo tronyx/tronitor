@@ -62,7 +62,7 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
         curl -s -X POST getMonitors -d "api_key=${travisApiKey}" -d "format=json" > foo
         grep TravisThree foo | grep -Po '"id":[!0-9]*' foo | awk -F: '{print $2}'
     )
-kcov coverage Travis/Scripts/travis_tronitor.sh -i "${travisThreeId}" &&
+    kcov coverage Travis/Scripts/travis_tronitor.sh -i "${travisThreeId}" &&
     echo 'Running kcov for travis_tronitor.sh -n' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -n &&
     echo 'Running kcov for travis_tronitor.sh -p all' &&
