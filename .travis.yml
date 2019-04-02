@@ -64,7 +64,6 @@ jobs:
         - sed -i "44s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # StatusCake Tests
         - sudo expect ./Travis/Scripts/Expects/sc_api_key_expect.exp
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/sc_prep.sh
         - sudo sleep 60
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
@@ -72,6 +71,7 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -h
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --help
+        - sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
         - sudo expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --webhook
@@ -104,7 +104,6 @@ jobs:
         - sed -i "44s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # HealthChecks Tests
         - sudo expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/hc_prep.sh
         - sudo sleep 60
         - sudo bash ./Travis/Scripts/travis_tronitor.sh
@@ -112,6 +111,7 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -h
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --help
+        - sudo bash ./Travis/Scripts/travis_tronitor.sh -s
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --unpause all
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
         - sudo expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
@@ -121,7 +121,6 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -c ping
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --create
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -c port
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --create foobar
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -a
         - sudo bash ./Travis/Scripts/travis_tronitor.sh --alerts
