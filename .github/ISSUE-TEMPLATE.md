@@ -1,5 +1,5 @@
 <!--
-Thanks for reporting issues back to UptimeRobot/StatusCake Monitor Utility! This is the issue tracker of UMU for support issues, bugs, security issues, etc.
+Thanks for reporting issues back to Tronitor! This is the issue tracker for support issues, bugs, security issues, etc.
 
 To make it possible for us to help you please fill out below information carefully.
 -->

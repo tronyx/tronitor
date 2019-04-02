@@ -3,12 +3,12 @@
 
 set timeout 10
 
-set apiKey $::env(travisApiKey)
+set apiKey $::env(travisHCApiKey)
 
 spawn sudo bash Travis/Scripts/travis_tronitor.sh -l
 
 expect "Enter your provider: "
-send -- "UptimeRobot\r"
+send -- "HealthChecks\r"
 
 expect "Enter your API key: "
 send -- "this-is-a-bad-api-key\r"
