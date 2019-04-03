@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+spawn sudo kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh --find
+
+expect "Would you like to unpause the paused monitors? (\[Y\]es or \[N\]o): "
+send -- "n\r"
+
+expect eof

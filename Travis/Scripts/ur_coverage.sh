@@ -73,6 +73,8 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
     kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh --webhook &&
     echo 'Running kcov for travis_tronitor.sh --pause GoogleKeyword' &&
     kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh --pause GoogleKeyword &&
+    echo 'Running kcov for travis_tronitor.sh --find' &&
+    sudo expect ./Travis/Scripts/Expects/kcov_find_expect_long.exp
     echo 'Running kcov for travis_tronitor.sh -n' &&
     kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh -n &&
     echo 'Running kcov for travis_tronitor.sh -r TravisOne' &&
