@@ -186,10 +186,10 @@ cleanup() {
 trap 'cleanup' 0 1 3 6 14 15
 
 # Exit the script if the user hits CTRL+C
-function control_c() {
-    cleanup
-    exit
-}
+#function control_c() {
+#    cleanup
+#    exit
+#}
 trap 'control_c' 2
 
 # Check for empty arg

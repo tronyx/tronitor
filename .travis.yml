@@ -136,18 +136,18 @@ jobs:
         - sudo bash ./Travis/Scripts/travis_tronitor.sh -u GooglePing
         - sudo expect ./Travis/Scripts/Expects/hc_pause_invalid_expect.exp
 after_success:
-  - sed -i "10s/.*/providerName='uptimerobot'/" Travis/Scripts/travis_tronitor.sh
+  - sed -i "10s/.*/providerName='UptimeRobot'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
   - bash ./Travis/Scripts/ur_coverage.sh
   - sudo expect ./Travis/Scripts/Expects/cleanup.exp
-  - sed -i "10s/.*/providerName='statuscake'/" Travis/Scripts/travis_tronitor.sh
+  - sed -i "10s/.*/providerName='StatusCake'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
   - bash ./Travis/Scripts/sc_coverage.sh
   - sudo expect ./Travis/Scripts/Expects/cleanup.exp
-  - sed -i "10s/.*/providerName='healthchecks'/" Travis/Scripts/travis_tronitor.sh
+  - sed -i "10s/.*/providerName='HealthChecks'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
   - bash ./Travis/Scripts/hc_coverage.sh
