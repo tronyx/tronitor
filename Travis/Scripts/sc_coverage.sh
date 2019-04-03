@@ -73,5 +73,5 @@ kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh --list
 echo 'Running kcov for travis_tronitor.sh -d TravisOne' &&
 kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh -d TravisOne &&
 echo 'Running kcov for travis_tronitor.sh --delete TravisTwo' &&
-kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh --delete TravisTwo &&
-bash <(curl -s https://codecov.io/bash -s coverage/kcov-merged)
+kcov --exclude-line=72,103,104 coverage Travis/Scripts/travis_tronitor.sh --delete TravisTwo
+#bash <(curl -s https://codecov.io/bash -s coverage/kcov-merged)
