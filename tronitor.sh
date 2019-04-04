@@ -1125,7 +1125,9 @@ delete_prompt() {
     echo ''
     if ! [[ $deletePrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-    else
+    elif [[ $deletePrompt =~ ^(No|no|N|n)$ ]]; then
+        exit 0
+    elif [[ $deletePrompt =~ ^(Yes|yes|Y|y)$ ]]; then
         :
     fi
 }
