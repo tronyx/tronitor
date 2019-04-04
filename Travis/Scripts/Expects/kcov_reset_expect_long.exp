@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+spawn kcov coverage Travis/Scripts/travis_tronitor.sh --reset all
+
+expect "Are you sure you wish to continue? (\[Y\]es or \[N\]o):"
+send -- "n\r"
+
+expect eof

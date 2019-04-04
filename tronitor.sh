@@ -758,6 +758,7 @@ pause_all_monitors() {
         echo ''
     done < <(cat "${monitorsFile}")
     if [ "${providerName}" = 'healthchecks' ]; then
+        echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
     else
@@ -806,6 +807,7 @@ pause_specified_monitors() {
         echo ''
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
     if [ "${providerName}" = 'healthchecks' ]; then
+        echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
     else
@@ -1065,10 +1067,11 @@ reset_prompt() {
     echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
     read -r resetPrompt
     echo ''
-    if ! [[ $resetPrompt =~ ^(yes|y|no|n)$ ]]; then
+    if ! [[ $resetPrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-        read -r resetPrompt
-    else
+    elif [[ $resetPrompt =~ ^(No|no|N|n)$ ]]; then
+        exit 0
+    elif [[ $resetPrompt =~ ^(Yes|yes|Y|y)$ ]]; then
         :
     fi
 }
@@ -1125,7 +1128,9 @@ delete_prompt() {
     echo ''
     if ! [[ $deletePrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-    else
+    elif [[ $deletePrompt =~ ^(No|no|N|n)$ ]]; then
+        exit 0
+    elif [[ $deletePrompt =~ ^(Yes|yes|Y|y)$ ]]; then
         :
     fi
 }

@@ -645,10 +645,8 @@ convert_friendly_monitors() {
         while IFS= read -r monitor; do
             if [[ $(echo "${monitor}" | tr -d ' ') =~ $uuidPattern ]]; then
                 echo "${monitor}" >> "${convertedMonitorsFile}"
-                #curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
             else
                 curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
-                #echo "${monitor}" >> "${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     else
@@ -684,6 +682,7 @@ pause_all_monitors() {
         echo ''
     done < <(cat "${monitorsFile}")
     if [ "${providerName}" = 'healthchecks' ]; then
+        echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
     else
@@ -720,6 +719,7 @@ pause_specified_monitors() {
         echo ''
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
     if [ "${providerName}" = 'healthchecks' ]; then
+        echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
     else
@@ -923,10 +923,11 @@ reset_prompt() {
     echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
     read -r resetPrompt
     echo ''
-    if ! [[ $resetPrompt =~ ^(yes|y|no|n)$ ]]; then
+    if ! [[ $resetPrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-        read -r resetPrompt
-    else
+    elif [[ $resetPrompt =~ ^(No|no|N|n)$ ]]; then
+        exit 0
+    elif [[ $resetPrompt =~ ^(Yes|yes|Y|y)$ ]]; then
         :
     fi
 }
@@ -952,7 +953,7 @@ reset_specified_monitors() {
     else
         convert_friendly_monitors
     fi
-    #reset_prompt
+    reset_prompt
     while IFS= read -r monitor; do
         grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
         friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt | awk -F':' '{print $2}' | tr -d '"')
@@ -975,7 +976,9 @@ delete_prompt() {
     echo ''
     if ! [[ $deletePrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-    else
+    elif [[ $deletePrompt =~ ^(No|no|N|n)$ ]]; then
+        exit 0
+    elif [[ $deletePrompt =~ ^(Yes|yes|Y|y)$ ]]; then
         :
     fi
 }
@@ -1013,7 +1016,7 @@ delete_specified_monitors() {
     else
         convert_friendly_monitors
     fi
-    #delete_prompt
+    delete_prompt
     while IFS= read -r monitor; do
         if [ "${providerName}" = 'uptimerobot' ]; then
             grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
