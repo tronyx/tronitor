@@ -74,9 +74,9 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
     echo 'Running kcov for travis_tronitor.sh --pause GoogleKeyword' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh --pause GoogleKeyword &&
     echo 'Running kcov for travis_tronitor.sh --find' &&
-    sudo expect ./Travis/Scripts/Expects/kcov_find_expect_long.exp &&
+    sudo expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
     echo 'Running kcov for travis_tronitor.sh -f' &&
-    sudo expect ./Travis/Scripts/Expects/kcov_find_expect_long.exp &&
+    sudo expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
     echo 'Running kcov for travis_tronitor.sh -n' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -n &&
     echo 'Running kcov for travis_tronitor.sh -r TravisOne' &&

@@ -49,9 +49,9 @@ kcov coverage Travis/Scripts/travis_tronitor.sh -n &&
 echo 'Running kcov for travis_tronitor.sh -p all' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh -p all &&
 echo 'Running kcov for travis_tronitor.sh --find' &&
-sudo expect ./Travis/Scripts/Expects/kcov_find_expect_long.exp &&
+sudo expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
 echo 'Running kcov for travis_tronitor.sh -f' &&
-sudo expect ./Travis/Scripts/Expects/kcov_find_expect_long.exp &&
+sudo expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
 echo 'Running kcov for travis_tronitor.sh -w' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
 echo 'Running kcov for travis_tronitor.sh --webhook' &&
