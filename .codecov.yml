@@ -15,6 +15,6 @@ coverage:
     - "Travis/Config/*"
   status:
     patch: false
-  range: 40...100
+  range: 20...100
   round: up
   precision: 2
