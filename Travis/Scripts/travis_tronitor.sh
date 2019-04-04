@@ -682,6 +682,7 @@ pause_all_monitors() {
         echo ''
     done < <(cat "${monitorsFile}")
     if [ "${providerName}" = 'healthchecks' ]; then
+        echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
     else
@@ -718,6 +719,7 @@ pause_specified_monitors() {
         echo ''
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
     if [ "${providerName}" = 'healthchecks' ]; then
+        echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
     else
