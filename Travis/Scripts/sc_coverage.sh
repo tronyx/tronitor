@@ -75,8 +75,8 @@ echo 'Running kcov for travis_tronitor.sh -u travisone' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh -u travisone &&
 echo 'Running kcov for travis_tronitor.sh --unpause all' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh --unpause all &&
-echo 'Running kcov expect for pause invalid test' &&
-expect Travis/Scripts/Expects/kcov_pause_invalid_expect.exp &&
+#echo 'Running kcov expect for pause invalid test' &&
+#expect Travis/Scripts/Expects/kcov_pause_invalid_expect.exp &&
 echo 'Running kcov for travis_tronitor.sh --list' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh --list &&
 echo 'Running kcov for travis_tronitor.sh -d TravisOne' &&
