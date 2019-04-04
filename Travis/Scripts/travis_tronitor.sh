@@ -186,10 +186,10 @@ cleanup() {
 trap 'cleanup' 0 1 3 6 14 15
 
 # Exit the script if the user hits CTRL+C
-#function control_c() {
-#    cleanup
-#    exit
-#}
+function control_c() {
+    cleanup
+    exit
+}
 trap 'control_c' 2
 
 # Check for empty arg
@@ -645,10 +645,8 @@ convert_friendly_monitors() {
         while IFS= read -r monitor; do
             if [[ $(echo "${monitor}" | tr -d ' ') =~ $uuidPattern ]]; then
                 echo "${monitor}" >> "${convertedMonitorsFile}"
-                #curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
             else
                 curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
-                #echo "${monitor}" >> "${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     else
@@ -952,7 +950,7 @@ reset_specified_monitors() {
     else
         convert_friendly_monitors
     fi
-    #reset_prompt
+    reset_prompt
     while IFS= read -r monitor; do
         grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt
         friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt | awk -F':' '{print $2}' | tr -d '"')
@@ -1013,7 +1011,7 @@ delete_specified_monitors() {
     else
         convert_friendly_monitors
     fi
-    #delete_prompt
+    delete_prompt
     while IFS= read -r monitor; do
         if [ "${providerName}" = 'uptimerobot' ]; then
             grep -Po '"id":[!0-9]*|"friendly_name":["^][^"]*"|"status":[!0-9]*' "${tempDir}${monitor}".txt > "${tempDir}${monitor}"_short.txt

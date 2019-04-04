@@ -11,6 +11,8 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
     cd ../.. &&
     rm -rf kcov-master &&
     mkdir -p coverage &&
+    echo 'Running kcov expect for missing API key' &&
+    expect Travis/Scripts/Expects/kcov_ur_api_key_expect.exp &&
     echo 'Running kcov for no monitors within account' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -l &&
     echo 'Creating Travis test monitors' &&
@@ -68,7 +70,8 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
     echo 'Running kcov for travis_tronitor.sh -p all' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -p all &&
     echo 'Running kcov for travis_tronitor.sh -w' &&
-    kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
+    expect Travis/Scripts/Expects/kcov_webhook_empty_expect_short.exp &&
+    #kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
     echo 'Running kcov for travis_tronitor.sh --webhook' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh --webhook &&
     echo 'Running kcov for travis_tronitor.sh --pause GoogleKeyword' &&
@@ -76,17 +79,21 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
     echo 'Running kcov for travis_tronitor.sh --find' &&
     expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
     echo 'Running kcov for travis_tronitor.sh -f' &&
-    expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
+    expect Travis/Scripts/Expects/kcov_find_expect_short.exp &&
     echo 'Running kcov for travis_tronitor.sh -n' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -n &&
     echo 'Running kcov for travis_tronitor.sh -r TravisOne' &&
-    kcov coverage Travis/Scripts/travis_tronitor.sh -r TravisOne &&
+    #kcov coverage Travis/Scripts/travis_tronitor.sh -r TravisOne &&
+    expect Travis/Scripts/Expects/kcov_reset_expect_short.exp &&
     echo 'Running kcov for travis_tronitor.sh --reset TravisTwo' &&
-    kcov coverage Travis/Scripts/travis_tronitor.sh --reset TravisTwo &&
+    expect Travis/Scripts/Expects/reset_expect_long.exp &&
+    #kcov coverage Travis/Scripts/travis_tronitor.sh --reset TravisTwo &&
     echo 'Running kcov for travis_tronitor.sh -u GooglePing' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -u GooglePing &&
     echo 'Running kcov for travis_tronitor.sh --unpause all' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh --unpause all &&
+    echo 'Running kcov expect for pause invalid test' &&
+    expect Travis/Scripts/Expects/kcov_pause_invalid_expect.exp &&
     echo 'Running kcov for travis_tronitor.sh --list' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh --list &&
     echo 'Running kcov for travis_tronitor.sh -d TravisOne' &&

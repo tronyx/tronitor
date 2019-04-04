@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #
+echo 'Running kcov expect for missing API key' &&
+expect Travis/Scripts/Expects/kcov_hc_api_key_expect.exp
 echo 'Running kcov for no monitors within account' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh -l &&
 echo 'Creating Travis test monitors' &&
@@ -53,11 +55,14 @@ expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
 echo 'Running kcov for travis_tronitor.sh -f' &&
 expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
 echo 'Running kcov for travis_tronitor.sh -w' &&
-kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
+#kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
+expect Travis/Scripts/Expects/kcov_webhook_empty_expect_short.exp &&
 echo 'Running kcov for travis_tronitor.sh --webhook' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh --webhook &&
 echo 'Running kcov for travis_tronitor.sh --pause TravisOne' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh --pause TravisOne &&
+echo 'Running kcov expect for pause invalid test' &&
+expect Travis/Scripts/Expects/kcov_pause_invalid_expect.exp &&
 echo 'Running kcov for travis_tronitor.sh -n' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh -n &&
 echo 'Running kcov for travis_tronitor.sh -r TravisOne' &&
