@@ -80,7 +80,9 @@ expect Travis/Scripts/Expects/kcov_pause_invalid_expect.exp &&
 echo 'Running kcov for travis_tronitor.sh --list' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh --list &&
 echo 'Running kcov for travis_tronitor.sh -d TravisOne' &&
-kcov coverage Travis/Scripts/travis_tronitor.sh -d TravisOne &&
+#kcov coverage Travis/Scripts/travis_tronitor.sh -d TravisOne &&
+expect Travis/Scripts/Expects/kcov_delete_expect_short.exp &&
 echo 'Running kcov for travis_tronitor.sh --delete TravisTwo' &&
-kcov coverage Travis/Scripts/travis_tronitor.sh --delete TravisTwo &&
+#kcov coverage Travis/Scripts/travis_tronitor.sh --delete TravisTwo &&
+expect Travis/Scripts/Expects/kcov_delete_expect_long.exp &&
 bash <(curl -s https://codecov.io/bash -s coverage/kcov-merged)
