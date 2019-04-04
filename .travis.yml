@@ -146,7 +146,7 @@ after_success:
   #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
+  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
   #- sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
   #- sed -i "40s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "42s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
@@ -158,7 +158,7 @@ after_success:
   #- sed -i "12s/.*/scUsername=''/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
+  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
   #- sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
   #- sed -i "40s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "42s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
@@ -169,7 +169,7 @@ after_success:
   #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
+  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
   #- sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
   #- sed -i "40s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "42s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
