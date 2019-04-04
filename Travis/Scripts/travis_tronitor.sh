@@ -923,10 +923,11 @@ reset_prompt() {
     echo -e "Are you sure you wish to continue? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
     read -r resetPrompt
     echo ''
-    if ! [[ $resetPrompt =~ ^(yes|y|no|n)$ ]]; then
+    if ! [[ $resetPrompt =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-        read -r resetPrompt
-    else
+    elif [[ $resetPrompt =~ ^(No|no|N|n)$ ]]; then
+        exit 0
+    elif [[ $resetPrompt =~ ^(Yes|yes|Y|y)$ ]]; then
         :
     fi
 }
