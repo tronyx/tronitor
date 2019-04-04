@@ -70,8 +70,8 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
     echo 'Running kcov for travis_tronitor.sh -p all' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -p all &&
     echo 'Running kcov for travis_tronitor.sh -w' &&
-    expect Travis/Scripts/Expects/kcov_webhook_empty_expect_short.exp &&
-    #kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
+    #expect Travis/Scripts/Expects/kcov_webhook_empty_expect_short.exp &&
+    kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
     echo 'Running kcov for travis_tronitor.sh --webhook' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh --webhook &&
     echo 'Running kcov for travis_tronitor.sh --pause GoogleKeyword' &&

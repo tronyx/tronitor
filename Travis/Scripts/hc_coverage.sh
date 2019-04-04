@@ -55,8 +55,8 @@ expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
 echo 'Running kcov for travis_tronitor.sh -f' &&
 expect Travis/Scripts/Expects/kcov_find_expect_long.exp &&
 echo 'Running kcov for travis_tronitor.sh -w' &&
-#kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
-expect Travis/Scripts/Expects/kcov_webhook_empty_expect_short.exp &&
+kcov coverage Travis/Scripts/travis_tronitor.sh -w &&
+#expect Travis/Scripts/Expects/kcov_webhook_empty_expect_short.exp &&
 echo 'Running kcov for travis_tronitor.sh --webhook' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh --webhook &&
 echo 'Running kcov for travis_tronitor.sh --pause TravisOne' &&
