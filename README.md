@@ -83,14 +83,7 @@ Resolving deltas: 100% (143/143), done.
 
 NOTE: You CAN get away with just grabbing a copy of `tronitor.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
-Then `cd` into the new directory and make the script executable with the `chmod` command:
-
-```bash
-tronyx@suladan:~$ cd tronitor
-tronyx@suladan:~/tronitor$ chmod a+x tronitor.sh
-```
-
-Finally, open the script with your favorite text editor and add your provider's name (either UptimeRobot, StatusCake, or HealthChecks), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
+Open the script with your favorite text editor and add your provider's name (either UptimeRobot, StatusCake, or HealthChecks), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
 
 ![User Data Prompt](/Images/user_data.png)
 
