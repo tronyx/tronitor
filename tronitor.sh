@@ -34,6 +34,7 @@ monitorsFile="${tempDir}monitors.txt"
 monitorsFullFile="${tempDir}monitors_full.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
+healthchecksLockFile="${tempDir}healthchecks.lock"
 # UUID regex pattern
 uuidPattern='^\{?[A-Z0-9a-z]{8}-[A-Z0-9a-z]{4}-[A-Z0-9a-z]{4}-[A-Z0-9a-z]{4}-[A-Z0-9a-z]{12}\}?$'
 # Set initial API key status
@@ -748,6 +749,7 @@ pause_all_monitors() {
         elif [ "${providerName}" = 'healthchecks' ]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
+            true > "${healthchecksLockFile}"
             echo "Pausing ${friendlyName}:"
             if [ "${jq}" = 'true' ]; then
                 curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq
@@ -760,7 +762,8 @@ pause_all_monitors() {
     if [ "${providerName}" = 'healthchecks' ]; then
         echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
-        echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
+        echo -e "${ylw}the HC.io monitors, or work with the created lock file, all paused monitors will become${endColor}"
+        echo -e "${ylw}active again the next time they receive a ping.${endColor}"
     else
         :
     fi
