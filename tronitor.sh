@@ -800,7 +800,7 @@ pause_specified_monitors() {
         elif [ "${providerName}" = 'healthchecks' ]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
-            true > "${tempDir}${monitor}".lock
+            true > "${tempDir}${friendlyName,,}".lock
             echo "Pausing ${friendlyName}:"
             if [ "${jq}" = 'true' ]; then
                 curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq
