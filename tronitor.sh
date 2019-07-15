@@ -889,7 +889,7 @@ unpause_specified_monitors() {
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             pingURL=$(jq .ping_url "${tempDir}${monitor}"_short.txt | tr -d '"')
-            rm -f "${tempDir}${monitor}".lock
+            rm -f "${tempDir}${friendlyName,,}".lock
             echo "Unpausing ${friendlyName} by sending a ping:"
             pingResponse=$(curl -fsS --retry 3 "${pingURL}")
             if [ "${pingResponse}" = 'OK' ]; then
