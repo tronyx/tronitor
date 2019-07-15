@@ -259,6 +259,8 @@ Pausing Tautulli:
 }
 ```
 
+NOTE: Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/healthchecks.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
+
 ### Pause specific monitors
 
 Pause specific monitors in your account:
@@ -281,6 +283,8 @@ Pausing Radarr:
   }
 }
 ```
+
+NOTE: Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/MONITOR-NAME.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
 
 ### Unpause all monitors
 
