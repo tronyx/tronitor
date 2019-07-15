@@ -800,6 +800,7 @@ pause_specified_monitors() {
         elif [ "${providerName}" = 'healthchecks' ]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
+            true > "${tempDir}${monitor}".lock
             echo "Pausing ${friendlyName}:"
             if [ "${jq}" = 'true' ]; then
                 curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq
@@ -843,6 +844,7 @@ unpause_all_monitors() {
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             pingURL=$(jq .ping_url "${tempDir}${monitor}"_short.txt | tr -d '"')
+            rm -f "${healthchecksLockFile}"
             echo "Unpausing ${friendlyName} by sending a ping:"
             pingResponse=$(curl -fsS --retry 3 "${pingURL}")
             if [ "${pingResponse}" = 'OK' ]; then
@@ -887,6 +889,7 @@ unpause_specified_monitors() {
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             pingURL=$(jq .ping_url "${tempDir}${monitor}"_short.txt | tr -d '"')
+            rm -f "${tempDir}${monitor}".lock
             echo "Unpausing ${friendlyName} by sending a ping:"
             pingResponse=$(curl -fsS --retry 3 "${pingURL}")
             if [ "${pingResponse}" = 'OK' ]; then
