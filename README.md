@@ -22,7 +22,7 @@ Feel free to check out their work and buy them a beer too!
 
 ## Application Healthchecks
 
-This script partners up with my [Application Healthchecks](https://github.com/christronyxyocum/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually for on a schedule for planned maintenance, etc.
+This script partners up with my [Application Healthchecks](https://github.com/christronyxyocum/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc.
 
 ## Package Requirements
 
