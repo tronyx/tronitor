@@ -157,6 +157,16 @@ Would you like to unpause the paused monitors? ([Y]es or [N]o):
 
 You can also use the `-n` option to display the same list, but not display a prompt to unpause the paused monitors.
 
+### Discord alert for paused monitors
+
+Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
+
+![Discord/Slack Notification](/Images/webhook_paused.png)
+
+If you set the `notifyAll` option to `true` Tronitor will send a notification even if there are no paused monitors:
+
+![Discord/Slack Notification](/Images/webhook_notifyAll.png)
+
 ### Info
 
 Display all information for a single monitor:
@@ -432,9 +442,3 @@ Deleting Plex:
   }
 }
 ```
-
-### Discord alert for paused monitors
-
-Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
-
-![Discord/Slack Notification](/Images/webhook.png)
