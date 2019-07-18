@@ -574,7 +574,7 @@ get_paused_monitors() {
             friendlyName=$(grep friend "${tempDir}${monitor}"_short.txt | awk -F':' '{print $2}' | tr -d '"')
             status=$(grep status "${tempDir}${monitor}"_short.txt | awk -F':' '{print $2}' | tr -d '"')
             if [ "${status}" = '0' ]; then
-                echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
+                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
             else
                 :
             fi
@@ -584,7 +584,7 @@ get_paused_monitors() {
             status=$(grep Status "${tempDir}${monitor}"_short.txt | awk -F':' '{print $2}' | tr -d '"')
             paused=$(grep Paused "${tempDir}${monitor}"_short.txt | awk -F':' '{print $2}' | tr -d '"')
             if [ "${status}" = 'Up' ] && [ "${paused}" = 'true' ]; then
-                echo -e "${lorg}${friendlyName}${endColor} - ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
+                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
             else
                 :
             fi
@@ -845,6 +845,7 @@ unpause_all_monitors() {
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             pingURL=$(jq .ping_url "${tempDir}${monitor}"_short.txt | tr -d '"')
             rm -f "${healthchecksLockFile}"
+            rm -f "${tempDir}"*.lock
             echo "Unpausing ${friendlyName} by sending a ping:"
             pingResponse=$(curl -fsS --retry 3 "${pingURL}")
             if [ "${pingResponse}" = 'OK' ]; then
@@ -905,22 +906,34 @@ unpause_specified_monitors() {
 # Send Discord notification
 send_notification() {
     if [ -s "${pausedMonitorsFile}" ]; then
-        pausedTests=$(paste -s -d, "${pausedMonitorsFile}" | sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+        #pausedTests=$(paste -s -d, "${pausedMonitorsFile}" | sed 's/\x1B\[[0-9;]*[JKmsu]//g')
+        pausedTests='"fields": ['
+        lineCount=$(wc -l < ${pausedMonitorsFile})
+        count=0
+        while IFS= read -r line; do
+            ((++count))
+            pausedTests="${pausedTests}{\"name\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 1)\",
+              \"value\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 2)\"}"
+            if [ "$count" -ne "$lineCount" ]; then
+                pausedTests="${pausedTests},"
+            fi
+        done < "${pausedMonitorsFile}"
+        pausedTests="${pausedTests}]"
         if [ "${providerName}" = 'uptimerobot' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused UptimeRobot monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused UptimeRobot monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
         elif [ "${providerName}" = 'statuscake' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused StatusCake monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused StatusCake monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
         elif [ "${providerName}" = 'healthchecks' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "There are currently paused HealthChecks.io monitors:\n\n'"${pausedTests}"'"}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused HealthChecks.io monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
         fi
     elif [ "${notifyAll}" = "true" ]; then
-        curl -s -H "Content-Type: application/json" -X POST -d '{"content": ""}' ${webhookUrl}
+        #curl -s -H "Content-Type: application/json" -X POST -d '{"content": ""}' ${webhookUrl}
         if [ "${providerName}" = 'uptimerobot' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All UptimeRobot monitors are currently running."}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All UptimeRobot monitors are currently running.","color": 10092339}]}' ${webhookUrl}
         elif [ "${providerName}" = 'statuscake' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All StatusCake monitors are currently running."}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All StatusCake monitors are currently running.","color": 10092339}]}' ${webhookUrl}
         elif [ "${providerName}" = 'healthchecks' ]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"content": "All HealthChecks.io monitors are currently running."}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All HealthChecks.io monitors are currently running.","color": 10092339}]}' ${webhookUrl}
         fi
     fi
 }
