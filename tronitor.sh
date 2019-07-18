@@ -907,16 +907,15 @@ unpause_specified_monitors() {
 send_notification() {
     if [ -s "${pausedMonitorsFile}" ]; then
         #pausedTests=$(paste -s -d, "${pausedMonitorsFile}" | sed 's/\x1B\[[0-9;]*[JKmsu]//g')
-        pausedTests="\"fields\": ["
+        pausedTests='"fields": ['
         lineCount=$(wc -l < ${pausedMonitorsFile})
         count=0
-        while IFS= read -r line
-        do
+        while IFS= read -r line; do
             ((++count))
             pausedTests="${pausedTests}{\"name\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 1)\",
               \"value\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 2)\"}"
             if [ "$count" -ne "$lineCount" ]; then
-              pausedTests="${pausedTests},"
+                pausedTests="${pausedTests},"
             fi
         done < "${pausedMonitorsFile}"
         pausedTests="${pausedTests}]"
