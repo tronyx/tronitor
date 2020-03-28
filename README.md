@@ -30,6 +30,8 @@ This script partners up with my [Application Healthchecks](https://github.com/ch
 
 cURL is required for the script to function as it's used to submit API calls . If it is not installed before you execute the script most, if not all, operations will fail.
 
+The script does check whether or not cURL is installed and, if not, it will inform you and then exit.
+
 ### JQ
 
 It is recommended that you also install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. There is a variable at the beginning of the script to set the `jq` command to true or false. I've personally encountered some issues with it when using the script within a cronjob and not using `jq` to format the output resolves them. It is set to `true` by default.
