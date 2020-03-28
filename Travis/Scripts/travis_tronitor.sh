@@ -623,7 +623,7 @@ invalid_prompt() {
 check_bad_monitors() {
     true > "${badMonitorsFile}"
     while IFS= read -r monitor; do
-        if [[ $(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${friendlyListFile}" | grep -ic "${monitor} |") -gt "1" ]]; then
+        if [[ $(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${friendlyListFile}" | grep -ic "${monitor} |") != "1" ]]; then
             if [[ ${monitor} =~ ^[A-Za-z]+$ ]]; then
                 echo -e "${lorg}${monitor}${endColor}" >> "${badMonitorsFile}"
             elif [[ ${monitor} != ^[A-Za-z]+$ ]]; then
