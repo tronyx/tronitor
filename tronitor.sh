@@ -268,15 +268,13 @@ check_empty_arg() {
 
 # Function to check if cURL is installed and, if not, inform the user and exit
 check_curl() {
-  set +e
-  whichCURL=$(which curl)
-  if [[ -z ${whichCURL} ]]; then
-    echo -e "${red}cURL is not currently installed on this system!${endColor}"
-    echo -e "${ylw}The script with NOT function without it. Install cURL and run the script again.${endColor}"
-  else
-    :
-  fi
-  set -e
+    whichCURL=$(which curl)
+    if [[ -z ${whichCURL} ]]; then
+        echo -e "${red}cURL is not currently installed on this system!${endColor}"
+        echo -e "${ylw}The script with NOT function without it. Install cURL and run the script again.${endColor}"
+    else
+        :
+    fi
 }
 
 # Function to grab status variable line numbers
