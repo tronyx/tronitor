@@ -23,7 +23,7 @@ jq='true'
 # Declare some variables
 # Temp dir and filenames
 # Make sure you set this to something your user has write access to
-tempDir='$HOME/tronitor/'
+tempDir="$HOME/tronitor/"
 usernameTestFile="${tempDir}sc_username_temp.txt"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
