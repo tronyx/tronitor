@@ -3,7 +3,7 @@
 
 set timeout 10
 
-spawn sudo bash Travis/Scripts/travis_tronitor.sh -p GoogleHttp,foobar
+spawn bash Travis/Scripts/travis_tronitor.sh -p GoogleHttp,foobar
 
 expect "\[Y\]es or \[N\]o):"
 send -- "n\r"

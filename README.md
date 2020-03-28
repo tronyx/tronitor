@@ -93,10 +93,6 @@ Open the script with your favorite text editor and add your provider's name (eit
 
 After entering the information, the script will check whether or not it is valid and then add it to the script for you.
 
-If you are not running the script as the root user, which is recommended, you will need to use `sudo` as the script creates a directory in `/tmp`. The script checks whether or not you're root or are using `sudo` so, if you forget, it will get added for you.
-
-![Sudo Check](/Images/sudo.png)
-
 If you use the alert option, be sure to also enter in your Discord/Slack webhook URL. If you forget this as well, the script will also prompt you to enter it:
 
 ![Webhook URL Prompt](/Images/webhook_url.png)
@@ -111,7 +107,7 @@ If you use the alert option, be sure to also enter in your Discord/Slack webhook
 Display basic statistics for your account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -s
+tronyx@suladan:~/tronitor$ ./tronitor.sh -s
 Here are the basic statistics for your UptimeRobot account:
 
 {
@@ -132,7 +128,7 @@ Here are the basic statistics for your UptimeRobot account:
 Display all monitors associated with your account and their current status:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
 Plex (ID: 779783111) - Status: Up
 Radarr (ID: 780859973) - Status: Down
@@ -145,7 +141,7 @@ Tautulli (ID: 780859975) - Status: Seems down
 Find and display all monitors in your account that are currently paused:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -f
+tronyx@suladan:~/tronitor$ ./tronitor.sh -f
 The following StatusCake monitors are currently paused:
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
@@ -172,7 +168,7 @@ If you set the `notifyAll` option to `true` Tronitor will send a notification ev
 Display all information for a single monitor:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -i 'plex'
+tronyx@suladan:~/tronitor$ ./tronitor.sh -i 'plex'
 {
   "stat": "ok",
   "pagination": {
@@ -205,7 +201,7 @@ tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -i 'plex'
 Displays a list of all of the alert contacts configured for the account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -a
+tronyx@suladan:~/tronitor$ ./tronitor.sh -a
 The following alert contacts have been found for your UptimeRobot account:
 
 {
@@ -239,7 +235,7 @@ This can be helpful when creating a new monitor as you can use the `id` field of
 Pause all monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -p all
+tronyx@suladan:~/tronitor$ ./tronitor.sh -p all
 Pausing Plex:
 {
   "stat": "ok",
@@ -280,7 +276,7 @@ NOTE: Healthchecks.io works with cronjobs so, unless you disable your cronjobs f
 Pause specific monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -p 'Plex',780859973
+tronyx@suladan:~/tronitor$ ./tronitor.sh -p 'Plex',780859973
 Pausing Plex:
 {
   "stat": "ok",
@@ -305,7 +301,7 @@ NOTE: Healthchecks.io works with cronjobs so, unless you disable your cronjobs f
 Unpause all monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -u all
+tronyx@suladan:~/tronitor$ ./tronitor.sh -u all
 Unpausing Plex:
 {
   "stat": "ok",
@@ -344,7 +340,7 @@ Unpausing Tautulli:
 Unpause specific monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -u 'Plex',780859973
+tronyx@suladan:~/tronitor$ ./tronitor.sh -u 'Plex',780859973
 Unpausing Plex:
 {
   "stat": "ok",
@@ -393,7 +389,7 @@ The `api_key` field is filled in automatically by the script, but you can still 
 Then just execute the script to create the monitor:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -c http
+tronyx@suladan:~/tronitor$ ./tronitor.sh -c http
 {
   "stat": "ok",
   "monitor": {
@@ -408,7 +404,7 @@ tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -c http
 Reset (deleting all stats and response time data) all or specific monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -r google
+tronyx@suladan:~/tronitor$ ./tronitor.sh -r google
 
 ***WARNING*** This will reset ALL data for the specified monitors!!!
 Are you sure you wish to continue? ([Y]es or [N]o):
@@ -428,7 +424,7 @@ Resetting Google:
 Delete a specific monitor from your account:
 
 ```json
-tronyx@suladan:~/tronitor$ sudo ./tronitor.sh -d plex
+tronyx@suladan:~/tronitor$ ./tronitor.sh -d plex
 
 ***WARNING*** This will delete the specified monitor from your account!!!
 Are you sure you wish to continue? ([Y]es or [N]o):
