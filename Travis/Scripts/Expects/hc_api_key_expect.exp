@@ -5,7 +5,7 @@ set timeout 10
 
 set apiKey $::env(travisHCApiKey)
 
-spawn sudo bash Travis/Scripts/travis_tronitor.sh -l
+spawn bash Travis/Scripts/travis_tronitor.sh -l
 
 expect "Enter your provider: "
 send -- "HealthChecks\r"
