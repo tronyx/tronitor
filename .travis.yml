@@ -16,47 +16,47 @@ jobs:
     - stage: test
       script:
         # Dockerized SHFMT on Shell scripts
-        - sudo bash ./Travis/Scripts/shfmt.sh
+        - bash ./Travis/Scripts/shfmt.sh
         # UptimeRobot Tests
-        - sudo expect ./Travis/Scripts/Expects/ur_api_key_expect.exp
-        - sudo bash ./Travis/Scripts/ur_prep.sh
-        - sudo sleep 60
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -h
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --help
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
-        - sudo expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --webhook
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --list
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -n
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c http
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create ping
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c port
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create keyword
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c foobar
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -a
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --alerts
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -s
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --stats
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
-        - sudo expect ./Travis/Scripts/Expects/delete_expect_short.exp
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
-        - sudo expect ./Travis/Scripts/Expects/delete_expect_long.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --pause all
-        - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
-        - sudo expect ./Travis/Scripts/Expects/find_expect_long.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -u all
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --unpause all
-        - sudo expect ./Travis/Scripts/Expects/reset_expect_short.exp
-        - sudo expect ./Travis/Scripts/Expects/reset_expect_long.exp
-        - sudo expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
-        - sudo expect ./Travis/Scripts/Expects/cleanup.exp
+        - expect ./Travis/Scripts/Expects/ur_api_key_expect.exp
+        - bash ./Travis/Scripts/ur_prep.sh
+        - sleep 60
+        - bash ./Travis/Scripts/travis_tronitor.sh
+        - bash ./Travis/Scripts/travis_tronitor.sh -c
+        - bash ./Travis/Scripts/travis_tronitor.sh -x
+        - bash ./Travis/Scripts/travis_tronitor.sh -h
+        - bash ./Travis/Scripts/travis_tronitor.sh --help
+        - bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
+        - expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --webhook
+        - bash ./Travis/Scripts/travis_tronitor.sh --list
+        - bash ./Travis/Scripts/travis_tronitor.sh -n
+        - bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
+        - bash ./Travis/Scripts/travis_tronitor.sh -c http
+        - bash ./Travis/Scripts/travis_tronitor.sh --create ping
+        - bash ./Travis/Scripts/travis_tronitor.sh -c port
+        - bash ./Travis/Scripts/travis_tronitor.sh --create keyword
+        - bash ./Travis/Scripts/travis_tronitor.sh -c foobar
+        - bash ./Travis/Scripts/travis_tronitor.sh -a
+        - bash ./Travis/Scripts/travis_tronitor.sh --alerts
+        - bash ./Travis/Scripts/travis_tronitor.sh -s
+        - bash ./Travis/Scripts/travis_tronitor.sh --stats
+        - bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
+        - bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
+        #- bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
+        - expect ./Travis/Scripts/Expects/delete_expect_short.exp
+        #- bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        - expect ./Travis/Scripts/Expects/delete_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
+        - bash ./Travis/Scripts/travis_tronitor.sh --pause all
+        - expect ./Travis/Scripts/Expects/find_expect_short.exp
+        - expect ./Travis/Scripts/Expects/find_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -u all
+        - bash ./Travis/Scripts/travis_tronitor.sh --unpause all
+        - expect ./Travis/Scripts/Expects/reset_expect_short.exp
+        - expect ./Travis/Scripts/Expects/reset_expect_long.exp
+        - expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
+        - expect ./Travis/Scripts/Expects/cleanup.exp
         # Reset some vars
         - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
         - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
@@ -65,40 +65,40 @@ jobs:
         - sed -i "42s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         - sed -i "44s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # StatusCake Tests
-        - sudo expect ./Travis/Scripts/Expects/sc_api_key_expect.exp
-        - sudo bash ./Travis/Scripts/sc_prep.sh
-        - sudo sleep 60
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -h
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --help
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -s
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
-        - sudo expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --webhook
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --list
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -n
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c http
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create ping
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c port
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create foobar
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -a
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --alerts
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
-        - sudo expect ./Travis/Scripts/Expects/delete_expect_short.exp
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
-        - sudo expect ./Travis/Scripts/Expects/delete_expect_long.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --pause all
-        - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
-        - sudo expect ./Travis/Scripts/Expects/find_expect_long.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -u all
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --unpause all
-        - sudo expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
+        - expect ./Travis/Scripts/Expects/sc_api_key_expect.exp
+        - bash ./Travis/Scripts/sc_prep.sh
+        - sleep 60
+        - bash ./Travis/Scripts/travis_tronitor.sh
+        - bash ./Travis/Scripts/travis_tronitor.sh -c
+        - bash ./Travis/Scripts/travis_tronitor.sh -x
+        - bash ./Travis/Scripts/travis_tronitor.sh -h
+        - bash ./Travis/Scripts/travis_tronitor.sh --help
+        - bash ./Travis/Scripts/travis_tronitor.sh -s
+        - bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
+        - expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --webhook
+        - bash ./Travis/Scripts/travis_tronitor.sh --list
+        - bash ./Travis/Scripts/travis_tronitor.sh -n
+        - bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
+        - bash ./Travis/Scripts/travis_tronitor.sh -c http
+        - bash ./Travis/Scripts/travis_tronitor.sh --create ping
+        - bash ./Travis/Scripts/travis_tronitor.sh -c port
+        - bash ./Travis/Scripts/travis_tronitor.sh --create foobar
+        - bash ./Travis/Scripts/travis_tronitor.sh -a
+        - bash ./Travis/Scripts/travis_tronitor.sh --alerts
+        - bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
+        - bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
+        #- bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
+        - expect ./Travis/Scripts/Expects/delete_expect_short.exp
+        #- bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        - expect ./Travis/Scripts/Expects/delete_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
+        - bash ./Travis/Scripts/travis_tronitor.sh --pause all
+        - expect ./Travis/Scripts/Expects/find_expect_short.exp
+        - expect ./Travis/Scripts/Expects/find_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -u all
+        - bash ./Travis/Scripts/travis_tronitor.sh --unpause all
+        - expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
         # Reset some vars
         - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
         - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
@@ -107,40 +107,40 @@ jobs:
         - sed -i "42s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         - sed -i "44s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # HealthChecks Tests
-        - sudo expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
-        - sudo bash ./Travis/Scripts/hc_prep.sh
-        - sudo sleep 60
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -x
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -h
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --help
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -s
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --unpause all
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
-        - sudo expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --webhook
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --list
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -n
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -c ping
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --create foobar
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -a
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --alerts
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
-        - sudo expect ./Travis/Scripts/Expects/delete_expect_short.exp
-        #- sudo bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
-        - sudo expect ./Travis/Scripts/Expects/delete_expect_long.exp
-        - sudo sleep 60
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh --pause all
-        - sudo expect ./Travis/Scripts/Expects/find_expect_short.exp
-        - sudo expect ./Travis/Scripts/Expects/find_expect_long.exp
-        - sudo bash ./Travis/Scripts/travis_tronitor.sh -u GooglePing
-        - sudo expect ./Travis/Scripts/Expects/hc_pause_invalid_expect.exp
+        - expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
+        - bash ./Travis/Scripts/hc_prep.sh
+        - sleep 60
+        - bash ./Travis/Scripts/travis_tronitor.sh
+        - bash ./Travis/Scripts/travis_tronitor.sh -c
+        - bash ./Travis/Scripts/travis_tronitor.sh -x
+        - bash ./Travis/Scripts/travis_tronitor.sh -h
+        - bash ./Travis/Scripts/travis_tronitor.sh --help
+        - bash ./Travis/Scripts/travis_tronitor.sh -s
+        - bash ./Travis/Scripts/travis_tronitor.sh --unpause all
+        - bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
+        - expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --webhook
+        - bash ./Travis/Scripts/travis_tronitor.sh --list
+        - bash ./Travis/Scripts/travis_tronitor.sh -n
+        - bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
+        - bash ./Travis/Scripts/travis_tronitor.sh -c ping
+        - bash ./Travis/Scripts/travis_tronitor.sh --create
+        - bash ./Travis/Scripts/travis_tronitor.sh --create foobar
+        - bash ./Travis/Scripts/travis_tronitor.sh -a
+        - bash ./Travis/Scripts/travis_tronitor.sh --alerts
+        - bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
+        - bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
+        #- bash ./Travis/Scripts/travis_tronitor.sh -d 'travisone'
+        - expect ./Travis/Scripts/Expects/delete_expect_short.exp
+        #- bash ./Travis/Scripts/travis_tronitor.sh --delete 'travistwo'
+        - expect ./Travis/Scripts/Expects/delete_expect_long.exp
+        - sleep 60
+        - bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
+        - bash ./Travis/Scripts/travis_tronitor.sh --pause all
+        - expect ./Travis/Scripts/Expects/find_expect_short.exp
+        - expect ./Travis/Scripts/Expects/find_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -u GooglePing
+        - expect ./Travis/Scripts/Expects/hc_pause_invalid_expect.exp
 after_success:
   - sed -i "10s/.*/providerName='UptimeRobot'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
@@ -151,7 +151,7 @@ after_success:
   #- sed -i "40s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "42s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   - bash ./Travis/Scripts/ur_coverage.sh
-  - sudo expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/cleanup.exp
   - sed -i "10s/.*/providerName='StatusCake'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
   - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
@@ -164,7 +164,7 @@ after_success:
   #- sed -i "42s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "44s/scUsernameStatus='[^']*'/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   - bash ./Travis/Scripts/sc_coverage.sh
-  - sudo expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/cleanup.exp
   - sed -i "10s/.*/providerName='HealthChecks'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
@@ -174,15 +174,15 @@ after_success:
   #- sed -i "40s/apiKeyStatus='[^']*'/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   #- sed -i "42s/providerStatus='[^']*'/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
   - bash ./Travis/Scripts/hc_coverage.sh
-  - sudo expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/cleanup.exp
 after_failure:
   - sed -i "10s/.*/providerName='uptimerobot'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - sudo expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/cleanup.exp
   - sed -i "10s/.*/providerName='statuscake'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - sudo expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/cleanup.exp
   - sed -i "10s/.*/providerName='healthchecks'/" Travis/Scripts/travis_tronitor.sh
   - sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - sudo expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/cleanup.exp
