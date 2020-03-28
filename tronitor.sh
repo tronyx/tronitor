@@ -540,7 +540,7 @@ create_friendly_list() {
             paused=$(jq .Paused "${tempDir}${monitor}".txt)
             if [ "${status}" = 'Up' ] && [ "${paused}" = 'true' ]; then
                 friendlyStatus="${ylw}Paused (Up)${endColor}"
-          elif [ "${status}" = 'Down' ] && [ "${paused}" = 'true' ]; then
+            elif [ "${status}" = 'Down' ] && [ "${paused}" = 'true' ]; then
                 friendlyStatus="${ylw}Paused (Down)${endColor}"
             elif [ "${status}" = 'Up' ] && [ "${paused}" = 'false' ]; then
                 friendlyStatus="${grn}Up${endColor}"
