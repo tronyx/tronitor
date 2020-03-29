@@ -1,5 +1,5 @@
 language: bash
-sudo: required
+#sudo: required
 services:
   - docker
 addons:
