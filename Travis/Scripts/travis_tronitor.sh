@@ -857,15 +857,6 @@ send_notification() {
         elif [ "${providerName}" = 'healthchecks' ]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused HealthChecks.io monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
         fi
-    #elif [ "${notifyAll}" = "true" ]; then
-        #curl -s -H "Content-Type: application/json" -X POST -d '{"content": ""}' ${webhookUrl}
-      #  if [ "${providerName}" = 'uptimerobot' ]; then
-      #      curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All UptimeRobot monitors are currently running.","color": 10092339}]}' ${webhookUrl}
-      #  elif [ "${providerName}" = 'statuscake' ]; then
-      #      curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All StatusCake monitors are currently running.","color": 10092339}]}' ${webhookUrl}
-      #  elif [ "${providerName}" = 'healthchecks' ]; then
-      #      curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All HealthChecks.io monitors are currently running.","color": 10092339}]}' ${webhookUrl}
-      #  fi
     fi
 }
 
