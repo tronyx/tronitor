@@ -59,9 +59,9 @@ jobs:
         - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
         - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
         - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
-        - sed -i "40s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "42s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "44s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        - sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        - sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        - sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # StatusCake Tests
         - expect ./Travis/Scripts/Expects/sc_api_key_expect.exp
         - bash ./Travis/Scripts/sc_prep.sh
@@ -99,9 +99,9 @@ jobs:
         - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
         - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
         - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
-        - sed -i "40s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "42s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "44s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        - sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        - sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        - sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
         # HealthChecks Tests
         - expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
         - bash ./Travis/Scripts/hc_prep.sh
