@@ -10,7 +10,7 @@ addons:
       - libelf-dev
       - libdw-dev
       - cmake
-      #- jq
+      - jq
 jobs:
   include:
     - stage: test
