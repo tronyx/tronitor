@@ -240,7 +240,6 @@ convert_provider_name() {
 
 # Function to check that provider is valid and not empty
 check_provider() {
-    #while [ "${providerStatus}" = 'invalid' ]; do
     if [[ -z ${providerName} ]] && [[ ${providerStatus} == 'invalid' ]]; then
         echo -e "${red}You didn't specify your monitoring provider!${endColor}"
         echo ''
@@ -274,7 +273,6 @@ check_provider() {
         convert_provider_name
         providerStatus='ok'
     fi
-    #done
     if [[ ${providerName} == 'uptimerobot' ]]; then
         readonly apiUrl='https://api.uptimerobot.com/v2/'
     elif [[ ${providerName} == 'statuscake' ]]; then
@@ -973,22 +971,22 @@ reset_all_monitors() {
 }
 
 # Function to reset specified monitors
-reset_specified_monitors() {
-    echo "${resetType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
-    check_bad_monitors
-    if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
-        exit 0
-    else
-        convert_friendly_monitors
-    fi
-    reset_prompt
-    while IFS= read -r monitor; do
-        friendlyName=$(jq .monitors[].friendly_name "${tempDir}${monitor}".txt | tr -d '"')
-        echo "Resetting ${friendlyName}:"
-        curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
-        echo ''
-    done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
-}
+#reset_specified_monitors() {
+#    echo "${resetType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
+#    check_bad_monitors
+#    if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
+#        exit 0
+#    else
+#        convert_friendly_monitors
+#    fi
+#    reset_prompt
+#    while IFS= read -r monitor; do
+#        friendlyName=$(jq .monitors[].friendly_name "${tempDir}${monitor}".txt | tr -d '"')
+#        echo "Resetting ${friendlyName}:"
+#        curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}"
+#        echo ''
+#    done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
+#}
 
 # Function to display delete monitors prompt
 delete_prompt() {
