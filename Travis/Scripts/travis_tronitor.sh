@@ -206,15 +206,15 @@ check_empty_arg() {
 }
 
 # Function to check if cURL is installed and, if not, inform the user and exit
-check_curl() {
-    whichCURL=$(which curl)
-    if [[ -z ${whichCURL} ]]; then
-        echo -e "${red}cURL is not currently installed on this system!${endColor}"
-        echo -e "${ylw}The script with NOT function without it. Install cURL and run the script again.${endColor}"
-    else
-        :
-    fi
-}
+#check_curl() {
+#    whichCURL=$(which curl)
+#    if [[ -z ${whichCURL} ]]; then
+#        echo -e "${red}cURL is not currently installed on this system!${endColor}"
+#        echo -e "${ylw}The script with NOT function without it. Install cURL and run the script again.${endColor}"
+#    else
+#        :
+#    fi
+#}
 
 # Function to grab status variable line numbers
 get_line_numbers() {
@@ -405,7 +405,7 @@ check_webhook_url() {
 checks() {
     get_line_numbers
     check_empty_arg
-    check_curl
+    #check_curl
     check_provider
     if [[ ${providerName} == 'statuscake' ]]; then
         check_sc_creds
