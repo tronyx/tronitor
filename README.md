@@ -89,9 +89,11 @@ Resolving deltas: 100% (143/143), done.
 
 NOTE: You CAN get away with just grabbing a copy of `tronitor.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
-Open the script with your favorite text editor and add your provider's name (either UptimeRobot, StatusCake, or HealthChecks), your API key, and, if using StatusCake, your account username. If you forget this step the script will prompt you to enter all three:
+The first time that you run the script it will alert you that the Provider, API Key, etc. are missing and prompt you to select or input them:
 
 ![User Data Prompt](/Images/user_data.png)
+
+You can also simply open the script with your favorite text editor and add your provider's name (either UptimeRobot, StatusCake, or HealthChecks), the corresponding API key, and, if using StatusCake, your account username.
 
 After entering the information, the script will check whether or not it is valid and then add it to the script for you.
 
