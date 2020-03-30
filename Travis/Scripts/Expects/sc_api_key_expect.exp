@@ -10,18 +10,15 @@ spawn bash Travis/Scripts/travis_tronitor.sh -l
 
 #expect "Enter your provider: "
 #send -- "StatusCake\r"
-expect {
-    "Selection: " {send "3\r"}
-}
+expect "Selection: "
+send -- "3\r"
 
 #expect "Enter your API key: "
-expect {
-    "Enter your statuscake API key:" {send "$apiKey\r"}
-}
+expect "Enter your statuscake API key:"
+send -- "$apiKey\r"
 
 #expect "Enter your username: "
-expect {
-    "Enter your statuscake username:" {send "$username\r"}
-}
+expect "Enter your statuscake username:"
+send -- "$username\r"
 
 expect eof

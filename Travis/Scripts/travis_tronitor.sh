@@ -346,7 +346,7 @@ check_sc_creds() {
 # Function to check that the provided API Key is valid
 check_api_key() {
     if [[ ${providerName} == 'uptimerobot' ]] || [[ ${providerName} == 'healthchecks' ]]; then
-        while [[ ${apiKeyStatus} = 'invalid' ]]; do
+        while [[ ${apiKeyStatus} == 'invalid' ]]; do
             if [[ -z ${apiKey} ]]; then
                 echo -e "${red}You didn't define your API key in the script!${endColor}"
                 echo ''
@@ -547,7 +547,7 @@ get_paused_monitors() {
             friendlyName=$(jq .WebsiteName "${tempDir}${monitor}".txt | tr -d '"')
             status=$(jq .Status "${tempDir}${monitor}".txt | tr -d '"')
             paused=$(jq .Paused "${tempDir}${monitor}".txt)
-            if [[ ${status} == 'Up' ]] && [[ "${paused}" == 'true' ]]; then
+            if [[ ${status} == 'Up' ]] && [[ ${paused} == 'true' ]]; then
                 echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
             else
                 :
@@ -642,7 +642,7 @@ check_bad_monitors() {
         set +e
         grep -vxf "${badMonitorsFile}" "${specifiedMonitorsFile}" > "${validMonitorsTempFile}"
         true > "${validMonitorsFile}"
-        if [[ -s "${validMonitorsTempFile}" ]]; then
+        if [[ -s ${validMonitorsTempFile} ]]; then
             while IFS= read -r monitor; do
                 echo -e "${grn}${monitor}${endColor}" >> "${validMonitorsFile}"
             done < <(cat "${validMonitorsTempFile}")
@@ -829,7 +829,7 @@ send_notification() {
             ((++count))
             pausedTests="${pausedTests}{\"name\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 1)\",
               \"value\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 2)\"}"
-            if [[ "$count" -ne "$lineCount" ]]; then
+            if [[ ${count} -ne ${lineCount} ]]; then
                 pausedTests="${pausedTests},"
             fi
         done < "${pausedMonitorsFile}"
@@ -898,9 +898,9 @@ create_monitor() {
     sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
     if [[ ${providerName} == 'uptimerobot' ]]; then
         curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json"
-    elif [[ ${providerName} = 'statuscake' ]]; then
+    elif [[ ${providerName} == 'statuscake' ]]; then
         curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update"
-    elif [[ ${providerName} = 'healthchecks' ]]; then
+    elif [[ ${providerName} == 'healthchecks' ]]; then
         curl -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})"
     fi
     echo ''
