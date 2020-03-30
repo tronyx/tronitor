@@ -1,13 +1,7 @@
 coverage:
   ignore:
     - "Travis/Scripts/Expects/*"
-    #- "Travis/Scripts/hc_prep.sh"
-    #- "Travis/Scripts/sc_prep.sh"
-    #- "Travis/Scripts/ur_prep.sh"
     - "Travis/Scripts/*_prep.sh"
-    #- "Travis/Scripts/hc_coverage.sh"
-    #- "Travis/Scripts/sc_coverage.sh"
-    #- "Travis/Scripts/ur_coverage.sh"
     - "Travis/Scripts/*_coverage.sh"
     - "Travis/Scripts/cleanup.sh"
     - "Travis/Scripts/sleep.sh"
@@ -15,6 +9,6 @@ coverage:
     - "Travis/Config/*"
   status:
     patch: false
-  range: 20...100
+  range: 0...100
   round: up
   precision: 2
