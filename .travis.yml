@@ -136,37 +136,37 @@ jobs:
         - bash ./Travis/Scripts/travis_tronitor.sh -u GooglePing
         - expect ./Travis/Scripts/Expects/hc_pause_invalid_expect.exp
 after_success:
-  #- sed -i "10s/.*/providerName='UptimeRobot'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
-  - sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - bash ./Travis/Scripts/ur_coverage.sh
+  - sed -i "10s/.*/providerName='UptimeRobot'/" Travis/Scripts/travis_tronitor.sh
+  - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- bash ./Travis/Scripts/ur_coverage.sh
   - expect ./Travis/Scripts/Expects/cleanup.exp
-  #- sed -i "10s/.*/providerName='StatusCake'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "12s/.*/scUsername=''/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
-  - sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - bash ./Travis/Scripts/sc_coverage.sh
+  - sed -i "10s/.*/providerName='StatusCake'/" Travis/Scripts/travis_tronitor.sh
+  - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
+  - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "12s/.*/scUsername=''/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- bash ./Travis/Scripts/sc_coverage.sh
   - expect ./Travis/Scripts/Expects/cleanup.exp
-  #- sed -i "10s/.*/providerName='HealthChecks'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
-  - sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-  - bash ./Travis/Scripts/hc_coverage.sh
+  - sed -i "10s/.*/providerName='HealthChecks'/" Travis/Scripts/travis_tronitor.sh
+  - sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "16s|.*|webhookUrl='https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack'|" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+  #- bash ./Travis/Scripts/hc_coverage.sh
   - expect ./Travis/Scripts/Expects/cleanup.exp
 after_failure:
   - sed -i "10s/.*/providerName='uptimerobot'/" Travis/Scripts/travis_tronitor.sh
