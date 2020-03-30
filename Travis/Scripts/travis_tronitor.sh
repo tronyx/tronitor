@@ -241,39 +241,39 @@ convert_provider_name() {
 # Function to check that provider is valid and not empty
 check_provider() {
     #while [ "${providerStatus}" = 'invalid' ]; do
-        if [[ -z ${providerName} ]] && [[ ${providerStatus} == 'invalid' ]]; then
-            echo -e "${red}You didn't specify your monitoring provider!${endColor}"
-            echo ''
-            echo 'Please select your provider:'
-            echo ''
-            echo -e "${bold}  1)${endColor} UptimeRobot"
-            echo -e "${bold}  2)${endColor} Healthchecks.io"
-            echo -e "${bold}  3)${endColor} StatusCake"
-            echo -e "${bold}  4)${endColor} Exit"
-            echo ''
-            read -rp 'Selection: ' providerSelection
-            echo ''
-            if ! [[ ${providerSelection} =~ ^(1|2|3|4)$ ]]; then
-                echo -e "${red}You did not specify a valid option!${endColor}"
-                sleep 2
-                clear >&2
-                check_provider
-            elif [[ ${providerSelection} == '1' ]]; then
-                provider='uptimerobot'
-            elif [[ ${providerSelection} == '2' ]]; then
-                provider='healthchecks'
-            elif [[ ${providerSelection} == '3' ]]; then
-                provider='statuscake'
-            elif [[ ${providerSelection} == '4' ]]; then
-                clear >&2
-                exit 0
-            fi
-            sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
-            sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
-            providerName="${provider}"
-            convert_provider_name
-            providerStatus='ok'
+    if [[ -z ${providerName} ]] && [[ ${providerStatus} == 'invalid' ]]; then
+        echo -e "${red}You didn't specify your monitoring provider!${endColor}"
+        echo ''
+        echo 'Please select your provider:'
+        echo ''
+        echo -e "${bold}  1)${endColor} UptimeRobot"
+        echo -e "${bold}  2)${endColor} Healthchecks.io"
+        echo -e "${bold}  3)${endColor} StatusCake"
+        echo -e "${bold}  4)${endColor} Exit"
+        echo ''
+        read -rp 'Selection: ' providerSelection
+        echo ''
+        if ! [[ ${providerSelection} =~ ^(1|2|3|4)$ ]]; then
+            echo -e "${red}You did not specify a valid option!${endColor}"
+            sleep 2
+            clear >&2
+            check_provider
+        elif [[ ${providerSelection} == '1' ]]; then
+            provider='uptimerobot'
+        elif [[ ${providerSelection} == '2' ]]; then
+            provider='healthchecks'
+        elif [[ ${providerSelection} == '3' ]]; then
+            provider='statuscake'
+        elif [[ ${providerSelection} == '4' ]]; then
+            clear >&2
+            exit 0
         fi
+        sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
+        sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
+        providerName="${provider}"
+        convert_provider_name
+        providerStatus='ok'
+    fi
     #done
     if [[ ${providerName} == 'uptimerobot' ]]; then
         readonly apiUrl='https://api.uptimerobot.com/v2/'
