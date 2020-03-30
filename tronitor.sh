@@ -485,7 +485,7 @@ get_monitors() {
         totalMonitors=$(jq .checks[].name "${monitorsFullFile}" | wc -l)
     fi
     if [[ ${totalMonitors} == '0' ]]; then
-        echo 'There are currently no monitors associated with your UptimeRobot account.'
+        echo "There are currently no monitors associated with your ${providerName} account."
         exit 0
     else
         if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -565,13 +565,14 @@ create_friendly_list() {
 # Function to display a friendly list of all monitors
 display_all_monitors() {
     if [[ -s ${friendlyListFile} ]]; then
-        if [[ ${providerName} == 'uptimerobot' ]]; then
-            echo 'The following monitors were found in your UptimeRobot account:'
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            echo 'The following monitors were found in your StatusCake account:'
-        elif [[ ${providerName} == 'healthchecks' ]]; then
-            echo 'The following monitors were found in your HealthChecks.io account:'
-        fi
+        #if [[ ${providerName} == 'uptimerobot' ]]; then
+        #    echo 'The following monitors were found in your UptimeRobot account:'
+        #elif [[ ${providerName} == 'statuscake' ]]; then
+        #    echo 'The following monitors were found in your StatusCake account:'
+        #elif [[ ${providerName} == 'healthchecks' ]]; then
+        #    echo 'The following monitors were found in your HealthChecks.io account:'
+        #fi
+        echo "The following monitors were found in your ${providerName} account:"
         echo ''
         column -ts "|" "${friendlyListFile}"
         echo ''
@@ -617,23 +618,25 @@ get_paused_monitors() {
 # Function to display a list of all paused monitors
 display_paused_monitors() {
     if [[ -s ${pausedMonitorsFile} ]]; then
-        if [[ ${providerName} == 'uptimerobot' ]]; then
-            echo 'The following UptimeRobot monitors are currently paused:'
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            echo 'The following StatusCake monitors are currently paused:'
-        elif [[ ${providerName} == 'healthchecks' ]]; then
-            echo 'The following HealthChecks.io monitors are currently paused:'
-        fi
+        #if [[ ${providerName} == 'uptimerobot' ]]; then
+        #    echo 'The following UptimeRobot monitors are currently paused:'
+        #elif [[ ${providerName} == 'statuscake' ]]; then
+        #    echo 'The following StatusCake monitors are currently paused:'
+        #elif [[ ${providerName} == 'healthchecks' ]]; then
+        #    echo 'The following HealthChecks.io monitors are currently paused:'
+        #fi
+        echo "The following ${providerName} monitors are currently paused:"
         echo ''
         column -ts "|" "${pausedMonitorsFile}"
     else
-        if [[ ${providerName} == 'uptimerobot' ]]; then
-            echo 'There are currently no paused UptimeRobot monitors.'
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            echo 'There are currently no paused StatusCake monitors.'
-        elif [[ ${providerName} == 'healthchecks' ]]; then
-            echo 'There are currently no paused HealthChecks.io monitors.'
-        fi
+        #if [[ ${providerName} == 'uptimerobot' ]]; then
+        #    echo 'There are currently no paused UptimeRobot monitors.'
+        #elif [[ ${providerName} == 'statuscake' ]]; then
+        #    echo 'There are currently no paused StatusCake monitors.'
+        #elif [[ ${providerName} == 'healthchecks' ]]; then
+        #    echo 'There are currently no paused HealthChecks.io monitors.'
+        #fi
+        echo "There are currently no paused ${providerName} monitors."
         echo ''
     fi
 }
@@ -641,7 +644,7 @@ display_paused_monitors() {
 # Function to prompt the user to unpause monitors after finding paused monitors
 unpause_prompt() {
     echo ''
-    echo -e "Would you like to unpause the paused monitors? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
+    echo -e "Would you like to unpause the currently paused monitors? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
     read -r unpausePrompt
     echo ''
     if ! [[ ${unpausePrompt} =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
@@ -654,7 +657,7 @@ unpause_prompt() {
 
 # Function to prompt the user to continue actioning valid monitors after finding invalid ones
 invalid_prompt() {
-    echo 'Would you like to continue actioning the valid monitors below?'
+    echo 'Would you like to continue actioning the following valid monitors?'
     echo ''
     cat "${validMonitorsFile}"
     echo ''
@@ -684,7 +687,7 @@ check_bad_monitors() {
         fi
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     if [[ -s ${badMonitorsFile} ]]; then
-        echo -e "${red}The following specified monitors are not valid:${endColor}"
+        echo -e "${red}The following monitors you specified are not valid:${endColor}"
         echo ''
         cat "${badMonitorsFile}"
         sed -i 's/\x1B\[[0-9;]*[JKmsu]//g' "${badMonitorsFile}"
@@ -1057,7 +1060,7 @@ get_info() {
 # Function to display all alert contacts
 get_alert_contacts() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
-        echo 'The following alert contacts have been found for your UptimeRobot account:'
+        echo "The following alert contacts have been found for your ${providerName} account:"
         echo ''
         if [[ ${jq} == 'true' ]]; then
             curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq
@@ -1065,7 +1068,7 @@ get_alert_contacts() {
             curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json"
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
-        echo 'The following alert contacts have been found for your StatusCake account:'
+        echo "The following alert contacts have been found for your ${providerName} account:"
         echo ''
         if [[ ${jq} == 'true' ]]; then
             curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}ContactGroups" | jq
@@ -1323,7 +1326,7 @@ main() {
         fi
     elif [[ ${reset} == 'true' ]]; then
         if [[ ${providerName} == 'statuscake' ]] || [[ ${providerName} == 'healthchecks' ]]; then
-            echo -e "${red}Sorry, but that option is not valid for your specified provider!${endColor}"
+            echo -e "${red}Sorry, but that option is not currently possible with you ${providerName} account!${endColor}"
             exit 0
         else
             :
