@@ -6,7 +6,7 @@ set -eo pipefail
 IFS=$'\n\t'
 
 # Edit these to finish setting up the script
-# Monitor provider name, IE: UptimeRobot, StatusCake, or HealthChecks
+# Monitoring provider name, IE: UptimeRobot, StatusCake, or HealthChecks
 providerName=''
 # If your provider is StatusCake, specify your username
 scUsername=''
@@ -262,6 +262,7 @@ check_curl() {
     if [[ -z ${whichCURL} ]]; then
         echo -e "${red}cURL is not currently installed on this system!${endColor}"
         echo -e "${ylw}The script with NOT function without it. Install cURL and run the script again.${endColor}"
+        exit 1
     else
         :
     fi
@@ -337,9 +338,9 @@ check_provider() {
 check_sc_creds() {
     while [[ ${scUsernameStatus} == 'invalid' ]] || [[ ${apiKeyStatus} == 'invalid' ]]; do
         if [[ -z ${apiKey} ]]; then
-            echo -e "${red}You didn't define your ${providerName} API key in the script!${endColor}"
+            echo -e "${red}You didn't define your ${providerName^} API key in the script!${endColor}"
             echo ''
-            echo "Enter your ${providerName} API key:"
+            echo "Enter your ${providerName^} API key:"
             read -rs API
             echo ''
             echo ''
@@ -351,7 +352,7 @@ check_sc_creds() {
             scStatus=$(grep -Poc '"ErrNo":[0-9]' "${apiTestFullFile}")
             set -e
             if [[ ${scStatus} == '1' ]]; then
-                echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+                echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
                 sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
                 apiKey=''
             elif [[ ${scStatus} == '0' ]]; then
@@ -360,9 +361,9 @@ check_sc_creds() {
             fi
         fi
         if [[ -z ${scUsername} ]]; then
-            echo -e "${red}You didn't specify your ${providerName} username in the script!${endColor}"
+            echo -e "${red}You didn't specify your ${providerName^} username in the script!${endColor}"
             echo ''
-            echo "Enter your ${providerName} username:"
+            echo "Enter your ${providerName^} username:"
             read -r username
             echo ''
             echo ''
@@ -374,11 +375,11 @@ check_sc_creds() {
             scStatus=$(grep -Poc '"ErrNo":[0-9]' "${usernameTestFile}")
             set -e
             if [[ ${scStatus} == '1' ]]; then
-                echo -e "${red}The API Key and/or username that you provided are not valid!${endColor}"
+                echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
                 sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername=''/" "${scriptname}"
                 scUsername=''
                 echo ''
-                echo "Enter your ${providerName} username:"
+                echo "Enter your ${providerName^} username:"
                 read -r username
                 echo ''
                 echo ''
@@ -397,9 +398,9 @@ check_api_key() {
     if [[ ${providerName} == 'uptimerobot' ]] || [[ ${providerName} == 'healthchecks' ]]; then
         while [[ ${apiKeyStatus} == 'invalid' ]]; do
             if [[ -z ${apiKey} ]]; then
-                echo -e "${red}You didn't define your API key in the script!${endColor}"
+                echo -e "${red}You didn't define your ${providerName^} API key in the script!${endColor}"
                 echo ''
-                echo "Enter your ${providerName} API key:"
+                echo "Enter your ${providerName^} API key:"
                 read -rs API
                 echo ''
                 echo ''
@@ -410,7 +411,7 @@ check_api_key() {
                     curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" > "${apiTestFullFile}"
                     status=$(jq .stat "${apiTestFullFile}" | tr -d '"')
                     if [[ ${status} == 'fail' ]]; then
-                        echo -e "${red}The API Key that you provided is not valid!${endColor}"
+                        echo -e "${red}The API Key that you provided for ${providerName^} is not valid!${endColor}"
                         sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
                         apiKey=""
                     elif [[ ${status} == 'ok' ]]; then
@@ -421,7 +422,7 @@ check_api_key() {
                     curl -s -H "X-Api-Key: ${apiKey}" -X GET "${apiUrl}"checks/ | jq .error > "${apiTestFullFile}"
                     status=$(cat "${apiTestFullFile}")
                     if [[ ${status} != 'null' ]]; then
-                        echo -e "${red}The API Key that you provided is not valid!${endColor}"
+                        echo -e "${red}The API Key that you provided for ${providerName^} is not valid!${endColor}"
                         sed -i "${apiKeyLineNum} s/apiKey='[^']*'/apiKey=''/" "${scriptname}"
                         apiKey=""
                     elif [[ ${status} == 'null' ]]; then
@@ -485,7 +486,7 @@ get_monitors() {
         totalMonitors=$(jq .checks[].name "${monitorsFullFile}" | wc -l)
     fi
     if [[ ${totalMonitors} == '0' ]]; then
-        echo "There are currently no monitors associated with your ${providerName} account."
+        echo "There are currently no monitors associated with your ${providerName^} account."
         exit 0
     else
         if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -572,7 +573,7 @@ display_all_monitors() {
         #elif [[ ${providerName} == 'healthchecks' ]]; then
         #    echo 'The following monitors were found in your HealthChecks.io account:'
         #fi
-        echo "The following monitors were found in your ${providerName} account:"
+        echo "The following monitors were found in your ${providerName^} account:"
         echo ''
         column -ts "|" "${friendlyListFile}"
         echo ''
@@ -625,7 +626,7 @@ display_paused_monitors() {
         #elif [[ ${providerName} == 'healthchecks' ]]; then
         #    echo 'The following HealthChecks.io monitors are currently paused:'
         #fi
-        echo "The following ${providerName} monitors are currently paused:"
+        echo "The following ${providerName^} monitors are currently paused:"
         echo ''
         column -ts "|" "${pausedMonitorsFile}"
     else
@@ -636,7 +637,7 @@ display_paused_monitors() {
         #elif [[ ${providerName} == 'healthchecks' ]]; then
         #    echo 'There are currently no paused HealthChecks.io monitors.'
         #fi
-        echo "There are currently no paused ${providerName} monitors."
+        echo "There are currently no paused ${providerName^} monitors."
         echo ''
     fi
 }
@@ -1060,7 +1061,7 @@ get_info() {
 # Function to display all alert contacts
 get_alert_contacts() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
-        echo "The following alert contacts have been found for your ${providerName} account:"
+        echo "The following alert contacts have been found for your ${providerName^} account:"
         echo ''
         if [[ ${jq} == 'true' ]]; then
             curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq
@@ -1068,7 +1069,7 @@ get_alert_contacts() {
             curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json"
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
-        echo "The following alert contacts have been found for your ${providerName} account:"
+        echo "The following alert contacts have been found for your ${providerName^} account:"
         echo ''
         if [[ ${jq} == 'true' ]]; then
             curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}ContactGroups" | jq
@@ -1326,7 +1327,7 @@ main() {
         fi
     elif [[ ${reset} == 'true' ]]; then
         if [[ ${providerName} == 'statuscake' ]] || [[ ${providerName} == 'healthchecks' ]]; then
-            echo -e "${red}Sorry, but that option is not currently possible with you ${providerName} account!${endColor}"
+            echo -e "${red}Sorry, but that option is not currently possible with you ${providerName^} account!${endColor}"
             exit 0
         else
             :
@@ -1358,7 +1359,7 @@ main() {
         fi
     elif [[ ${stats} == 'true' ]]; then
         if [[ ${providerName} == 'statuscake' ]] || [[ ${providerName} == 'healthchecks' ]]; then
-            echo -e "${red}Sorry, but that option is not valid for ${providerName}.${endColor}"
+            echo -e "${red}Sorry, but that option is not valid for ${providerName^}.${endColor}"
             exit 0
         else
             get_stats
