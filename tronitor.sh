@@ -291,7 +291,6 @@ convert_provider_name() {
 
 # Function to check that provider is valid and not empty
 check_provider() {
-    #while [[ ${providerStatus} == 'invalid' ]]; do
     if [[ -z ${providerName} ]] && [[ ${providerStatus} == 'invalid' ]]; then
         echo -e "${red}You didn't specify your monitoring provider!${endColor}"
         echo ''
@@ -324,24 +323,7 @@ check_provider() {
         providerName="${provider}"
         convert_provider_name
         providerStatus='ok'
-    #else
-        #if [[ ${providerName} != 'uptimerobot' ]] && [[ ${providerName} != 'statuscake' ]] && [[ ${providerName} != 'healthchecks' ]]; then
-        #    echo -e "${red}You didn't specify a valid monitoring provider!${endColor}"
-        #    echo -e "${red}Please specify either uptimerobot, statuscake, or healthchecks.${endColor}"
-        #    echo ''
-        #    read -rp 'Enter your provider: ' provider
-        #    echo ''
-        #    sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
-        #    providerName="${provider}"
-        #    convert_provider_name
-        #else
-        #    sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
-        #    providerName="${provider}"
-        #    convert_provider_name
-        #    providerStatus="ok"
-        #fi
     fi
-    #done
     if [[ ${providerName} == 'uptimerobot' ]]; then
         readonly apiUrl='https://api.uptimerobot.com/v2/'
     elif [[ ${providerName} == 'statuscake' ]]; then
@@ -1017,13 +999,13 @@ create_monitor() {
         elif [[ ${jq} == 'false' ]]; then
             curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json"
         fi
-    elif [[ ${providerName} = 'statuscake' ]]; then
+    elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
             curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" | jq
         elif [[ ${jq} == 'false' ]]; then
             curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update"
         fi
-    elif [[ ${providerName} = 'healthchecks' ]]; then
+    elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${jq} == 'true' ]]; then
             curl -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" | jq
         elif [[ ${jq} == 'false' ]]; then
@@ -1234,7 +1216,7 @@ delete_specified_monitors() {
             elif [[ ${jq} == 'false' ]]; then
                 curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}"
             fi
-        elif [[ ${providerName} = 'healthchecks' ]]; then
+        elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq .name "${tempDir}${monitor}"_short.txt | tr -d '"')
             echo "Deleting ${friendlyName}:"
