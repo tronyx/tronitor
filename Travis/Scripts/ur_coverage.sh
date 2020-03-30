@@ -11,8 +11,8 @@ wget https://github.com/SimonKagstrom/kcov/archive/master.tar.gz &&
     cd ../.. &&
     rm -rf kcov-master &&
     mkdir -p coverage &&
-    #echo 'Running kcov expect for missing API key' &&
-    #expect Travis/Scripts/Expects/kcov_ur_api_key_expect.exp &&
+    echo 'Running kcov expect for missing API key' &&
+    expect Travis/Scripts/Expects/kcov_ur_api_key_expect.exp &&
     echo 'Running kcov for no monitors within account' &&
     kcov coverage Travis/Scripts/travis_tronitor.sh -l &&
     echo 'Creating Travis test monitors' &&
