@@ -595,12 +595,12 @@ unpause_prompt() {
     echo -e "Would you like to unpause the paused monitors? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
     read -r unpausePrompt
     echo ''
-    if ! [[ ${unpausePrompt} =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
-        echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-        read -r unpausePrompt
-    else
-        :
-    fi
+    #if ! [[ ${unpausePrompt} =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
+    #    echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+    #    read -r unpausePrompt
+    #else
+    #    :
+    #fi
 }
 
 # Function to prompt the user to continue actioning valid monitors after finding invalid ones
@@ -612,12 +612,12 @@ invalid_prompt() {
     echo -e "${grn}[Y]${endColor}es or ${red}[N]${endColor}o):"
     read -r invalidPrompt
     echo ''
-    if ! [[ ${invalidPrompt} =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
-        echo -e "${red}Please specify yes, y, no, or n.${endColor}"
-        read -r invalidPrompt
-    else
-        :
-    fi
+    #if ! [[ ${invalidPrompt} =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
+    #    echo -e "${red}Please specify yes, y, no, or n.${endColor}"
+    #    read -r invalidPrompt
+    #else
+    #    :
+    #fi
 }
 
 # Function to check for bad monitors in command
@@ -1156,12 +1156,12 @@ main() {
             get_monitors
             create_monitor_files
             reset_all_monitors
-        elif [[ ${resetType} != 'all' ]]; then
-            get_data
-            get_monitors
-            create_monitor_files
-            create_friendly_list
-            reset_specified_monitors
+        #elif [[ ${resetType} != 'all' ]]; then
+        #    get_data
+        #    get_monitors
+        #    create_monitor_files
+        #    create_friendly_list
+        #    reset_specified_monitors
         fi
     elif [[ ${delete} == 'true' ]]; then
         if [[ ${deleteType} == 'all' ]]; then
