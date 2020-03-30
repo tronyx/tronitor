@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-#echo 'Running kcov expect for missing API key' &&
-#expect Travis/Scripts/Expects/kcov_hc_api_key_expect.exp &&
+echo 'Running kcov expect for missing API key' &&
+expect Travis/Scripts/Expects/kcov_hc_api_key_expect.exp &&
 echo 'Running kcov for no monitors within account' &&
 kcov coverage Travis/Scripts/travis_tronitor.sh -l &&
 echo 'Creating Travis test monitors' &&
