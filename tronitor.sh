@@ -26,7 +26,7 @@ jq='true'
 # Temp dir and filenames
 # Make sure you set this to something your user has write access to
 tempDir="$HOME/tronitor/"
-usernameTestFile="${tempDir}sc_username_temp.txt"
+#usernameTestFile="${tempDir}sc_username_temp.txt"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -445,6 +445,64 @@ check_provider() {
 }
 
 # Function to check that StatusCake credentials are valid
+#check_sc_creds() {
+#    while [[ ${scUsernameStatus} == 'invalid' ]] || [[ ${scApiKeyStatus} == 'invalid' ]]; do
+#        if [[ -z ${scApiKey} ]]; then
+#            echo -e "${red}You didn't define your ${providerName^} API key in the script!${endColor}"
+#            echo ''
+#            echo "Enter your ${providerName^} API key:"
+#            read -rs API
+#            echo ''
+#            echo ''
+#            sed -i "${scApiKeyLineNum} s/scApiKey='[^']*'/scApiKey='${API}'/" "${scriptname}"
+#            scApiKey="${API}"
+#        else
+#            curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${apiTestFullFile}"
+#            set +e
+#            scStatus=$(grep -Poc '"ErrNo":[0-9]' "${apiTestFullFile}")
+#            set -e
+#            if [[ ${scStatus} == '1' ]]; then
+#                echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
+#                sed -i "${scApiKeyLineNum} s/scApiKey='[^']*'/scApiKey=''/" "${scriptname}"
+#                scApiKey=''
+#            elif [[ ${scStatus} == '0' ]]; then
+#                sed -i "${scApiStatusLineNum} s/scApiKeyStatus='[^']*'/scApiKeyStatus='ok'/" "${scriptname}"
+#                scApiKeyStatus='ok'
+#            fi
+#        fi
+#        if [[ -z ${scUsername} ]]; then
+#            echo -e "${red}You didn't specify your ${providerName^} username in the script!${endColor}"
+#            echo ''
+#            echo "Enter your ${providerName^} username:"
+#            read -r username
+#            echo ''
+#            echo ''
+#            sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+#            scUsername="${username}"
+#        else
+#            curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${usernameTestFile}"
+#            set +e
+#            scStatus=$(grep -Poc '"ErrNo":[0-9]' "${usernameTestFile}")
+#            set -e
+#            if [[ ${scStatus} == '1' ]]; then
+#                echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
+#                sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername=''/" "${scriptname}"
+#                scUsername=''
+#                echo ''
+#                echo "Enter your ${providerName^} username:"
+#                read -r username
+#                echo ''
+#                echo ''
+#                sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
+#                scUsername="${username}"
+#            elif [[ ${scStatus} == '0' ]]; then
+#                sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
+#                scUsernameStatus='ok'
+#            fi
+#        fi
+#    done
+#}
+
 check_sc_creds() {
     while [[ ${scUsernameStatus} == 'invalid' ]] || [[ ${scApiKeyStatus} == 'invalid' ]]; do
         if [[ -z ${scApiKey} ]]; then
@@ -456,21 +514,7 @@ check_sc_creds() {
             echo ''
             sed -i "${scApiKeyLineNum} s/scApiKey='[^']*'/scApiKey='${API}'/" "${scriptname}"
             scApiKey="${API}"
-        else
-            curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${apiTestFullFile}"
-            set +e
-            scStatus=$(grep -Poc '"ErrNo":[0-9]' "${apiTestFullFile}")
-            set -e
-            if [[ ${scStatus} == '1' ]]; then
-                echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
-                sed -i "${scApiKeyLineNum} s/scApiKey='[^']*'/scApiKey=''/" "${scriptname}"
-                scApiKey=''
-            elif [[ ${scStatus} == '0' ]]; then
-                sed -i "${scApiStatusLineNum} s/scApiKeyStatus='[^']*'/scApiKeyStatus='ok'/" "${scriptname}"
-                scApiKeyStatus='ok'
-            fi
-        fi
-        if [[ -z ${scUsername} ]]; then
+        elif [[ -z ${scUsername} ]]; then
             echo -e "${red}You didn't specify your ${providerName^} username in the script!${endColor}"
             echo ''
             echo "Enter your ${providerName^} username:"
@@ -480,12 +524,12 @@ check_sc_creds() {
             sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
             scUsername="${username}"
         else
-            curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${usernameTestFile}"
-            set +e
-            scStatus=$(grep -Poc '"ErrNo":[0-9]' "${usernameTestFile}")
-            set -e
-            if [[ ${scStatus} == '1' ]]; then
+            scStatus=$(curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ | jq .ErrNo 2>/dev/null || echo '1')
+            if [[ ${scStatus} == '0' ]]; then
+                clear >&2
                 echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
+                sed -i "${scApiKeyLineNum} s/scApiKey='[^']*'/scApiKey=''/" "${scriptname}"
+                scApiKey=''
                 sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername=''/" "${scriptname}"
                 scUsername=''
                 echo ''
@@ -495,7 +539,9 @@ check_sc_creds() {
                 echo ''
                 sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
                 scUsername="${username}"
-            elif [[ ${scStatus} == '0' ]]; then
+            elif [[ ${scStatus} == '1' ]]; then
+                sed -i "${scApiStatusLineNum} s/scApiKeyStatus='[^']*'/scApiKeyStatus='ok'/" "${scriptname}"
+                scApiKeyStatus='ok'
                 sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
                 scUsernameStatus='ok'
             fi
