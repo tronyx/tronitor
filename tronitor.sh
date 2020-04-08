@@ -69,7 +69,7 @@ usage() {
 
   $(echo -e "${grn}"-m/--monitor"${endColor}" "${ylw}"VALUE"${endColor}")    Specify the monitoring provider you would like to work with.
                           A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-m"${endColor}" "${ylw}"UptimeRobot"${endColor}" "${grn}"-\[OPTION\]"${endColor}" "${ylw}"\{ARGUMENT\}"${endColor}")"
-                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--monitor"${endColor}" "${ylw}"\'Statuscake\'"${endColor}" "${grn}"-l"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--monitor"${endColor}" "${ylw}"\'sc\'"${endColor}" "${grn}"-l"${endColor}")"
                           C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-m"${endColor}" "${ylw}"\"healthchecks\""${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
   $(echo -e "${grn}"-s/--stats"${endColor}""${red}"*"${endColor}")           List account statistics.
   $(echo -e "${grn}"-l/--list"${endColor}")             List all monitors.
@@ -422,6 +422,8 @@ check_sc_creds() {
                 scApiKeyStatus='ok'
                 sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
                 scUsernameStatus='ok'
+                echo -e "${grn}Success!${endColor}"
+                echo ''
             fi
         fi
     done
@@ -450,6 +452,8 @@ check_api_key() {
                 elif [[ ${status} == 'ok' ]]; then
                     sed -i "${urApiStatusLineNum} s/urApiKeyStatus='[^']*'/urApiKeyStatus='${status}'/" "${scriptname}"
                     urApiKeyStatus="${status}"
+                    echo -e "${grn}Success!${endColor}"
+                    echo ''
                 fi
             fi
         done
@@ -474,6 +478,8 @@ check_api_key() {
                 elif [[ ${status} == 'null' ]]; then
                     sed -i "${hcApiStatusLineNum} s/hcApiKeyStatus='[^']*'/hcApiKeyStatus='${status}'/" "${scriptname}"
                     hcApiKeyStatus="${status}"
+                    echo -e "${grn}Success!${endColor}"
+                    echo ''
                 fi
             fi
         done
