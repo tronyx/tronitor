@@ -15,7 +15,7 @@ jobs:
     - stage: test
       script:
         ## Dockerized SHFMT on Shell scripts
-        - bash ./Travis/Scripts/shfmt.sh
+        #- bash ./Travis/Scripts/shfmt.sh
         ## UptimeRobot Tests
         - expect ./Travis/Scripts/Expects/UptimeRobot/ur_api_key_expect.exp
         - bash ./Travis/Scripts/ur_prep.sh
