@@ -5,7 +5,6 @@ set timeout 10
 
 spawn bash Travis/Scripts/travis_tronitor.sh -m sc --webhook
 
-#expect "Enter your webhook URL: "
 expect "Enter your webhook URL:"
 send -- "https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack\r"
 

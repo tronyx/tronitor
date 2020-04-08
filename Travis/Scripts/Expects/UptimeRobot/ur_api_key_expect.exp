@@ -7,16 +7,9 @@ set apiKey $::env(travisApiKey)
 
 spawn bash Travis/Scripts/travis_tronitor.sh -m ur -l
 
-#expect "Enter your provider: "
-#send -- "UptimeRobot\r"
-#expect "Selection: "
-#send -- "1\r"
-
-#expect "Enter your API key: "
 expect "Enter your Uptimerobot API key:"
 send -- "this-is-a-bad-api-key\r"
 
-#expect "Enter your API key: "
 expect "Enter your Uptimerobot API key:"
 send -- "$apiKey\r"
 
