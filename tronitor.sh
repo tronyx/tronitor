@@ -325,8 +325,15 @@ get_line_numbers() {
     scUserStatusLineNum=$(head -52 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
 }
 
-# Function to make sure provider name is lowercase and, if not, convert it
+# Function to convert shorthand provider names to their full names and to make sure the provider name is lowercase and, if not, convert it
 convert_provider_name() {
+    if [[ ${providerName} = 'ur' ]]; then
+        providerName='uptimerobot'
+    elif [[ ${providerName} = 'sc' ]]; then
+        providerName='statuscake'
+    elif [[ ${providerName} = 'hc' ]]; then
+        providerName='healthchecks'
+    fi
     if [[ ${providerName} =~ [[:upper:]] ]]; then
         providerName=$(echo "${providerName}" | awk '{print tolower($0)}')
     else
@@ -401,6 +408,7 @@ check_provider() {
         #    convert_provider_name
         #else
             if [[ ${providerName} != 'uptimerobot' ]] && [[ ${providerName} != 'statuscake' ]] && [[ ${providerName} != 'healthchecks' ]]; then
+            #if [[ ${providerName} =~ ^(uptimerobot|statuscake|healthchecks)$ ]]; then
                 echo -e "${red}You didn't specify a valid monitoring provider with the -m flag!${endColor}"
                 echo -e "${ylw}Please specify either uptimerobot, statuscake, or healthchecks.${endColor}"
                 #echo ''
