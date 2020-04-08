@@ -68,12 +68,12 @@ readonly endColor='\e[0m'
 usage() {
     cat <<- EOF
 
-  Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\(ARGUMENT\)"${endColor}"...)
+  Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-m"${endColor}" ${ylw}\{MONITOR\}"${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\{ARGUMENT\}"${endColor}"...)
 
   $(echo -e "${grn}"-m/--monitor"${endColor}" "${ylw}"VALUE"${endColor}")    Specify the monitoring provider you would like to work with.
-                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-m"${endColor}" "${ylw}"UptimeRobot \$\{ARG\}"${endColor}")"
-                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--monitor"${endColor}" "${ylw}"Statuscake -l"${endColor}")"
-                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-m"${endColor}" "${ylw}"healthchecks -p all"${endColor}")"
+                          A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-m"${endColor}" "${ylw}"UptimeRobot"${endColor}" "${grn}"-\[OPTION\]"${endColor}" "${ylw}"\{ARGUMENT\}"${endColor}")"
+                          B) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"--monitor"${endColor}" "${ylw}"\'Statuscake\'"${endColor}" "${grn}"-l"${endColor}")"
+                          C) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-m"${endColor}" "${ylw}"\"healthchecks\""${endColor}" "${grn}"-p"${endColor}" "${ylw}"all"${endColor}")"
   $(echo -e "${grn}"-s/--stats"${endColor}""${red}"*"${endColor}")           List account statistics.
   $(echo -e "${grn}"-l/--list"${endColor}")             List all monitors.
   $(echo -e "${grn}"-f/--find"${endColor}")             Find all paused monitors.
@@ -223,6 +223,7 @@ cmdline() {
                 ;;
         esac
     done
+    shift $((OPTIND -1))
     return 0
 }
 
@@ -265,6 +266,17 @@ trap 'control_c' 2
 check_monitor_opt() {
     if [[ ${monitorFlag} != 'true' ]]; then
         echo -e "${red}You must specify the monitor you wish to work with!${endColor}"
+        usage
+        exit 1
+    else
+        :
+    fi
+}
+
+# Function to check that two options were provided
+check_opt_num() {
+    if [[ ${OPTIND} -lt '4' || ${OPTIND} -gt '5' ]]; then
+        echo -e "${red}You specified an invalid number of options!${endColor}"
         usage
         exit 1
     else
@@ -330,6 +342,8 @@ check_provider() {
         providerStatus="${scProviderStatus}"
     elif [[ ${providerName} == 'healthchecks' ]]; then
         providerStatus="${hcProviderStatus}"
+    else
+        providerStatus='invalid'
     fi
     #if [[ -z ${providerName} ]] && [[ ${providerStatus} == 'invalid' ]]; then
     #    echo -e "${red}You didn't specify your monitoring provider!${endColor}"
@@ -388,7 +402,7 @@ check_provider() {
         #else
             if [[ ${providerName} != 'uptimerobot' ]] && [[ ${providerName} != 'statuscake' ]] && [[ ${providerName} != 'healthchecks' ]]; then
                 echo -e "${red}You didn't specify a valid monitoring provider with the -m flag!${endColor}"
-                echo -e "${red}Please specify either uptimerobot, statuscake, or healthchecks.${endColor}"
+                echo -e "${ylw}Please specify either uptimerobot, statuscake, or healthchecks.${endColor}"
                 #echo ''
                 #read -rp 'Enter your provider: ' provider
                 #echo ''
@@ -562,6 +576,7 @@ check_webhook_url() {
 checks() {
     get_line_numbers
     check_monitor_opt
+    check_opt_num
     check_empty_arg
     check_curl
     check_provider
@@ -576,11 +591,11 @@ checks() {
 # Function to set the API key variable to the API key for the specified monitor
 set_api_key() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
-        apiKey=$(echo "${urApiKey}")
+        apiKey="${urApiKey}"
     elif [[ ${providerName} == 'statuscake' ]]; then
-        apiKey=$(echo "${scApiKey}")
+        apiKey="${scApiKey}"
     elif [[ ${providerName} == 'healthchecks' ]]; then
-        apiKey=$(echo "${hcApiKey}")
+        apiKey="${hcApiKey}"
     fi
 }
 
