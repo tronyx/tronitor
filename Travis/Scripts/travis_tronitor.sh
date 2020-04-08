@@ -223,7 +223,7 @@ cmdline() {
                 ;;
         esac
     done
-    shift $((OPTIND -1))
+    shift $((OPTIND - 1))
     return 0
 }
 
@@ -267,7 +267,7 @@ check_monitor_opt() {
     if [[ ${monitorFlag} != 'true' ]]; then
         echo -e "${red}You must specify the monitor you wish to work with!${endColor}"
         usage
-        exit 1
+        exit
     else
         :
     fi
@@ -278,7 +278,7 @@ check_opt_num() {
     if [[ ${OPTIND} -lt '4' || ${OPTIND} -gt '5' ]]; then
         echo -e "${red}You specified an invalid number of options!${endColor}"
         usage
-        exit 1
+        exit
     else
         :
     fi
@@ -289,7 +289,7 @@ check_empty_arg() {
     for arg in "${args[@]:-}"; do
         if [[ -z ${arg} ]]; then
             usage
-            exit 1
+            exit
         fi
     done
 }
@@ -300,7 +300,7 @@ check_curl() {
     if [[ -z ${whichCURL} ]]; then
         echo -e "${red}cURL is not currently installed on this system!${endColor}"
         echo -e "${ylw}The script with NOT function without it. Install cURL and run the script again.${endColor}"
-        exit 1
+        exit
     else
         :
     fi
@@ -327,11 +327,11 @@ get_line_numbers() {
 
 # Function to convert shorthand provider names to their full names and to make sure the provider name is lowercase and, if not, convert it
 convert_provider_name() {
-    if [[ ${providerName} = 'ur' ]]; then
+    if [[ ${providerName} == 'ur' ]]; then
         providerName='uptimerobot'
-    elif [[ ${providerName} = 'sc' ]]; then
+    elif [[ ${providerName} == 'sc' ]]; then
         providerName='statuscake'
-    elif [[ ${providerName} = 'hc' ]]; then
+    elif [[ ${providerName} == 'hc' ]]; then
         providerName='healthchecks'
     fi
     if [[ ${providerName} =~ [[:upper:]] ]]; then
@@ -397,7 +397,7 @@ check_provider() {
     #      hcProviderStatus='ok'
     #    fi
     #fi
-    while [[ "${providerStatus}" == 'invalid' ]]; do
+    while [[ ${providerStatus} == 'invalid' ]]; do
         #if [ -z "${providerName}" ]; then
         #    echo -e "${red}You didn't specify your monitoring provider!${endColor}"
         #    echo ''
@@ -417,7 +417,7 @@ check_provider() {
                 #sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
                 #providerName="${provider}"
                 #convert_provider_name
-                exit 1
+                exit
             else
             #    sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
             #    providerName="${provider}"
@@ -532,7 +532,7 @@ check_sc_creds() {
             sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
             scUsername="${username}"
         else
-            scStatus=$(curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ | jq .ErrNo 2>/dev/null || echo '1')
+            scStatus=$(curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ | jq .ErrNo 2> /dev/null || echo '1')
             if [[ ${scStatus} == '0' ]]; then
                 clear >&2
                 echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
