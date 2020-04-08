@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+spawn bash Travis/Scripts/travis_tronitor.sh -m sc --find
+
+expect "Would you like to unpause the paused monitors? (\[Y\]es or \[N\]o): "
+send -- "n\r"
+
+expect eof

@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+spawn bash Travis/Scripts/travis_tronitor.sh -m statuscake -p GoogleHttp,foobar
+
+expect "\[Y\]es or \[N\]o):"
+send -- "n\r"
+
+expect eof

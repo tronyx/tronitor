@@ -1,0 +1,11 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+spawn bash Travis/Scripts/travis_tronitor.sh -m uptimerobot -r all
+
+expect "Are you sure you wish to continue? (\[Y\]es or \[N\]o): "
+send -- "y\r"
+
+expect eof
