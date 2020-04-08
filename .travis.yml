@@ -15,7 +15,7 @@ jobs:
     - stage: test
       script:
         ## Dockerized SHFMT on Shell scripts
-        #- bash ./Travis/Scripts/shfmt.sh
+        - bash ./Travis/Scripts/shfmt.sh
         ## UptimeRobot Tests
         - expect ./Travis/Scripts/Expects/UptimeRobot/ur_api_key_expect.exp
         - bash ./Travis/Scripts/ur_prep.sh
@@ -54,13 +54,8 @@ jobs:
         - expect ./Travis/Scripts/Expects/UptimeRobot/ur_reset_expect_long.exp
         - expect ./Travis/Scripts/Expects/UptimeRobot/ur_pause_invalid_expect.exp
         - expect ./Travis/Scripts/Expects/UptimeRobot/ur_cleanup.exp
-        ## Reset some vars
-        #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "18s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        ## Reset the webhook var
+        - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
         ## StatusCake Tests
         - expect ./Travis/Scripts/Expects/StatusCake/sc_api_key_expect.exp
         - bash ./Travis/Scripts/sc_prep.sh
@@ -95,13 +90,8 @@ jobs:
         - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake --unpause all
         - expect ./Travis/Scripts/Expects/StatusCake/sc_pause_invalid_expect.exp
         - expect ./Travis/Scripts/Expects/StatusCake/sc_cleanup.exp
-        ## Reset some vars
-        #- sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "18s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        #- sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
+        ## Reset the webhook var
+        - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
         ## HealthChecks Tests
         - expect ./Travis/Scripts/Expects/Healthchecks/hc_api_key_expect.exp
         - bash ./Travis/Scripts/hc_prep.sh
@@ -137,24 +127,10 @@ jobs:
         - expect ./Travis/Scripts/Expects/Healthchecks/hc_pause_invalid_expect.exp
         - expect ./Travis/Scripts/Expects/Healthchecks/hc_cleanup.exp
 after_success:
-  #- sed -i "10s/.*/providerName='UptimeRobot'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - expect ./Travis/Scripts/Expects/UptimeRobot/ur_cleanup.exp
-  #- sed -i "10s/.*/providerName='StatusCake'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - expect ./Travis/Scripts/Expects/StatusCake/sc_cleanup.exp
-  #- sed -i "10s/.*/providerName='HealthChecks'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - expect ./Travis/Scripts/Expects/Healthchecks/hc_cleanup.exp
 after_failure:
-  #- sed -i "10s/.*/providerName='uptimerobot'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - expect ./Travis/Scripts/Expects/UptimeRobot/ur_cleanup.exp
-  #- sed -i "10s/.*/providerName='statuscake'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - expect ./Travis/Scripts/Expects/StatusCake/sc_cleanup.exp
-  #- sed -i "10s/.*/providerName='healthchecks'/" Travis/Scripts/travis_tronitor.sh
-  #- sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
   - expect ./Travis/Scripts/Expects/Healthchecks/hc_cleanup.exp
