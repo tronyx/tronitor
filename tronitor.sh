@@ -5,9 +5,7 @@
 set -eo pipefail
 IFS=$'\n\t'
 
-# Edit these to finish setting up the script
-# Monitoring provider name, IE: UptimeRobot, StatusCake, or HealthChecks
-#providerName=''
+# Edit these to finish setting up the script or just run it and it will prompt you
 # If your provider is StatusCake, specify your username
 scUsername=''
 # Specify API key(s)
@@ -26,7 +24,6 @@ jq='true'
 # Temp dir and filenames
 # Make sure you set this to something your user has write access to
 tempDir="$HOME/tronitor/"
-#usernameTestFile="${tempDir}sc_username_temp.txt"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
 convertedMonitorsFile="${tempDir}converted_monitors.txt"
@@ -309,7 +306,6 @@ check_curl() {
 # Function to grab status variable line numbers
 get_line_numbers() {
     # Line numbers for user-defined vars
-    #providerNameLineNum=$(head -52 "${scriptname}" | grep -En -A1 'UptimeRobot, StatusCake, or HealthChecks' | tail -1 | awk -F- '{print $1}')
     scUsernameLineNum=$(head -52 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
     urApiKeyLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
     scApiKeyLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
@@ -352,96 +348,29 @@ check_provider() {
     else
         providerStatus='invalid'
     fi
-    #if [[ -z ${providerName} ]] && [[ ${providerStatus} == 'invalid' ]]; then
-    #    echo -e "${red}You didn't specify your monitoring provider!${endColor}"
-    #    echo ''
-    #    echo 'Please select your provider:'
-    #    echo ''
-    #    echo -e "${bold}  1)${endColor} UptimeRobot"
-    #    echo -e "${bold}  2)${endColor} Healthchecks.io"
-    #    echo -e "${bold}  3)${endColor} StatusCake"
-    #    echo -e "${bold}  4)${endColor} Exit"
-    #    echo ''
-    #    read -rp 'Selection: ' providerSelection
-    #    echo ''
-    #    if ! [[ ${providerSelection} =~ ^(1|2|3|4)$ ]]; then
-    #        echo -e "${red}You did not specify a valid option!${endColor}"
-    #        sleep 2
-    #        clear >&2
-    #        check_provider
-    #    elif [[ ${providerSelection} == '1' ]]; then
-    #        provider='uptimerobot'
-    #    elif [[ ${providerSelection} == '2' ]]; then
-    #        provider='healthchecks'
-    #    elif [[ ${providerSelection} == '3' ]]; then
-    #        provider='statuscake'
-    #    elif [[ ${providerSelection} == '4' ]]; then
-    #        clear >&2
-    #        exit 0
-    #    fi
-    #    sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
-    #    if [[ $provider == 'uptimerobot' ]]; then
-    #      sed -i "${urProviderStatusLineNum} s|urProviderStatus='[^']*'|urProviderStatus='ok'|" "${scriptname}"
-    #    elif [[ $provider == 'statuscake' ]]; then
-    #      sed -i "${scProviderStatusLineNum} s|scProviderStatus='[^']*'|scProviderStatus='ok'|" "${scriptname}"
-    #    elif [[ $provider == 'healthchecks' ]]; then
-    #      sed -i "${hcProviderStatusLineNum} s|hcProviderStatus='[^']*'|hcProviderStatus='ok'|" "${scriptname}"
-    #    fi
-    #    providerName="${provider}"
-    #    convert_provider_name
-    #    if [[ $provider == 'uptimerobot' ]]; then
-    #      urProviderStatus='ok'
-    #    elif [[ $provider == 'statuscake' ]]; then
-    #      scProviderStatus='ok'
-    #    elif [[ $provider == 'healthchecks' ]]; then
-    #      hcProviderStatus='ok'
-    #    fi
-    #fi
     while [[ ${providerStatus} == 'invalid' ]]; do
-        #if [ -z "${providerName}" ]; then
-        #    echo -e "${red}You didn't specify your monitoring provider!${endColor}"
-        #    echo ''
-        #    read -rp 'Enter your provider: ' provider
-        #    echo ''
-        #    sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
-        #    providerName="${provider}"
-        #    convert_provider_name
-        #else
-            if [[ ${providerName} != 'uptimerobot' ]] && [[ ${providerName} != 'statuscake' ]] && [[ ${providerName} != 'healthchecks' ]]; then
-            #if [[ ${providerName} =~ ^(uptimerobot|statuscake|healthchecks)$ ]]; then
-                echo -e "${red}You didn't specify a valid monitoring provider with the -m flag!${endColor}"
-                echo -e "${ylw}Please specify either uptimerobot, statuscake, or healthchecks.${endColor}"
-                #echo ''
-                #read -rp 'Enter your provider: ' provider
-                #echo ''
-                #sed -i "${providerNameLineNum} s|providerName='[^']*'|providerName='${provider}'|" "${scriptname}"
-                #providerName="${provider}"
-                #convert_provider_name
-                exit
-            else
-            #    sed -i "${providerStatusLineNum} s|providerStatus='[^']*'|providerStatus='ok'|" "${scriptname}"
-            #    providerName="${provider}"
-            #    convert_provider_name
-            #    providerStatus="ok"
-                if [[ ${providerName} == 'uptimerobot' ]]; then
-                    sed -i "${urProviderStatusLineNum} s|urProviderStatus='[^']*'|urProviderStatus='ok'|" "${scriptname}"
-                elif [[ ${providerName} == 'statuscake' ]]; then
-                    sed -i "${scProviderStatusLineNum} s|scProviderStatus='[^']*'|scProviderStatus='ok'|" "${scriptname}"
-                elif [[ ${providerName} == 'healthchecks' ]]; then
-                    sed -i "${hcProviderStatusLineNum} s|hcProviderStatus='[^']*'|hcProviderStatus='ok'|" "${scriptname}"
-                fi
-                #providerName="${provider}"
-                convert_provider_name
-                if [[ ${providerName} == 'uptimerobot' ]]; then
-                    urProviderStatus='ok'
-                elif [[ ${providerName} == 'statuscake' ]]; then
-                    scProviderStatus='ok'
-                elif [[ ${providerName} == 'healthchecks' ]]; then
-                    hcProviderStatus='ok'
-                fi
-                providerStatus='ok'
+        if [[ ${providerName} != 'uptimerobot' ]] && [[ ${providerName} != 'statuscake' ]] && [[ ${providerName} != 'healthchecks' ]]; then
+            echo -e "${red}You didn't specify a valid monitoring provider with the -m flag!${endColor}"
+            echo -e "${ylw}Please specify either uptimerobot, statuscake, or healthchecks.${endColor}"
+            exit
+        else
+            if [[ ${providerName} == 'uptimerobot' ]]; then
+                sed -i "${urProviderStatusLineNum} s|urProviderStatus='[^']*'|urProviderStatus='ok'|" "${scriptname}"
+            elif [[ ${providerName} == 'statuscake' ]]; then
+                sed -i "${scProviderStatusLineNum} s|scProviderStatus='[^']*'|scProviderStatus='ok'|" "${scriptname}"
+            elif [[ ${providerName} == 'healthchecks' ]]; then
+                sed -i "${hcProviderStatusLineNum} s|hcProviderStatus='[^']*'|hcProviderStatus='ok'|" "${scriptname}"
             fi
-        #fi
+            convert_provider_name
+            if [[ ${providerName} == 'uptimerobot' ]]; then
+                urProviderStatus='ok'
+            elif [[ ${providerName} == 'statuscake' ]]; then
+                scProviderStatus='ok'
+            elif [[ ${providerName} == 'healthchecks' ]]; then
+                hcProviderStatus='ok'
+            fi
+            providerStatus='ok'
+        fi
     done
     if [[ ${providerName} == 'uptimerobot' ]]; then
         readonly apiUrl='https://api.uptimerobot.com/v2/'
@@ -451,65 +380,6 @@ check_provider() {
         readonly apiUrl='https://healthchecks.io/api/v1/'
     fi
 }
-
-# Function to check that StatusCake credentials are valid
-#check_sc_creds() {
-#    while [[ ${scUsernameStatus} == 'invalid' ]] || [[ ${scApiKeyStatus} == 'invalid' ]]; do
-#        if [[ -z ${scApiKey} ]]; then
-#            echo -e "${red}You didn't define your ${providerName^} API key in the script!${endColor}"
-#            echo ''
-#            echo "Enter your ${providerName^} API key:"
-#            read -rs API
-#            echo ''
-#            echo ''
-#            sed -i "${scApiKeyLineNum} s/scApiKey='[^']*'/scApiKey='${API}'/" "${scriptname}"
-#            scApiKey="${API}"
-#        else
-#            curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${apiTestFullFile}"
-#            set +e
-#            scStatus=$(grep -Poc '"ErrNo":[0-9]' "${apiTestFullFile}")
-#            set -e
-#            if [[ ${scStatus} == '1' ]]; then
-#                echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
-#                sed -i "${scApiKeyLineNum} s/scApiKey='[^']*'/scApiKey=''/" "${scriptname}"
-#                scApiKey=''
-#            elif [[ ${scStatus} == '0' ]]; then
-#                sed -i "${scApiStatusLineNum} s/scApiKeyStatus='[^']*'/scApiKeyStatus='ok'/" "${scriptname}"
-#                scApiKeyStatus='ok'
-#            fi
-#        fi
-#        if [[ -z ${scUsername} ]]; then
-#            echo -e "${red}You didn't specify your ${providerName^} username in the script!${endColor}"
-#            echo ''
-#            echo "Enter your ${providerName^} username:"
-#            read -r username
-#            echo ''
-#            echo ''
-#            sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
-#            scUsername="${username}"
-#        else
-#            curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${usernameTestFile}"
-#            set +e
-#            scStatus=$(grep -Poc '"ErrNo":[0-9]' "${usernameTestFile}")
-#            set -e
-#            if [[ ${scStatus} == '1' ]]; then
-#                echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
-#                sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername=''/" "${scriptname}"
-#                scUsername=''
-#                echo ''
-#                echo "Enter your ${providerName^} username:"
-#                read -r username
-#                echo ''
-#                echo ''
-#                sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
-#                scUsername="${username}"
-#            elif [[ ${scStatus} == '0' ]]; then
-#                sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
-#                scUsernameStatus='ok'
-#            fi
-#        fi
-#    done
-#}
 
 check_sc_creds() {
     while [[ ${scUsernameStatus} == 'invalid' ]] || [[ ${scApiKeyStatus} == 'invalid' ]]; do
