@@ -102,6 +102,8 @@ If you use the alert option, be sure to also enter in your Discord/Slack webhook
 
 ![Webhook URL Prompt](/Images/webhook_url.png)
 
+**NOTE:** If you are running your own, self-hosted version of Healthchecks.io, you will need to modify the `apiUrl` variable on line 380 of `tronitor.sh`.
+
 ## Usage
 
 ![Script Usage](/Images/usage.png)
