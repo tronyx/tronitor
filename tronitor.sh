@@ -558,7 +558,7 @@ get_monitors() {
         elif [[ ${providerName} == 'statuscake' ]]; then
             jq .[].TestID "${monitorsFullFile}" > "${monitorsFile}"
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            jq .checks[].ping_url "${monitorsFullFile}" | tr -d '"' | cut -c21- > "${monitorsFile}"
+            jq .checks[].ping_url "${monitorsFullFile}" | tr -d '"' | rev | cut -c1-36 | rev > "${monitorsFile}"
         fi
     fi
 }
@@ -769,7 +769,7 @@ convert_friendly_monitors() {
             if [[ $(echo "${monitor}" | tr -d ' ') =~ ${uuidPattern} ]]; then
                 echo "${monitor}" >> "${convertedMonitorsFile}"
             else
-                curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | cut -c21- >> "${convertedMonitorsFile}"
+                curl -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url | tr -d '"' | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     else
