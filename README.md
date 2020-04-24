@@ -83,11 +83,11 @@ Setting up jq (1.5+dfsg-2) ...
 Processing triggers for man-db (2.8.3-2) ...
 ```
 
-#### Sample output using `jq`:
+#### Sample output using `JQ`:
 
 ![JQ True](/Images/jq_sample.png)
 
-#### Sample output without `jq`:
+#### Sample output without `JQ`:
 
 ![JQ False](/Images/no_jq_sample.png)
 
