@@ -16,13 +16,11 @@ Feel free to check out their work and buy them a beer too!
 
 This script partners up with my [Application Healthchecks](https://github.com/christronyxyocum/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc.
 
-## Package Requirements/Recommendations
+## Package Requirements (:heavy_exclamation_mark:)/Recommendations (:warning:)
 
 ### cURL
 
-cURL is required for the script to function as it's used to submit API calls . If it is not installed before you execute the script most, if not all, operations will fail.
-
-The script does check whether or not cURL is installed and, if not, it will inform you and then exit.
+cURL is required for the script to function as it's used to submit API calls . If it is not installed before you execute the script most, if not all, operations will fail. The script does check whether or not cURL is installed and, if not, it will inform you as such and then exit.
 
 ### JQ
 
@@ -79,7 +77,7 @@ Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
 Resolving deltas: 100% (143/143), done.
 ```
 
-NOTE: You CAN get away with just grabbing a copy of `tronitor.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
+:warning: **NOTE:** You CAN get away with just grabbing a copy of `tronitor.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
 The script stores the API keys, and username for StatusCake, for up to all three providers so that you do not need multiple copies of the script to work with the different providers.
 
@@ -94,6 +92,8 @@ The first time that you run the script for a specific monitor it will alert you 
 ### Healthchecks.io
 ![Healthchecks User Data Prompt](/Images/hc_user_data.png)
 
+:warning: **NOTE:** If you are running your own, self-hosted version of Healthchecks.io, you will need to modify the `apiUrl` variable on line 380 of the  `tronitor.sh` script.
+
 You can also simply open the script with your favorite text editor and add your provider's API key, and, if using StatusCake, your account username.
 
 After entering the information, the script will check whether or not it is valid and then add it to the script for you.
@@ -101,8 +101,6 @@ After entering the information, the script will check whether or not it is valid
 If you use the alert option, be sure to also enter in your Discord/Slack webhook URL. If you forget this as well, the script will also prompt you to enter it:
 
 ![Webhook URL Prompt](/Images/webhook_url.png)
-
-**NOTE:** If you are running your own, self-hosted version of Healthchecks.io, you will need to modify the `apiUrl` variable on line 380 of `tronitor.sh`.
 
 ## Usage
 
