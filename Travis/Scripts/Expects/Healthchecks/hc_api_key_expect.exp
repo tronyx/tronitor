@@ -1,0 +1,16 @@
+#!/usr/bin/expect -f
+#!/usr/bin/env bash
+
+set timeout 10
+
+set apiKey $::env(travisHCApiKey)
+
+spawn bash Travis/Scripts/travis_tronitor.sh -m hc -l
+
+expect "Enter your Healthchecks API key:"
+send -- "this-is-a-bad-api-key\r"
+
+expect "Enter your Healthchecks API key:"
+send -- "$apiKey\r"
+
+expect eof

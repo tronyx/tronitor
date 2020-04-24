@@ -1,0 +1,23 @@
+#!/usr/bin/expect -df
+#!/usr/bin/env bash
+
+set timeout 10
+
+set apiKey $::env(travisSCApiKey)
+set username $::env(travisSCUsername)
+
+spawn bash Travis/Scripts/travis_tronitor.sh -m statuscake -l
+
+expect "Enter your Statuscake API key:"
+send -- "this-is-a-bad-api-key\r"
+
+expect "Enter your Statuscake username:"
+send -- "$username\r"
+
+expect "Enter your Statuscake username:"
+send -- "$username\r"
+
+expect "Enter your Statuscake API key:"
+send -- "$apiKey\r"
+
+expect eof

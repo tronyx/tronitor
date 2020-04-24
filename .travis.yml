@@ -14,145 +14,123 @@ jobs:
   include:
     - stage: test
       script:
-        # Dockerized SHFMT on Shell scripts
+        ## Dockerized SHFMT on Shell scripts
         - bash ./Travis/Scripts/shfmt.sh
-        # UptimeRobot Tests
-        - expect ./Travis/Scripts/Expects/ur_api_key_expect.exp
+        ## UptimeRobot Tests
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_api_key_expect.exp
         - bash ./Travis/Scripts/ur_prep.sh
         - sleep 60
-        - bash ./Travis/Scripts/travis_tronitor.sh
-        - bash ./Travis/Scripts/travis_tronitor.sh -c
-        - bash ./Travis/Scripts/travis_tronitor.sh -x
+        - bash ./Travis/Scripts/travis_tronitor.sh -m ur
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur -c
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot -x
         - bash ./Travis/Scripts/travis_tronitor.sh -h
         - bash ./Travis/Scripts/travis_tronitor.sh --help
-        - bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
-        - expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh --webhook
-        - bash ./Travis/Scripts/travis_tronitor.sh --list
-        - bash ./Travis/Scripts/travis_tronitor.sh -n
-        - bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
-        - bash ./Travis/Scripts/travis_tronitor.sh -c http
-        - bash ./Travis/Scripts/travis_tronitor.sh --create ping
-        - bash ./Travis/Scripts/travis_tronitor.sh -c port
-        - bash ./Travis/Scripts/travis_tronitor.sh --create keyword
-        - bash ./Travis/Scripts/travis_tronitor.sh -c foobar
-        - bash ./Travis/Scripts/travis_tronitor.sh -a
-        - bash ./Travis/Scripts/travis_tronitor.sh --alerts
-        - bash ./Travis/Scripts/travis_tronitor.sh -s
-        - bash ./Travis/Scripts/travis_tronitor.sh --stats
-        - bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
-        - bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        - expect ./Travis/Scripts/Expects/delete_expect_short.exp
-        - expect ./Travis/Scripts/Expects/delete_expect_long.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
-        - bash ./Travis/Scripts/travis_tronitor.sh --pause all
-        - expect ./Travis/Scripts/Expects/find_expect_short.exp
-        - expect ./Travis/Scripts/Expects/find_expect_long.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh -u all
-        - bash ./Travis/Scripts/travis_tronitor.sh --unpause all
-        - expect ./Travis/Scripts/Expects/reset_expect_short.exp
-        - expect ./Travis/Scripts/Expects/reset_expect_long.exp
-        - expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
-        - expect ./Travis/Scripts/Expects/cleanup.exp
-        # Reset some vars
-        - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur -p TravisOne
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_webhook_empty_expect_short.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot --webhook
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur --list
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot -n
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur --no-prompt
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot -c http
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur --create ping
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot -c port
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur --create keyword
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot -c foobar
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur -a
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot --alerts
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur -s
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot --stats
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur -i 'travisone'
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot --info 'travistwo'
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_delete_expect_short.exp
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_delete_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur -p GooglePing
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot --pause all
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_find_expect_short.exp
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_find_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor ur -u all
+        - bash ./Travis/Scripts/travis_tronitor.sh -m uptimerobot --unpause all
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_reset_expect_short.exp
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_reset_expect_long.exp
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_pause_invalid_expect.exp
+        - expect ./Travis/Scripts/Expects/UptimeRobot/ur_cleanup.exp
+        ## Reset the webhook var
         - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
-        - sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        # StatusCake Tests
-        - expect ./Travis/Scripts/Expects/sc_api_key_expect.exp
+        ## StatusCake Tests
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_api_key_expect.exp
         - bash ./Travis/Scripts/sc_prep.sh
         - sleep 60
-        - bash ./Travis/Scripts/travis_tronitor.sh
-        - bash ./Travis/Scripts/travis_tronitor.sh -c
-        - bash ./Travis/Scripts/travis_tronitor.sh -x
+        - bash ./Travis/Scripts/travis_tronitor.sh -m sc
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc -c
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake -x
         - bash ./Travis/Scripts/travis_tronitor.sh -h
         - bash ./Travis/Scripts/travis_tronitor.sh --help
-        - bash ./Travis/Scripts/travis_tronitor.sh -s
-        - bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
-        - expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh --webhook
-        - bash ./Travis/Scripts/travis_tronitor.sh --list
-        - bash ./Travis/Scripts/travis_tronitor.sh -n
-        - bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
-        - bash ./Travis/Scripts/travis_tronitor.sh -c http
-        - bash ./Travis/Scripts/travis_tronitor.sh --create ping
-        - bash ./Travis/Scripts/travis_tronitor.sh -c port
-        - bash ./Travis/Scripts/travis_tronitor.sh --create foobar
-        - bash ./Travis/Scripts/travis_tronitor.sh -a
-        - bash ./Travis/Scripts/travis_tronitor.sh --alerts
-        - bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
-        - bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        - expect ./Travis/Scripts/Expects/delete_expect_short.exp
-        - expect ./Travis/Scripts/Expects/delete_expect_long.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
-        - bash ./Travis/Scripts/travis_tronitor.sh --pause all
-        - expect ./Travis/Scripts/Expects/find_expect_short.exp
-        - expect ./Travis/Scripts/Expects/find_expect_long.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh -u all
-        - bash ./Travis/Scripts/travis_tronitor.sh --unpause all
-        - expect ./Travis/Scripts/Expects/pause_invalid_expect.exp
-        # Reset some vars
-        - sed -i "10s/.*/providerName=''/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "14s/.*/apiKey=''/" Travis/Scripts/travis_tronitor.sh
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc -p TravisOne
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_webhook_empty_expect_short.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake --webhook
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc --list
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake -n
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc --no-prompt
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake -c http
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc --create ping
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake -c port
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc --create keyword
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake -c foobar
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc -a
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake --alerts
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc -i 'travisone'
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake --info 'travistwo'
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_delete_expect_short.exp
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_delete_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc -p GooglePing
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake --pause all
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_find_expect_short.exp
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_find_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor sc -u all
+        - bash ./Travis/Scripts/travis_tronitor.sh -m statuscake --unpause all
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_pause_invalid_expect.exp
+        - expect ./Travis/Scripts/Expects/StatusCake/sc_cleanup.exp
+        ## Reset the webhook var
         - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
-        - sed -i "42s/.*/apiKeyStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "44s/.*/providerStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        - sed -i "46s/.*/scUsernameStatus='invalid'/" Travis/Scripts/travis_tronitor.sh
-        # HealthChecks Tests
-        - expect ./Travis/Scripts/Expects/hc_api_key_expect.exp
+        ## HealthChecks Tests
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_api_key_expect.exp
         - bash ./Travis/Scripts/hc_prep.sh
         - sleep 60
-        - bash ./Travis/Scripts/travis_tronitor.sh
-        - bash ./Travis/Scripts/travis_tronitor.sh -c
-        - bash ./Travis/Scripts/travis_tronitor.sh -x
+        - bash ./Travis/Scripts/travis_tronitor.sh -m hc
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc -c
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks -x
         - bash ./Travis/Scripts/travis_tronitor.sh -h
         - bash ./Travis/Scripts/travis_tronitor.sh --help
-        - bash ./Travis/Scripts/travis_tronitor.sh -s
-        - bash ./Travis/Scripts/travis_tronitor.sh --unpause all
-        - bash ./Travis/Scripts/travis_tronitor.sh -p TravisOne
-        - expect ./Travis/Scripts/Expects/webhook_empty_expect_short.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh --webhook
-        - bash ./Travis/Scripts/travis_tronitor.sh --list
-        - bash ./Travis/Scripts/travis_tronitor.sh -n
-        - bash ./Travis/Scripts/travis_tronitor.sh --no-prompt
-        - bash ./Travis/Scripts/travis_tronitor.sh -c ping
-        - bash ./Travis/Scripts/travis_tronitor.sh --create
-        - bash ./Travis/Scripts/travis_tronitor.sh --create foobar
-        - bash ./Travis/Scripts/travis_tronitor.sh -a
-        - bash ./Travis/Scripts/travis_tronitor.sh --alerts
-        - bash ./Travis/Scripts/travis_tronitor.sh -i 'travisone'
-        - bash ./Travis/Scripts/travis_tronitor.sh --info 'travistwo'
-        - expect ./Travis/Scripts/Expects/delete_expect_short.exp
-        - expect ./Travis/Scripts/Expects/delete_expect_long.exp
-        - sleep 60
-        - bash ./Travis/Scripts/travis_tronitor.sh -p GooglePing
-        - bash ./Travis/Scripts/travis_tronitor.sh --pause all
-        - expect ./Travis/Scripts/Expects/find_expect_short.exp
-        - expect ./Travis/Scripts/Expects/find_expect_long.exp
-        - bash ./Travis/Scripts/travis_tronitor.sh -u GooglePing
-        - expect ./Travis/Scripts/Expects/hc_pause_invalid_expect.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc -p TravisOne
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_webhook_empty_expect_short.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks --webhook
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc --list
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks -n
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc --no-prompt
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks -c http
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc --create ping
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks -c port
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc --create keyword
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks -c foobar
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc -a
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks --alerts
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc -i 'travisone'
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks --info 'travistwo'
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_delete_expect_short.exp
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_delete_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc -p GooglePing
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks --pause all
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_find_expect_short.exp
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_find_expect_long.exp
+        - bash ./Travis/Scripts/travis_tronitor.sh --monitor hc -u all
+        - bash ./Travis/Scripts/travis_tronitor.sh -m healthchecks --unpause all
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_pause_invalid_expect.exp
+        - expect ./Travis/Scripts/Expects/Healthchecks/hc_cleanup.exp
 after_success:
-  - sed -i "10s/.*/providerName='UptimeRobot'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - expect ./Travis/Scripts/Expects/cleanup.exp
-  - sed -i "10s/.*/providerName='StatusCake'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - expect ./Travis/Scripts/Expects/cleanup.exp
-  - sed -i "10s/.*/providerName='HealthChecks'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/UptimeRobot/ur_cleanup.exp
+  - expect ./Travis/Scripts/Expects/StatusCake/sc_cleanup.exp
+  - expect ./Travis/Scripts/Expects/Healthchecks/hc_cleanup.exp
 after_failure:
-  - sed -i "10s/.*/providerName='uptimerobot'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey='${travisApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - expect ./Travis/Scripts/Expects/cleanup.exp
-  - sed -i "10s/.*/providerName='statuscake'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "12s/.*/scUsername='${travisSCUsername}'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey='${travisSCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - expect ./Travis/Scripts/Expects/cleanup.exp
-  - sed -i "10s/.*/providerName='healthchecks'/" Travis/Scripts/travis_tronitor.sh
-  - sed -i "14s/.*/apiKey='${travisHCApiKey}'/" Travis/Scripts/travis_tronitor.sh
-  - expect ./Travis/Scripts/Expects/cleanup.exp
+  - expect ./Travis/Scripts/Expects/UptimeRobot/ur_cleanup.exp
+  - expect ./Travis/Scripts/Expects/StatusCake/sc_cleanup.exp
+  - expect ./Travis/Scripts/Expects/Healthchecks/hc_cleanup.exp

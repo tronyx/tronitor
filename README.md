@@ -14,19 +14,17 @@ Feel free to check out their work and buy them a beer too!
 
 ## Application Healthchecks
 
-This script partners up with my [Application Healthchecks](https://github.com/christronyxyocum/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc.
+This script partners up with my [Application Healthchecks](https://github.com/christronyxyocum/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc. This essentially allows you to create your own maintenance windows without having to pay for a premium account with either of the providers.
 
 ## Package Requirements/Recommendations
 
 ### cURL
 
-cURL is required for the script to function as it's used to submit API calls . If it is not installed before you execute the script most, if not all, operations will fail.
-
-The script does check whether or not cURL is installed and, if not, it will inform you and then exit.
+The `cURL` command is required for the script to function as it's used to submit API calls to the providers. If it is not installed before you execute the script most, if not all, operations will fail. Because of this, the script does check whether or not `cURL` is installed and, if not, it will inform you as such and then exit.
 
 ### JQ
 
-It is recommended that you also install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. There is a variable at the beginning of the script to set the `jq` command to true or false. I've personally encountered some issues with it when using the script within a cronjob and not using `jq` to format the output resolves them. It is set to `true` by default.
+It is recommended that you also install the `JQ` package as the script uses it to automatically format the JSON output into a human-readable and colorized output. There is a variable at the beginning of the script to set the use of the `JQ` command to true or false. I've personally encountered some issues with it when using the script within a cronjob and not using `JQ` to format the output resolves them. It is set to `true` by default.
 
 ```bash
 # Set JQ to false to disable the use of the JQ command.
@@ -34,7 +32,7 @@ It is recommended that you also install the JQ package as the script uses it to 
 jq='true'
 ```
 
-Installing on Ubuntu Server 18.04:
+#### Installing JQ on Ubuntu Server 18.04:
 
 ```bash
 tronyx@suladan:~$ sudo apt install jq
@@ -56,20 +54,20 @@ Setting up jq (1.5+dfsg-2) ...
 Processing triggers for man-db (2.8.3-2) ...
 ```
 
-Sample output using `jq`:
+#### Sample output using JQ:
 
 ![JQ True](/Images/jq_sample.png)
 
-Sample output without `jq`:
+#### Sample output without JQ:
 
 ![JQ False](/Images/no_jq_sample.png)
 
 ## Setting it up
 
-The best method to get the script working is to clone the repository onto your preferred machine:
+The best method to get the script working is to use `git` to clone the repository onto your preferred machine:
 
 ```bash
-tronyx@suladan:~$ sudo git clone https://github.com/christronyxyocum/tronitor.git
+tronyx@suladan:~$ git clone https://github.com/christronyxyocum/tronitor.git
 Cloning into 'tronitor'...
 remote: Enumerating objects: 108, done.
 remote: Counting objects: 100% (108/108), done.
@@ -79,13 +77,24 @@ Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
 Resolving deltas: 100% (143/143), done.
 ```
 
-NOTE: You CAN get away with just grabbing a copy of `tronitor.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
+:warning: **NOTE:** You CAN get away with just grabbing a copy of the `tronitor.sh` script itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
-The first time that you run the script it will alert you that the Provider, API Key, etc. are missing and prompt you to select or input them:
+The script stores the API keys, and username for StatusCake, for up to all three providers so that you do not need multiple copies of the script to work with each of the different providers.
 
-![User Data Prompt](/Images/user_data.png)
+The first time that you run the script for a specific monitor it will alert you that the API Key, etc. are missing and prompt you to input them:
 
-You can also simply open the script with your favorite text editor and add your provider's name (either UptimeRobot, StatusCake, or HealthChecks), the corresponding API key, and, if using StatusCake, your account username.
+### UptimeRobot
+![UptimeRobot User Data Prompt](/Images/ur_user_data.png)
+
+### StatusCake
+![StatusCake User Data Prompt](/Images/sc_user_data.png)
+
+### Healthchecks.io
+![Healthchecks User Data Prompt](/Images/hc_user_data.png)
+
+:warning: **NOTE:** If you are running your own, self-hosted version of Healthchecks.io, you will need to modify the `apiUrl` variable on `line 380` of the  `tronitor.sh` script.
+
+You can also simply open the script with your favorite text editor and add your provider's API key, and, if you're using StatusCake, your account username.
 
 After entering the information, the script will check whether or not it is valid and then add it to the script for you.
 
@@ -97,13 +106,24 @@ If you use the alert option, be sure to also enter in your Discord/Slack webhook
 
 ![Script Usage](/Images/usage.png)
 
+The `-m/--monitor` option accepts both full and shorthand versions of the provider's name:
+
+```json
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m statuscake -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m sc -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m healthchecks -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m hc -l
+```
+
 ## Examples
 ### Get account statistics
 
 Display basic statistics for your account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -s
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -s
 Here are the basic statistics for your UptimeRobot account:
 
 {
@@ -121,24 +141,26 @@ Here are the basic statistics for your UptimeRobot account:
 
 ### List all monitors
 
-Display all monitors associated with your account and their current status:
+Display all monitors associated with your account and their current statuses:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh --monitor ur -l
 The following UptimeRobot monitors were found in your UptimeRobot account:
+
 Plex (ID: 779783111) - Status: Up
 Radarr (ID: 780859973) - Status: Down
 Sonarr (ID: 780859962) - Status: Paused
 Tautulli (ID: 780859975) - Status: Seems down
 ```
 
-### Find paused monitors
+### Find currently paused monitors
 
-Find and display all monitors in your account that are currently paused:
+Find and display all monitors in your account that are currently paused and then prompt you as to whether or not you would like to unpause them:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -f
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -f
 The following StatusCake monitors are currently paused:
+
 Plex (ID: 779783111)
 Radarr (ID: 780859973)
 Sonarr (ID: 780859962)
@@ -155,7 +177,7 @@ Using the `-w` option will check for any paused monitors and, if there are any, 
 
 ![Discord/Slack Notification](/Images/webhook_paused.png)
 
-If you set the `notifyAll` option to `true` Tronitor will send a notification even if there are no paused monitors:
+If you set the `notifyAll` option to `true`, Tronitor will send a notification even if there are no paused monitors:
 
 ![Discord/Slack Notification](/Images/webhook_notifyAll.png)
 
@@ -164,7 +186,7 @@ If you set the `notifyAll` option to `true` Tronitor will send a notification ev
 Display all information for a single monitor:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -i 'plex'
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -i 'plex'
 {
   "stat": "ok",
   "pagination": {
@@ -197,7 +219,7 @@ tronyx@suladan:~/tronitor$ ./tronitor.sh -i 'plex'
 Displays a list of all of the alert contacts configured for the account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -a
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -a
 The following alert contacts have been found for your UptimeRobot account:
 
 {
@@ -231,7 +253,7 @@ This can be helpful when creating a new monitor as you can use the `id` field of
 Pause all monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -p all
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -p all
 Pausing Plex:
 {
   "stat": "ok",
@@ -265,14 +287,15 @@ Pausing Tautulli:
 }
 ```
 
-NOTE: Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/healthchecks.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
+:warning: **NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/healthchecks.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
+
 
 ### Pause specific monitors
 
 Pause specific monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -p 'Plex',780859973
+tronyx@suladan:~/tronitor$ ./tronitor.sh --monitor ur -p 'Plex',780859973
 Pausing Plex:
 {
   "stat": "ok",
@@ -290,14 +313,14 @@ Pausing Radarr:
 }
 ```
 
-NOTE: Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/MONITOR-NAME.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
+:warning: **NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/MONITOR-NAME.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
 
-### Unpause all monitors
+### Unpause all currently paused monitors
 
 Unpause all monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -u all
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -u all
 Unpausing Plex:
 {
   "stat": "ok",
@@ -333,10 +356,10 @@ Unpausing Tautulli:
 
 ### Unpause specific monitors
 
-Unpause specific monitors in your account:
+Unpause specific monitors that are currently paused in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -u 'Plex',780859973
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -u 'Plex',780859973
 Unpausing Plex:
 {
   "stat": "ok",
@@ -358,11 +381,11 @@ Unpausing Radarr:
 
 Monitors can be created using this option.
 
-NOTE: StatusCake's API is dumb and WILL let you create more tests than you're supposed to have with the limit for your account and it can cause some very odd behavior with the monitors.
+:warning: **NOTE:** StatusCake's API is dumb and WILL let you create more tests than you're supposed to have with the limit for your account and it can cause some very odd behavior with the monitors.
 
 Modify the settings of the corresponding monitor type template file in the corresponding `Templates` directory for your provider, IE: creating a new HTTP(s) monitor for UptimeRobot would require you to modify the `Templates/UptimeRobot/new-http-monitor.json` file. The full API documentation for the two providers can be found [HERE (UR)](https://uptimerobot.com/api), [HERE (SC)](https://www.statuscake.com/api/index.md), and [HERE (HC)](https://healthchecks.io/docs/api/) for information on monitor types and any required values and what they're for.
 
-The below example is for creating a new HTTP(s) monitor for Google:
+The following example is for creating a new HTTP(s) monitor for Google:
 
 ```json
 tronyx@suladan:~/tronitor$ cat Templates/UptimeRobot/new-http-monitor.json
@@ -385,7 +408,7 @@ The `api_key` field is filled in automatically by the script, but you can still 
 Then just execute the script to create the monitor:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -c http
+tronyx@suladan:~/tronitor$ ./tronitor.sh --monitor uptimerobot -c http
 {
   "stat": "ok",
   "monitor": {
@@ -395,12 +418,12 @@ tronyx@suladan:~/tronitor$ ./tronitor.sh -c http
 }
 ```
 
-### Reset a monitor
+### Resetting monitors
 
 Reset (deleting all stats and response time data) all or specific monitors in your account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -r google
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -r google
 
 ***WARNING*** This will reset ALL data for the specified monitors!!!
 Are you sure you wish to continue? ([Y]es or [N]o):
@@ -415,12 +438,12 @@ Resetting Google:
 }
 ```
 
-### Delete a monitor
+### Deleting monitors
 
-Delete a specific monitor from your account:
+Delete all, or a specific, monitor from your account:
 
 ```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -d plex
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -d plex
 
 ***WARNING*** This will delete the specified monitor from your account!!!
 Are you sure you wish to continue? ([Y]es or [N]o):
