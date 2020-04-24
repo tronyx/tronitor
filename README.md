@@ -1,3 +1,32 @@
+-   [Tronitor](#tronitor)
+*   [Contributors](#contributors)
+*   [Application Healthchecks](#application-healthchecks)
+*   [Package Requirements/Recommendations](#package-requirements-recommendations)
++   [cURL](#curl)
++   [JQ](#jq)
+-   [Installing `JQ` on Ubuntu Server 18.04:](#installing--jq--on-ubuntu-server-1804-)
+-   [Sample output using `jq`:](#sample-output-using--jq--)
+-   [Sample output without `jq`:](#sample-output-without--jq--)
+*   [Setting it up](#setting-it-up)
++   [UptimeRobot](#uptimerobot)
++   [StatusCake](#statuscake)
++   [Healthchecks.io](#healthchecksio)
+*   [Usage](#usage)
+*   [Examples](#examples)
++   [Get account statistics](#get-account-statistics)
++   [List all monitors](#list-all-monitors)
++   [Find paused monitors](#find-paused-monitors)
++   [Discord alert for paused monitors](#discord-alert-for-paused-monitors)
++   [Info](#info)
++   [Get alert contacts](#get-alert-contacts)
++   [Pause all monitors](#pause-all-monitors)
++   [Pause specific monitors](#pause-specific-monitors)
++   [Unpause all monitors](#unpause-all-monitors)
++   [Unpause specific monitors](#unpause-specific-monitors)
++   [Create a new monitor](#create-a-new-monitor)
++   [Reset a monitor](#reset-a-monitor)
++   [Delete a monitor](#delete-a-monitor)
+
 # Tronitor
 
 [![CodeFactor](https://www.codefactor.io/repository/github/christronyxyocum/tronitor/badge)](https://www.codefactor.io/repository/github/christronyxyocum/tronitor) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/christronyxyocum/tronitor) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/tronitor/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/christronyxyocum/tronitor.svg)](http://isitmaintained.com/project/christronyxyocum/tronitor "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/christronyxyocum/tronitor.svg)](http://isitmaintained.com/project/christronyxyocum/tronitor "Percentage of issues still open")
@@ -16,15 +45,15 @@ Feel free to check out their work and buy them a beer too!
 
 This script partners up with my [Application Healthchecks](https://github.com/christronyxyocum/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc.
 
-## Package Requirements (:heavy_exclamation_mark:)/Recommendations (:warning:)
+## Package Requirements/Recommendations
 
 ### cURL
 
-cURL is required for the script to function as it's used to submit API calls . If it is not installed before you execute the script most, if not all, operations will fail. The script does check whether or not cURL is installed and, if not, it will inform you as such and then exit.
+The `cURL` command is required for the script to function as it's used to submit API calls . If it is not installed before you execute the script most, if not all, operations will fail. The script does check whether or not `cURL` is installed and, if not, it will inform you as such and then exit.
 
 ### JQ
 
-It is recommended that you also install the JQ package as the script uses it to automatically format the JSON output into a human-readable and colorized output. There is a variable at the beginning of the script to set the `jq` command to true or false. I've personally encountered some issues with it when using the script within a cronjob and not using `jq` to format the output resolves them. It is set to `true` by default.
+It is recommended that you also install the `JQ` package as the script uses it to automatically format the JSON output into a human-readable and colorized output. There is a variable at the beginning of the script to set the use of the `JQ` command to true or false. I've personally encountered some issues with it when using the script within a cronjob and not using `JQ` to format the output resolves them. It is set to `true` by default.
 
 ```bash
 # Set JQ to false to disable the use of the JQ command.
@@ -32,7 +61,7 @@ It is recommended that you also install the JQ package as the script uses it to 
 jq='true'
 ```
 
-Installing on Ubuntu Server 18.04:
+#### Installing `JQ` on Ubuntu Server 18.04:
 
 ```bash
 tronyx@suladan:~$ sudo apt install jq
@@ -54,11 +83,11 @@ Setting up jq (1.5+dfsg-2) ...
 Processing triggers for man-db (2.8.3-2) ...
 ```
 
-Sample output using `jq`:
+#### Sample output using `jq`:
 
 ![JQ True](/Images/jq_sample.png)
 
-Sample output without `jq`:
+#### Sample output without `jq`:
 
 ![JQ False](/Images/no_jq_sample.png)
 
