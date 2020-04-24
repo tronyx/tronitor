@@ -77,7 +77,7 @@ Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
 Resolving deltas: 100% (143/143), done.
 ```
 
-:warning: **NOTE:** You CAN get away with just grabbing a copy of `tronitor.sh` itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
+:warning: **NOTE:** You CAN get away with just grabbing a copy of the `tronitor.sh` script itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
 The script stores the API keys, and username for StatusCake, for up to all three providers so that you do not need multiple copies of the script to work with the different providers.
 
