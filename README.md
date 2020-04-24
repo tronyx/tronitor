@@ -61,7 +61,7 @@ It is recommended that you also install the `JQ` package as the script uses it t
 jq='true'
 ```
 
-#### Installing `JQ` on Ubuntu Server 18.04:
+#### Installing JQ on Ubuntu Server 18.04:
 
 ```bash
 tronyx@suladan:~$ sudo apt install jq
@@ -83,11 +83,11 @@ Setting up jq (1.5+dfsg-2) ...
 Processing triggers for man-db (2.8.3-2) ...
 ```
 
-#### Sample output using `JQ`:
+#### Sample output using JQ:
 
 ![JQ True](/Images/jq_sample.png)
 
-#### Sample output without `JQ`:
+#### Sample output without JQ:
 
 ![JQ False](/Images/no_jq_sample.png)
 
