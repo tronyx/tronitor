@@ -476,8 +476,8 @@ check_api_key() {
                     sed -i "${hcApiKeyLineNum} s/hcApiKey='[^']*'/hcApiKey=''/" "${scriptname}"
                     hcApiKey=""
                 elif [[ ${status} == 'null' ]]; then
-                    sed -i "${hcApiStatusLineNum} s/hcApiKeyStatus='[^']*'/hcApiKeyStatus='${status}'/" "${scriptname}"
-                    hcApiKeyStatus="${status}"
+                    sed -i "${hcApiStatusLineNum} s/hcApiKeyStatus='[^']*'/hcApiKeyStatus='ok'/" "${scriptname}"
+                    hcApiKeyStatus="ok"
                     echo -e "${grn}Success!${endColor}"
                     echo ''
                 fi
