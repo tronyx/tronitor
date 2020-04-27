@@ -533,11 +533,11 @@ set_api_key() {
 # it's not working, display message and exit, otherwise move on.
 check_api_status() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
-        apiStatus=$(curl -w "%{http_code}\n" -s -o /dev/null --connect-timeout 10 -m 15 -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json")
+        apiStatus=$(curl -w "%{http_code}\n" -s -o /dev/null --connect-timeout 30 -m 35 -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json")
     elif [[ ${providerName} == 'statuscake' ]]; then
-        apiStatus=$(curl -w "%{http_code}\n" -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -o /dev/null --connect-timeout 10 -m 15 -X GET "${apiUrl}"Tests/)
+        apiStatus=$(curl -w "%{http_code}\n" -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -o /dev/null --connect-timeout 30 -m 35 -X GET "${apiUrl}"Tests/)
     elif [[ ${providerName} == 'healthchecks' ]]; then
-        apiStatus=$(curl -w "%{http_code}\n" -s -H "X-Api-Key: ${apiKey}" -o /dev/null --connect-timeout 10 -m 15 -X GET "${apiUrl}"checks/)
+        apiStatus=$(curl -w "%{http_code}\n" -s -H "X-Api-Key: ${apiKey}" -o /dev/null --connect-timeout 30 -m 35 -X GET "${apiUrl}"checks/)
     fi
     if [[ ${apiStatus} != '200' ]]; then
         echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
