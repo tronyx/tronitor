@@ -486,7 +486,7 @@ check_api_key() {
                     echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
                     exit
                 }
-                status=$(jq -r .error 2> /dev/null) || {
+                status=$(jq -r .error "${apiTestFullFile}" 2> /dev/null) || {
                     echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
                     exit
                 }
