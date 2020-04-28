@@ -1072,7 +1072,7 @@ unpause_specified_monitors() {
 send_notification() {
     if [[ -s ${pausedMonitorsFile} ]]; then
         pausedTests='"fields": ['
-        lineCount=$(wc -l <${pausedMonitorsFile})
+        lineCount=$(wc -l < ${pausedMonitorsFile})
         count=0
         while IFS= read -r line; do
             ((++count))
@@ -1081,7 +1081,7 @@ send_notification() {
             if [[ ${count} -ne ${lineCount} ]]; then
                 pausedTests="${pausedTests},"
             fi
-        done <"${pausedMonitorsFile}"
+        done < "${pausedMonitorsFile}"
         pausedTests="${pausedTests}]"
         if [[ ${providerName} == 'uptimerobot' ]]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused UptimeRobot monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
