@@ -70,7 +70,7 @@ readonly endColor='\e[0m'
 
 # Function to define usage and script options
 usage() {
-    cat <<- EOF
+    cat <<-EOF
 
   Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-m"${endColor}" ${ylw}\{MONITOR\}"${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\{ARGUMENT\}"${endColor}"...)
 
@@ -134,26 +134,26 @@ cmdline() {
     for arg; do
         local delim=""
         case "${arg}" in
-            # Translate --gnu-long-options to -g (short options)
-            --monitor) local_args="${local_args}-m " ;;
-            --stats) local_args="${local_args}-s " ;;
-            --list) local_args="${local_args}-l " ;;
-            --find) local_args="${local_args}-f " ;;
-            --no-prompt) local_args="${local_args}-n " ;;
-            --webhook) local_args="${local_args}-w " ;;
-            --info) local_args="${local_args:-}-i " ;;
-            --alerts) local_args="${local_args}-a " ;;
-            --create) local_args="${local_args:-}-c " ;;
-            --pause) local_args="${local_args:-}-p " ;;
-            --unpause) local_args="${local_args:-}-u " ;;
-            --reset) local_args="${local_args:-}-r " ;;
-            --delete) local_args="${local_args:-}-d " ;;
-            --help) local_args="${local_args}-h " ;;
-            # Pass through anything else
-            *)
-                [[ ${arg:0:1} == '-' ]] || delim='"'
-                local_args="${local_args:-}${delim}${arg}${delim} "
-                ;;
+        # Translate --gnu-long-options to -g (short options)
+        --monitor) local_args="${local_args}-m " ;;
+        --stats) local_args="${local_args}-s " ;;
+        --list) local_args="${local_args}-l " ;;
+        --find) local_args="${local_args}-f " ;;
+        --no-prompt) local_args="${local_args}-n " ;;
+        --webhook) local_args="${local_args}-w " ;;
+        --info) local_args="${local_args:-}-i " ;;
+        --alerts) local_args="${local_args}-a " ;;
+        --create) local_args="${local_args:-}-c " ;;
+        --pause) local_args="${local_args:-}-p " ;;
+        --unpause) local_args="${local_args:-}-u " ;;
+        --reset) local_args="${local_args:-}-r " ;;
+        --delete) local_args="${local_args:-}-d " ;;
+        --help) local_args="${local_args}-h " ;;
+        # Pass through anything else
+        *)
+            [[ ${arg:0:1} == '-' ]] || delim='"'
+            local_args="${local_args:-}${delim}${arg}${delim} "
+            ;;
         esac
     done
 
@@ -162,69 +162,69 @@ cmdline() {
 
     while getopts "hm:slfnwai:c:r:d:p:u:" OPTION; do
         case "$OPTION" in
-            m)
-                providerName="${OPTARG}"
-                monitorFlag=true
-                ;;
-            s)
-                stats=true
-                ;;
-            l)
-                list=true
-                ;;
-            f)
-                find=true
-                prompt=true
-                ;;
-            n)
-                find=true
-                prompt=false
-                ;;
-            w)
-                find=true
-                prompt=false
-                webhook=true
-                ;;
-            a)
-                alerts=true
-                ;;
-            i)
-                info=true
-                infoType="${OPTARG}"
-                ;;
-            c)
-                create=true
-                createType="${OPTARG}"
-                ;;
-            r)
-                reset=true
-                resetType="${OPTARG}"
-                ;;
-            d)
-                delete=true
-                deleteType="${OPTARG}"
-                ;;
-            p)
-                pause=true
-                pauseType="${OPTARG}"
-                ;;
-            u)
-                unpause=true
-                unpauseType="${OPTARG}"
-                ;;
-            h)
-                usage
-                exit
-                ;;
-            *)
-                if [[ ${arg} == '-m' || ${arg} == '-p' || ${arg} == '-u' || ${arg} == '-r' || ${arg} == '-d' || ${arg} == '-i' || ${arg} == '-c' ]] && [[ -z ${OPTARG} ]]; then
-                    echo -e "${red}Option ${arg} requires an argument!${endColor}"
-                else
-                    echo -e "${red}You are specifying a non-existent option!${endColor}"
-                fi
-                usage
-                exit
-                ;;
+        m)
+            providerName="${OPTARG}"
+            monitorFlag=true
+            ;;
+        s)
+            stats=true
+            ;;
+        l)
+            list=true
+            ;;
+        f)
+            find=true
+            prompt=true
+            ;;
+        n)
+            find=true
+            prompt=false
+            ;;
+        w)
+            find=true
+            prompt=false
+            webhook=true
+            ;;
+        a)
+            alerts=true
+            ;;
+        i)
+            info=true
+            infoType="${OPTARG}"
+            ;;
+        c)
+            create=true
+            createType="${OPTARG}"
+            ;;
+        r)
+            reset=true
+            resetType="${OPTARG}"
+            ;;
+        d)
+            delete=true
+            deleteType="${OPTARG}"
+            ;;
+        p)
+            pause=true
+            pauseType="${OPTARG}"
+            ;;
+        u)
+            unpause=true
+            unpauseType="${OPTARG}"
+            ;;
+        h)
+            usage
+            exit
+            ;;
+        *)
+            if [[ ${arg} == '-m' || ${arg} == '-p' || ${arg} == '-u' || ${arg} == '-r' || ${arg} == '-d' || ${arg} == '-i' || ${arg} == '-c' ]] && [[ -z ${OPTARG} ]]; then
+                echo -e "${red}Option ${arg} requires an argument!${endColor}"
+            else
+                echo -e "${red}You are specifying a non-existent option!${endColor}"
+            fi
+            usage
+            exit
+            ;;
         esac
     done
     shift $((OPTIND - 1))
@@ -237,7 +237,7 @@ get_scriptname() {
     local dir
     source="${BASH_SOURCE[0]}"
     while [[ -L ${source} ]]; do
-        dir="$(cd -P "$(dirname "${source}")" > /dev/null && pwd)"
+        dir="$(cd -P "$(dirname "${source}")" >/dev/null && pwd)"
         source="$(readlink "${source}")"
         [[ ${source} != /* ]] && source="${dir}/${source}"
     done
@@ -245,7 +245,7 @@ get_scriptname() {
 }
 
 readonly scriptname="$(get_scriptname)"
-readonly scriptpath="$(cd -P "$(dirname "${scriptname}")" > /dev/null && pwd)"
+readonly scriptpath="$(cd -P "$(dirname "${scriptname}")" >/dev/null && pwd)"
 
 # Function to create directory to neatly store temp files, if it does not exist
 create_dir() {
@@ -410,7 +410,7 @@ check_sc_creds() {
             sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
             scUsername="${username}"
         else
-            scStatus=$(curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ | jq .ErrNo 2> /dev/null || echo '1')
+            scStatus=$(curl -s -H "API: ${scApiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ | jq .ErrNo 2>/dev/null || echo '1')
             if [[ ${scStatus} == '0' ]]; then
                 clear >&2
                 echo -e "${red}The API Key and/or username that you provided for ${providerName^} are not valid!${endColor}"
@@ -451,7 +451,10 @@ check_api_key() {
                 sed -i "${urApiKeyLineNum} s/urApiKey='[^']*'/urApiKey='${API}'/" "${scriptname}"
                 urApiKey="${API}"
             else
-                curl --fail -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${urApiKey}" -d "format=json" > "${apiTestFullFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${urApiKey}" -d "format=json" >"${apiTestFullFile}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
                 status=$(jq -r .stat "${apiTestFullFile}")
                 if [[ ${status} == 'fail' ]]; then
                     echo -e "${red}The API Key that you provided for ${providerName^} is not valid!${endColor}"
@@ -477,7 +480,10 @@ check_api_key() {
                 sed -i "${hcApiKeyLineNum} s/hcApiKey='[^']*'/hcApiKey='${API}'/" "${scriptname}"
                 hcApiKey="${API}"
             else
-                curl --fail -s -H "X-Api-Key: ${hcApiKey}" -X GET "${apiUrl}"checks/ > "${apiTestFullFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -H "X-Api-Key: ${hcApiKey}" -X GET "${apiUrl}"checks/ >"${apiTestFullFile}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
                 #status=$(cat "${apiTestFullFile}")
                 status=$(jq -r .error)
                 if [[ ${status} != 'null' ]]; then
@@ -541,11 +547,20 @@ set_api_key() {
 # Function to grab data for all monitors
 get_data() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
-        curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+        curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" >"${monitorsFullFile}" || {
+            echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+            exit 1
+        }
     elif [[ ${providerName} == 'statuscake' ]]; then
-        curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${monitorsFullFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+        curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ >"${monitorsFullFile}" || {
+            echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+            exit 1
+        }
     elif [[ ${providerName} == 'healthchecks' ]]; then
-        curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET "${apiUrl}"checks/ > "${monitorsFullFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+        curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET "${apiUrl}"checks/ >"${monitorsFullFile}" || {
+            echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+            exit 1
+        }
     fi
 }
 
@@ -563,12 +578,21 @@ get_monitors() {
         exit 0
     else
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            jq -r .monitors[].id "${monitorsFullFile}" > "${monitorsFile}" 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            jq -r .monitors[].id "${monitorsFullFile}" >"${monitorsFile}" 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${providerName} == 'statuscake' ]]; then
-            jq -r .[].TestID "${monitorsFullFile}" > "${monitorsFile}" 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            jq -r .[].TestID "${monitorsFullFile}" >"${monitorsFile}" 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            jq -r .checks[].ping_url "${monitorsFullFile}" 2> /dev/null > "${hcPingURLsFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
-            cat "${hcPingURLsFile}" | rev | cut -c1-36 | rev > "${monitorsFile}"
+            jq -r .checks[].ping_url "${monitorsFullFile}" 2>/dev/null >"${hcPingURLsFile}" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
+            cat "${hcPingURLsFile}" | rev | cut -c1-36 | rev >"${monitorsFile}"
         fi
     fi
 }
@@ -577,18 +601,27 @@ get_monitors() {
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" >"${tempDir}${monitor}".txt || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${providerName} == 'statuscake' ]]; then
-            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" >"${tempDir}${monitor}".txt || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null > "${tempDir}${monitor}".txt || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))' 2>/dev/null >"${tempDir}${monitor}".txt || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     done < <(cat "${monitorsFile}")
 }
 
 # Function to create friendly output of all monitors
 create_friendly_list() {
-    true > "${friendlyListFile}"
+    true >"${friendlyListFile}"
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
@@ -633,7 +666,7 @@ create_friendly_list() {
                 friendlyStatus="${mgt}New${endColor}"
             fi
         fi
-        echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor} | Status: ${friendlyStatus}" >> "${friendlyListFile}"
+        echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor} | Status: ${friendlyStatus}" >>"${friendlyListFile}"
     done < <(cat "${monitorsFile}")
 }
 
@@ -651,13 +684,13 @@ display_all_monitors() {
 
 # Function to find all currently paused monitors
 get_paused_monitors() {
-    true > "${pausedMonitorsFile}"
+    true >"${pausedMonitorsFile}"
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
             status=$(jq .monitors[].status "${tempDir}${monitor}".txt)
             if [[ ${status} == '0' ]]; then
-                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
+                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >>"${pausedMonitorsFile}"
             else
                 :
             fi
@@ -666,7 +699,7 @@ get_paused_monitors() {
             status=$(jq -r .Status "${tempDir}${monitor}".txt)
             paused=$(jq .Paused "${tempDir}${monitor}".txt)
             if [[ ${status} == 'Up' ]] && [[ ${paused} == 'true' ]]; then
-                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
+                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >>"${pausedMonitorsFile}"
             else
                 :
             fi
@@ -675,7 +708,7 @@ get_paused_monitors() {
             friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt)
             status=$(jq -r .status "${tempDir}${monitor}"_short.txt)
             if [[ ${status} == 'paused' ]]; then
-                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
+                echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >>"${pausedMonitorsFile}"
             else
                 :
             fi
@@ -728,13 +761,13 @@ invalid_prompt() {
 
 # Function to check for bad monitors in command
 check_bad_monitors() {
-    true > "${badMonitorsFile}"
+    true >"${badMonitorsFile}"
     while IFS= read -r monitor; do
         if [[ $(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${friendlyListFile}" | grep -ic "${monitor} |") != "1" ]]; then
             if [[ ${monitor} =~ ^[A-Za-z]+$ ]]; then
-                echo -e "${lorg}${monitor}${endColor}" >> "${badMonitorsFile}"
+                echo -e "${lorg}${monitor}${endColor}" >>"${badMonitorsFile}"
             elif [[ ${monitor} != ^[A-Za-z]+$ ]]; then
-                echo -e "${lblu}${monitor}${endColor}" >> "${badMonitorsFile}"
+                echo -e "${lblu}${monitor}${endColor}" >>"${badMonitorsFile}"
             fi
         else
             :
@@ -746,11 +779,11 @@ check_bad_monitors() {
         cat "${badMonitorsFile}"
         sed -i 's/\x1B\[[0-9;]*[JKmsu]//g' "${badMonitorsFile}"
         set +e
-        grep -vxf "${badMonitorsFile}" "${specifiedMonitorsFile}" > "${validMonitorsTempFile}"
-        true > "${validMonitorsFile}"
+        grep -vxf "${badMonitorsFile}" "${specifiedMonitorsFile}" >"${validMonitorsTempFile}"
+        true >"${validMonitorsFile}"
         if [[ -s ${validMonitorsTempFile} ]]; then
             while IFS= read -r monitor; do
-                echo -e "${grn}${monitor}${endColor}" >> "${validMonitorsFile}"
+                echo -e "${grn}${monitor}${endColor}" >>"${validMonitorsFile}"
             done < <(cat "${validMonitorsTempFile}")
             echo ''
             invalid_prompt
@@ -768,28 +801,34 @@ check_bad_monitors() {
 
 # Function to convert friendly names to IDs
 convert_friendly_monitors() {
-    true > "${convertedMonitorsFile}"
+    true >"${convertedMonitorsFile}"
     if [[ -s ${validMonitorsFile} ]]; then
-        cat "${validMonitorsFile}" > "${specifiedMonitorsFile}"
+        cat "${validMonitorsFile}" >"${specifiedMonitorsFile}"
     else
         :
     fi
     if [[ ${providerName} == 'healthchecks' ]]; then
         while IFS= read -r monitor; do
             if [[ $(echo "${monitor}" | tr -d ' ') =~ ${uuidPattern} ]]; then
-                echo "${monitor}" >> "${convertedMonitorsFile}"
+                echo "${monitor}" >>"${convertedMonitorsFile}"
             else
-                curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ > "${tempCurlFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
-                jq -r --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url "${tempCurlFile}" 2> /dev/null > "${tempJQFile}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
-                cat "${tempJQFile}" | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
+                curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ >"${tempCurlFile}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
+                jq -r --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url "${tempCurlFile}" 2>/dev/null >"${tempJQFile}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
+                cat "${tempJQFile}" | rev | cut -c1-36 | rev >>"${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     else
         while IFS= read -r monitor; do
             if [[ $(echo "${monitor}" | tr -d ' ') =~ [A-Za-z] ]]; then
-                sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${friendlyListFile}" | grep -i "${monitor} |" | awk -F ':' '{print $2}' | awk -F ' ' '{print $1}' >> "${convertedMonitorsFile}"
+                sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${friendlyListFile}" | grep -i "${monitor} |" | awk -F ':' '{print $2}' | awk -F ' ' '{print $1}' >>"${convertedMonitorsFile}"
             else
-                echo "${monitor}" >> "${convertedMonitorsFile}"
+                echo "${monitor}" >>"${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     fi
@@ -802,27 +841,45 @@ pause_all_monitors() {
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
             echo "Pausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt)
             echo "Pausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt)
-            true > "${healthchecksLockFile}"
+            true >"${healthchecksLockFile}"
             echo "Pausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         fi
         echo ''
@@ -840,7 +897,7 @@ pause_all_monitors() {
 
 # Function to pause specified monitors
 pause_specified_monitors() {
-    echo "${pauseType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
+    echo "${pauseType}" | tr , '\n' | tr -d '"' >"${specifiedMonitorsFile}"
     check_bad_monitors
     if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
         exit 0
@@ -852,27 +909,45 @@ pause_specified_monitors() {
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
             echo "Pausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt)
             echo "Pausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt)
-            true > "${tempDir}${friendlyName,,}".lock
+            true >"${tempDir}${friendlyName,,}".lock
             echo "Pausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         fi
         echo ''
@@ -894,17 +969,29 @@ unpause_all_monitors() {
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
             echo "Unpausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt)
             echo "Unpausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
@@ -926,7 +1013,7 @@ unpause_all_monitors() {
 
 # Function to unpause specified monitors
 unpause_specified_monitors() {
-    echo "${unpauseType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
+    echo "${unpauseType}" | tr , '\n' | tr -d '"' >"${specifiedMonitorsFile}"
     check_bad_monitors
     if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
         exit 0
@@ -938,17 +1025,29 @@ unpause_specified_monitors() {
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
             echo "Unpausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt)
             echo "Unpausing ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
@@ -971,7 +1070,7 @@ unpause_specified_monitors() {
 send_notification() {
     if [[ -s ${pausedMonitorsFile} ]]; then
         pausedTests='"fields": ['
-        lineCount=$(wc -l < ${pausedMonitorsFile})
+        lineCount=$(wc -l <${pausedMonitorsFile})
         count=0
         while IFS= read -r line; do
             ((++count))
@@ -980,7 +1079,7 @@ send_notification() {
             if [[ ${count} -ne ${lineCount} ]]; then
                 pausedTests="${pausedTests},"
             fi
-        done < "${pausedMonitorsFile}"
+        done <"${pausedMonitorsFile}"
         pausedTests="${pausedTests}]"
         if [[ ${providerName} == 'uptimerobot' ]]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused UptimeRobot monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
@@ -1054,21 +1153,39 @@ create_monitor() {
     sed -i "s|\"api_key\": \"[^']*\"|\"api_key\": \"${apiKey}\"|" "${newMonitorConfigFile}"
     if [[ ${providerName} == 'uptimerobot' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     fi
     echo ''
@@ -1079,36 +1196,60 @@ get_stats() {
     echo 'Here are the basic statistics for your UptimeRobot account:'
     echo ''
     if [[ ${jq} == 'true' ]]; then
-        curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+        curl -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" | jq 2>/dev/null || {
+            echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+            exit 1
+        }
     elif [[ ${jq} == 'false' ]]; then
-        curl --fail -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+        curl --fail -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${apiKey}" -d "format=json" || {
+            echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+            exit 1
+        }
     fi
     echo ''
 }
 
 # Function to display all stats for single specified monitor
 get_info() {
-    echo "${infoType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
+    echo "${infoType}" | tr , '\n' | tr -d '"' >"${specifiedMonitorsFile}"
     check_bad_monitors
     convert_friendly_monitors
     monitor=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})
     if [[ ${providerName} == 'uptimerobot' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor ${monitor} '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor ${monitor} '.checks[] | select(.ping_url | contains($monitor))' 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s "${apiUrl}checks/${monitor}" -X POST -H "X-Api-Key: ${apiKey}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s "${apiUrl}checks/${monitor}" -X POST -H "X-Api-Key: ${apiKey}" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     fi
     echo ''
@@ -1120,23 +1261,41 @@ get_alert_contacts() {
         echo "The following alert contacts have been found for your ${providerName^} account:"
         echo ''
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         echo "The following alert contacts have been found for your ${providerName^} account:"
         echo ''
         if [[ ${jq} == 'true' ]]; then
-            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}ContactGroups" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}ContactGroups" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}ContactGroups" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}ContactGroups" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X GET "${apiUrl}"channels/ -H "X-Api-Key: ${apiKey}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -X GET "${apiUrl}"channels/ -H "X-Api-Key: ${apiKey}" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X GET "${apiUrl}"channels/ -H "X-Api-Key: ${apiKey}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X GET "${apiUrl}"channels/ -H "X-Api-Key: ${apiKey}" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
     fi
     echo ''
@@ -1165,9 +1324,15 @@ reset_all_monitors() {
         friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
         echo "Resetting ${friendlyName}:"
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
         echo ''
     done < <(cat "${monitorsFile}")
@@ -1175,7 +1340,7 @@ reset_all_monitors() {
 
 # Function to reset specified monitors
 reset_specified_monitors() {
-    echo "${resetType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
+    echo "${resetType}" | tr , '\n' | tr -d '"' >"${specifiedMonitorsFile}"
     check_bad_monitors
     if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
         exit 0
@@ -1187,9 +1352,15 @@ reset_specified_monitors() {
         friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
         echo "Resetting ${friendlyName}:"
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2>/dev/null || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || {
+                echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                exit 1
+            }
         fi
         echo ''
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
@@ -1223,26 +1394,44 @@ delete_all_monitors() {
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
             echo "Deleting ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt)
             echo "Deleting ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt)
             echo "Deleting ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         fi
         echo ''
@@ -1251,7 +1440,7 @@ delete_all_monitors() {
 
 # Function to delete specified monitors
 delete_specified_monitors() {
-    echo "${deleteType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
+    echo "${deleteType}" | tr , '\n' | tr -d '"' >"${specifiedMonitorsFile}"
     check_bad_monitors
     if [[ ${invalidPrompt} == @(No|no|N|n) ]]; then
         exit 0
@@ -1264,26 +1453,44 @@ delete_specified_monitors() {
             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
             echo "Deleting ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt)
             echo "Deleting ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt)
             echo "Deleting ${friendlyName}:"
             if [[ ${jq} == 'true' ]]; then
-                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq 2>/dev/null || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                curl --fail -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" || {
+                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                    exit 1
+                }
             fi
         fi
         echo ''
@@ -1320,17 +1527,29 @@ main() {
                             friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt)
                             echo "Unpausing ${friendlyName}:"
                             if [[ ${jq} == 'true' ]]; then
-                                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2>/dev/null || {
+                                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                                    exit 1
+                                }
                             elif [[ ${jq} == 'false' ]]; then
-                                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || {
+                                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                                    exit 1
+                                }
                             fi
                         elif [[ ${providerName} == 'statuscake' ]]; then
                             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt)
                             echo "Pausing ${friendlyName}:"
                             if [[ ${jq} == 'true' ]]; then
-                                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2>/dev/null || {
+                                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                                    exit 1
+                                }
                             elif [[ ${jq} == 'false' ]]; then
-                                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || { echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"; exit 1; }
+                                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || {
+                                    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
+                                    exit 1
+                                }
                             fi
                         elif [[ ${providerName} == 'healthchecks' ]]; then
                             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
