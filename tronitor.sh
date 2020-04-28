@@ -867,15 +867,6 @@ convert_friendly_monitors() {
             if [[ $(echo "${monitor}" | tr -d ' ') =~ ${uuidPattern} ]]; then
                 echo "${monitor}" >> "${convertedMonitorsFile}"
             else
-                #curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ > "${tempCurlFile}" || {
-                #    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
-                #    exit 1
-                #}
-                #jq -r --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url "${tempCurlFile}" 2> /dev/null > "${tempJQFile}" || {
-                #    echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
-                #    exit 1
-                #}
-                #rev "${tempJQFile}" | cut -c1-36 | rev >> "${convertedMonitorsFile}"
                 tempCurl=$(curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/) || {
                     echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
                     exit 1
