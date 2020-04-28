@@ -12,11 +12,15 @@ scUsername=''
 urApiKey=''
 scApiKey=''
 hcApiKey=''
+# Specify the domain to use for Healthchecks as they allow you to self-host the
+# application. If you're self-hosting it, replace the default domain with the
+# domain you're hosting it on
+healthchecksDomain='healthchecks.io'
 # Specify the Discord/Slack webhook URL to send notifications to
 webhookUrl=''
 # Set notifyAll to true for notification to apply for all running state as well
 notifyAll='false'
-# Set JQ to false to disable the use of the JQ command.
+# Set JQ to false to disable the use of the JQ command
 # This works better for using the script with cronjobs, etc.
 jq='true'
 
@@ -309,19 +313,19 @@ check_curl() {
 # Function to grab status variable line numbers
 get_line_numbers() {
     # Line numbers for user-defined vars
-    scUsernameLineNum=$(head -52 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
-    urApiKeyLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
-    scApiKeyLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
-    hcApiKeyLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'hc' | awk -F- '{print $1}')
-    webhookUrlLineNum=$(head -52 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
+    scUsernameLineNum=$(head -56 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
+    urApiKeyLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
+    scApiKeyLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
+    hcApiKeyLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'hc' | awk -F- '{print $1}')
+    webhookUrlLineNum=$(head -56 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
     # Line numbers for status vars
-    urApiStatusLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'ur' | awk -F- '{print $1}')
-    scApiStatusLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'sc' | awk -F- '{print $1}')
-    hcApiStatusLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'hc' | awk -F- '{print $1}')
-    urProviderStatusLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Set initial provider status' | grep 'ur' | awk -F- '{print $1}')
-    scProviderStatusLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Set initial provider status' | grep 'sc' | awk -F- '{print $1}')
-    hcProviderStatusLineNum=$(head -52 "${scriptname}" | grep -En -A3 'Set initial provider status' | grep 'hc' | awk -F- '{print $1}')
-    scUserStatusLineNum=$(head -52 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
+    urApiStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'ur' | awk -F- '{print $1}')
+    scApiStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'sc' | awk -F- '{print $1}')
+    hcApiStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'hc' | awk -F- '{print $1}')
+    urProviderStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial provider status' | grep 'ur' | awk -F- '{print $1}')
+    scProviderStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial provider status' | grep 'sc' | awk -F- '{print $1}')
+    hcProviderStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial provider status' | grep 'hc' | awk -F- '{print $1}')
+    scUserStatusLineNum=$(head -56 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
 }
 
 # Function to convert shorthand provider names to their full names and to make sure the provider name is lowercase and, if not, convert it
@@ -380,7 +384,8 @@ check_provider() {
     elif [[ ${providerName} == 'statuscake' ]]; then
         readonly apiUrl='https://app.statuscake.com/API/'
     elif [[ ${providerName} == 'healthchecks' ]]; then
-        readonly apiUrl='https://healthchecks.io/api/v1/'
+        #readonly apiUrl='https://healthchecks.io/api/v1/'
+        readonly apiUrl="https://${healthchecksDomain}/api/v1/"
     fi
 }
 
