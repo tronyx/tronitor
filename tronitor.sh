@@ -875,7 +875,7 @@ convert_friendly_monitors() {
                     echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
                     exit
                 }
-                rev "${tempJQ}" | cut -c1-36 | rev >> "${convertedMonitorsFile}"
+                echo "${tempJQ}" | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     else
