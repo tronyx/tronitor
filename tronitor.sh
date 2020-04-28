@@ -592,7 +592,8 @@ get_monitors() {
                 echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
                 exit 1
             }
-            cat "${hcPingURLsFile}" | rev | cut -c1-36 | rev > "${monitorsFile}"
+            #cat "${hcPingURLsFile}" | rev | cut -c1-36 | rev > "${monitorsFile}"
+            rev "${hcPingURLsFile}" | cut -c1-36 | rev > "${monitorsFile}"
         fi
     fi
 }
@@ -820,7 +821,8 @@ convert_friendly_monitors() {
                     echo -e "${red}There seems to be an issue connecting to ${providerName^}. Please try again in a few minutes.${endColor}"
                     exit 1
                 }
-                cat "${tempJQFile}" | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
+                #cat "${tempJQFile}" | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
+                rev "${tempJQFile}" | cut -c1-36 | rev >> "${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
     else
