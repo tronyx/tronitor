@@ -55,7 +55,7 @@ jobs:
         - expect ./Travis/Scripts/Expects/UptimeRobot/ur_pause_invalid_expect.exp
         - expect ./Travis/Scripts/Expects/UptimeRobot/ur_cleanup.exp
         ## Reset the webhook var
-        - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
+        - sed -i "22s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
         ## StatusCake Tests
         - expect ./Travis/Scripts/Expects/StatusCake/sc_api_key_expect.exp
         - bash ./Travis/Scripts/sc_prep.sh
@@ -91,7 +91,7 @@ jobs:
         - expect ./Travis/Scripts/Expects/StatusCake/sc_pause_invalid_expect.exp
         - expect ./Travis/Scripts/Expects/StatusCake/sc_cleanup.exp
         ## Reset the webhook var
-        - sed -i "16s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
+        - sed -i "22s|.*|webhookUrl=''|" Travis/Scripts/travis_tronitor.sh
         ## HealthChecks Tests
         - expect ./Travis/Scripts/Expects/Healthchecks/hc_api_key_expect.exp
         - bash ./Travis/Scripts/hc_prep.sh

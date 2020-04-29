@@ -92,7 +92,7 @@ The first time that you run the script for a specific monitor it will alert you 
 ### Healthchecks.io
 ![Healthchecks User Data Prompt](/Images/hc_user_data.png)
 
-:warning: **NOTE:** If you are running your own, self-hosted version of Healthchecks.io, you will need to modify the `apiUrl` variable on `line 380` of the  `tronitor.sh` script.
+:warning: **NOTE:** If you are running your own, self-hosted version of the Healthchecks.io application, you will need to modify the `healthchecksDomain` variable on `line 18` of the  `tronitor.sh` script with the domain name that you're hosting the application with.
 
 You can also simply open the script with your favorite text editor and add your provider's API key, and, if you're using StatusCake, your account username.
 
