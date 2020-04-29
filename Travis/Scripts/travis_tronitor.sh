@@ -1,32 +1,34 @@
 #!/usr/bin/env bash
 #
-# Script to utilize the UptimeRobot, StatusCake, and HealthChecks.io APIs to retrieve and work with monitors.
+# Script to utilize the UptimeRobot, StatusCake, and HealthChecks.io APIs to
+# retrieve information on and work with checks you've created.
 # Tronyx
 set -eo pipefail
 IFS=$'\n\t'
 
-# Edit these to finish setting up the script or just run it and it will prompt you
-# If your provider is StatusCake, specify your username
+# Edit these with your corresponding information to finish setting up the script
+# or just run it and it will prompt you for it.
+# If your provider is StatusCake, specify your username.
 scUsername=''
-# Specify API key(s)
+# Specify API key(s).
 urApiKey=''
 scApiKey=''
 hcApiKey=''
 # Specify the domain to use for Healthchecks as they allow you to self-host the
 # application. If you're self-hosting it, replace the default domain with the
-# domain you're hosting it on
+# domain you're hosting it on.
 healthchecksDomain='healthchecks.io'
-# Specify the Discord/Slack webhook URL to send notifications to
+# Specify the Discord/Slack webhook URL to send notifications to.
 webhookUrl=''
-# Set notifyAll to true for notification to apply for all running state as well
+# Set notifyAll to true for notification to apply for all running state as well.
 notifyAll='false'
-# Set JQ to false to disable the use of the JQ command
-# This works better for using the script with cronjobs, etc.
+# Set JQ to false to disable the use of the JQ command. This works better for
+# using the script with cronjobs, etc.
 jq='false'
 
-# Declare some variables
-# Temp dir and filenames
-# Make sure you set this to something your user has write access to
+# Declare some variables.
+# Temp dir and filenames.
+# Make sure you set this to something your user has write access to.
 tempDir="Travis/"
 apiTestFullFile="${tempDir}api_test_full.txt"
 badMonitorsFile="${tempDir}bad_monitors.txt"
@@ -37,26 +39,24 @@ specifiedMonitorsFile="${tempDir}specified_monitors.txt"
 monitorsFile="${tempDir}monitors.txt"
 monitorsFullFile="${tempDir}monitors_full.txt"
 hcPingURLsFile="${tempDir}hc_ping_urls.txt"
-#tempCurlFile="${tempDir}temp_curl_file.txt"
-#tempJQFile="${tempDir}temp_jq_file.txt"
 validMonitorsFile="${tempDir}valid_monitors.txt"
 validMonitorsTempFile="${tempDir}valid_monitors_temp.txt"
 healthchecksLockFile="${tempDir}healthchecks.lock"
-# UUID regex pattern
+# UUID regex pattern.
 uuidPattern='^\{?[A-Z0-9a-z]{8}-[A-Z0-9a-z]{4}-[A-Z0-9a-z]{4}-[A-Z0-9a-z]{4}-[A-Z0-9a-z]{12}\}?$'
-# Set initial API key(s) status
+# Set initial API key(s) status.
 urApiKeyStatus='invalid'
 scApiKeyStatus='invalid'
 hcApiKeyStatus='invalid'
-# Set initial provider status
+# Set initial provider status.
 urProviderStatus='invalid'
 scProviderStatus='invalid'
 hcProviderStatus='invalid'
-# Set initial SC username status
+# Set initial SC username status.
 scUsernameStatus='invalid'
-# Arguments
+# Arguments.
 readonly args=("$@")
-# Colors
+# Text colors.
 readonly blu='\e[34m'
 readonly lblu='\e[94m'
 readonly grn='\e[32m'
@@ -68,7 +68,7 @@ readonly mgt='\e[35m'
 readonly bold='\e[1m'
 readonly endColor='\e[0m'
 
-# Function to define usage and script options
+# Function to define usage and script options.
 usage() {
     cat <<- EOF
 
@@ -126,7 +126,7 @@ EOF
 
 }
 
-# Function to define script options
+# Function to define script options.
 cmdline() {
     local arg=
     local local_args
@@ -134,7 +134,7 @@ cmdline() {
     for arg; do
         local delim=""
         case "${arg}" in
-            # Translate --gnu-long-options to -g (short options)
+            # Translate --gnu-long-options to -g (short options).
             --monitor) local_args="${local_args}-m " ;;
             --stats) local_args="${local_args}-s " ;;
             --list) local_args="${local_args}-l " ;;
@@ -149,7 +149,7 @@ cmdline() {
             --reset) local_args="${local_args:-}-r " ;;
             --delete) local_args="${local_args:-}-d " ;;
             --help) local_args="${local_args}-h " ;;
-            # Pass through anything else
+            # Pass through anything else.
             *)
                 [[ ${arg:0:1} == '-' ]] || delim='"'
                 local_args="${local_args:-}${delim}${arg}${delim} "
@@ -157,7 +157,7 @@ cmdline() {
         esac
     done
 
-    # Reset the positional parameters to the short options
+    # Reset the positional parameters to the short options.
     eval set -- "${local_args:-}"
 
     while getopts "hm:slfnwai:c:r:d:p:u:" OPTION; do
@@ -231,7 +231,7 @@ cmdline() {
     return 0
 }
 
-# Function to gather script Information
+# Function to gather script information.
 get_scriptname() {
     local source
     local dir
@@ -247,26 +247,26 @@ get_scriptname() {
 readonly scriptname="$(get_scriptname)"
 readonly scriptpath="$(cd -P "$(dirname "${scriptname}")" > /dev/null && pwd)"
 
-# Function to create directory to neatly store temp files, if it does not exist
+# Function to create the directory to neatly store temp files, if it does not exist.
 create_dir() {
     mkdir -p "${tempDir}"
     chmod 777 "${tempDir}"
 }
 
-# Function to cleanup temp files
+# Function to cleanup temp files.
 cleanup() {
     rm -rf "${tempDir}"*.txt || true
 }
 trap 'cleanup' 0 1 3 6 14 15
 
-# Function to exit the script if the user hits CTRL+C
+# Function to exit the script if the user hits CTRL+C.
 function control_c() {
     cleanup
     exit 0
 }
 trap 'control_c' 2
 
-# Function to check that the monitor option has been provided
+# Function to check that the monitor option has been provided.
 check_monitor_opt() {
     if [[ ${monitorFlag} != 'true' ]]; then
         echo -e "${red}You must specify the monitor you wish to work with!${endColor}"
@@ -277,7 +277,7 @@ check_monitor_opt() {
     fi
 }
 
-# Function to check that two options were provided
+# Function to check that two options were provided.
 check_opt_num() {
     if [[ ${OPTIND} -lt '4' || ${OPTIND} -gt '5' ]]; then
         echo -e "${red}You specified an invalid number of options!${endColor}"
@@ -288,7 +288,7 @@ check_opt_num() {
     fi
 }
 
-# Function to check for empty arg
+# Function to check for an empty arg.
 check_empty_arg() {
     for arg in "${args[@]:-}"; do
         if [[ -z ${arg} ]]; then
@@ -298,7 +298,7 @@ check_empty_arg() {
     done
 }
 
-# Function to check if cURL is installed and, if not, inform the user and exit
+# Function to check if cURL is installed and, if not, inform the user and exit.
 check_curl() {
     whichCURL=$(which curl)
     if [[ -z ${whichCURL} ]]; then
@@ -310,15 +310,15 @@ check_curl() {
     fi
 }
 
-# Function to grab status variable line numbers
+# Function to grab line numbers of the user-defined and status variables.
 get_line_numbers() {
-    # Line numbers for user-defined vars
+    # Line numbers for user-defined variables.
     scUsernameLineNum=$(head -56 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
     urApiKeyLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
     scApiKeyLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
     hcApiKeyLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Specify API key' | grep 'hc' | awk -F- '{print $1}')
     webhookUrlLineNum=$(head -56 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
-    # Line numbers for status vars
+    # Line numbers for status variables.
     urApiStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'ur' | awk -F- '{print $1}')
     scApiStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'sc' | awk -F- '{print $1}')
     hcApiStatusLineNum=$(head -56 "${scriptname}" | grep -En -A3 'Set initial API key' | grep 'hc' | awk -F- '{print $1}')
@@ -328,7 +328,8 @@ get_line_numbers() {
     scUserStatusLineNum=$(head -56 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
 }
 
-# Function to convert shorthand provider names to their full names and to make sure the provider name is lowercase and, if not, convert it
+# Function to convert shorthand provider names to their full names and to make
+# sure the provider name is lowercase and, if not, convert it.
 convert_provider_name() {
     if [[ ${providerName} == 'ur' ]]; then
         providerName='uptimerobot'
@@ -344,7 +345,7 @@ convert_provider_name() {
     fi
 }
 
-# Function to check that provider is valid and not empty
+# Function to check that provider is not empty and valid.
 check_provider() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
         providerStatus="${urProviderStatus}"
@@ -388,6 +389,8 @@ check_provider() {
     fi
 }
 
+# Function to specifically check that the provided StatusCake username and API
+# key are valid.
 check_sc_creds() {
     while [[ ${scUsernameStatus} == 'invalid' ]] || [[ ${scApiKeyStatus} == 'invalid' ]]; do
         if [[ -z ${scApiKey} ]]; then
@@ -436,7 +439,8 @@ check_sc_creds() {
     done
 }
 
-# Function to check that the provided API Key is valid
+# Function to check that the provided UptimeRobot or Healthchecks.io API Key
+# is valid.
 check_api_key() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
         while [[ ${urApiKeyStatus} == 'invalid' ]]; do
@@ -505,7 +509,7 @@ check_api_key() {
     fi
 }
 
-# Function to check that the webhook URL is defined if Alert is set to true
+# Function to check that the webhook URL is defined if alert is set to true.
 check_webhook_url() {
     if [[ ${webhookUrl} == '' ]] && [[ ${webhook} == 'true' ]]; then
         echo -e "${red}You didn't define your Discord webhook URL!${endColor}"
@@ -521,7 +525,7 @@ check_webhook_url() {
     fi
 }
 
-# Function to wrap all other checks into one
+# Function to wrap all other checks into one function.
 checks() {
     get_line_numbers
     check_monitor_opt
@@ -537,7 +541,7 @@ checks() {
     check_webhook_url
 }
 
-# Function to set the API key variable to the API key for the specified monitor
+# Function to set the API key variable to the API key for the specified monitor.
 set_api_key() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
         apiKey="${urApiKey}"
@@ -548,7 +552,7 @@ set_api_key() {
     fi
 }
 
-# Function to grab data for all monitors
+# Function to grab data for all monitors.
 get_data() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
         curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}" || {
@@ -568,7 +572,7 @@ get_data() {
     fi
 }
 
-# Function to create a list of monitor IDs
+# Function to create a list of monitor IDs.
 get_monitors() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
         totalMonitors=$(jq -r .pagination.total "${monitorsFullFile}" 2> /dev/null) || {
@@ -610,7 +614,7 @@ get_monitors() {
     fi
 }
 
-# Function to create individual monitor files
+# Function to create individual monitor files.
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -632,7 +636,7 @@ create_monitor_files() {
     done < <(cat "${monitorsFile}")
 }
 
-# Function to create friendly output of all monitors
+# Function to create friendly output of all monitors.
 create_friendly_list() {
     true > "${friendlyListFile}"
     while IFS= read -r monitor; do
@@ -704,7 +708,7 @@ create_friendly_list() {
     done < <(cat "${monitorsFile}")
 }
 
-# Function to display a friendly list of all monitors
+# Function to display a friendly list of all monitors.
 display_all_monitors() {
     if [[ -s ${friendlyListFile} ]]; then
         echo "The following monitors were found in your ${providerName^} account:"
@@ -716,7 +720,7 @@ display_all_monitors() {
     fi
 }
 
-# Function to find all currently paused monitors
+# Function to find all currently paused monitors.
 get_paused_monitors() {
     true > "${pausedMonitorsFile}"
     while IFS= read -r monitor; do
@@ -771,7 +775,7 @@ get_paused_monitors() {
     done < <(cat "${monitorsFile}")
 }
 
-# Function to display a list of all paused monitors
+# Function to display a list of all paused monitors.
 display_paused_monitors() {
     if [[ -s ${pausedMonitorsFile} ]]; then
         echo "The following ${providerName^} monitors are currently paused:"
@@ -783,7 +787,7 @@ display_paused_monitors() {
     fi
 }
 
-# Function to prompt the user to unpause monitors after finding paused monitors
+# Function to prompt the user to unpause monitors after finding paused monitors.
 unpause_prompt() {
     echo ''
     echo -e "Would you like to unpause the currently paused monitors? (${grn}[Y]${endColor}es or ${red}[N]${endColor}o): "
@@ -797,7 +801,8 @@ unpause_prompt() {
     fi
 }
 
-# Function to prompt the user to continue actioning valid monitors after finding invalid ones
+# Function to prompt the user to continue actioning valid monitors after finding
+# invalid ones.
 invalid_prompt() {
     echo 'Would you like to continue actioning the following valid monitors?'
     echo ''
@@ -814,7 +819,7 @@ invalid_prompt() {
     fi
 }
 
-# Function to check for bad monitors in command
+# Function to check if any bad, IE: non-existent, monitors were provided.
 check_bad_monitors() {
     true > "${badMonitorsFile}"
     while IFS= read -r monitor; do
@@ -854,7 +859,7 @@ check_bad_monitors() {
     fi
 }
 
-# Function to convert friendly names to IDs
+# Function to convert friendly names to IDs.
 convert_friendly_monitors() {
     true > "${convertedMonitorsFile}"
     if [[ -s ${validMonitorsFile} ]]; then
@@ -889,7 +894,7 @@ convert_friendly_monitors() {
     fi
 }
 
-# Function to pause all monitors
+# Function to pause all monitors.
 pause_all_monitors() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -959,7 +964,7 @@ pause_all_monitors() {
     fi
 }
 
-# Function to pause specified monitors
+# Function to pause specified monitors.
 pause_specified_monitors() {
     echo "${pauseType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
@@ -1035,7 +1040,7 @@ pause_specified_monitors() {
     fi
 }
 
-# Function to unpause all monitors
+# Function to unpause all monitors.
 unpause_all_monitors() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -1096,7 +1101,7 @@ unpause_all_monitors() {
     done < <(cat "${monitorsFile}")
 }
 
-# Function to unpause specified monitors
+# Function to unpause specified monitors.
 unpause_specified_monitors() {
     echo "${unpauseType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
@@ -1163,7 +1168,7 @@ unpause_specified_monitors() {
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
-# Function to send Discord notifications
+# Function to send Discord notifications.
 send_notification() {
     if [[ -s ${pausedMonitorsFile} ]]; then
         pausedTests='"fields": ['
@@ -1196,7 +1201,7 @@ send_notification() {
     fi
 }
 
-# Function to create a new monitor
+# Function to create a new monitor.
 create_monitor() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
         newHttpMonitorConfigFile='Templates/UptimeRobot/new-http-monitor.json'
@@ -1288,7 +1293,7 @@ create_monitor() {
     echo ''
 }
 
-# Function to display account statistics
+# Function to display account statistics.
 get_stats() {
     echo 'Here are the basic statistics for your UptimeRobot account:'
     echo ''
@@ -1306,7 +1311,7 @@ get_stats() {
     echo ''
 }
 
-# Function to display all stats for single specified monitor
+# Function to display all stats for single specified monitor.
 get_info() {
     echo "${infoType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
@@ -1352,7 +1357,7 @@ get_info() {
     echo ''
 }
 
-# Function to display all alert contacts
+# Function to display all alert contacts.
 get_alert_contacts() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
         echo "The following alert contacts have been found for your ${providerName^} account:"
@@ -1398,7 +1403,7 @@ get_alert_contacts() {
     echo ''
 }
 
-# Function to display reset monitors prompt
+# Function to display reset monitors prompt.
 reset_prompt() {
     echo ''
     echo -e "${red}***WARNING*** This will reset ALL data for the specified monitors!!!${endColor}"
@@ -1414,7 +1419,7 @@ reset_prompt() {
     fi
 }
 
-# Function to reset all monitors
+# Function to reset all monitors.
 reset_all_monitors() {
     reset_prompt
     while IFS= read -r monitor; do
@@ -1438,7 +1443,7 @@ reset_all_monitors() {
     done < <(cat "${monitorsFile}")
 }
 
-# Function to reset specified monitors
+# Function to reset specified monitors.
 reset_specified_monitors() {
     echo "${resetType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
@@ -1469,7 +1474,7 @@ reset_specified_monitors() {
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
-# Function to display delete monitors prompt
+# Function to display delete monitors prompt.
 delete_prompt() {
     echo ''
     if [[ ${deleteType} == 'all' ]]; then
@@ -1489,7 +1494,7 @@ delete_prompt() {
     fi
 }
 
-# Function to delete all monitors
+# Function to delete all monitors.
 delete_all_monitors() {
     delete_prompt
     while IFS= read -r monitor; do
@@ -1550,7 +1555,7 @@ delete_all_monitors() {
     done < <(cat "${monitorsFile}")
 }
 
-# Function to delete specified monitors
+# Function to delete specified monitors.
 delete_specified_monitors() {
     echo "${deleteType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
@@ -1618,7 +1623,7 @@ delete_specified_monitors() {
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
-# Main function to run all other functions
+# Main function to run all other functions.
 main() {
     cmdline "${args[@]:-}"
     create_dir
