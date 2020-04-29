@@ -5,7 +5,7 @@ set timeout 10
 
 set apiKey $::env(travisHCApiKey)
 
-spawn bash -x Travis/Scripts/travis_tronitor.sh -m hc -l
+spawn Travis/Scripts/travis_tronitor.sh -m hc -l
 
 expect "Enter your Healthchecks API key:"
 send -- "this-is-a-bad-api-key\r"
