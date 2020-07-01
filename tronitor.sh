@@ -57,7 +57,7 @@ scUsernameStatus='invalid'
 # Arguments.
 readonly args=("$@")
 # Text colors.
-readonly blu='\e[34m'
+#readonly blu='\e[34m'
 readonly lblu='\e[94m'
 readonly grn='\e[32m'
 readonly red='\e[31m'
@@ -65,14 +65,14 @@ readonly ylw='\e[33m'
 readonly org='\e[38;5;202m'
 readonly lorg='\e[38;5;130m'
 readonly mgt='\e[35m'
-readonly bold='\e[1m'
+#readonly bold='\e[1m'
 readonly endColor='\e[0m'
 
 # Function to define usage and script options.
 usage() {
     cat <<- EOF
 
-  Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-m"${endColor}" ${ylw}\{MONITOR\}"${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\{ARGUMENT\}"${endColor}"...)
+  Usage: $(echo -e "${lorg}$0${endColor}") $(echo -e "${grn}"-m"${endColor}" "${ylw}"\{MONITOR\}"${endColor}") $(echo -e "${grn}"-[OPTION]"${endColor}") $(echo -e "${ylw}"\{ARGUMENT\}"${endColor}"...)
 
   $(echo -e "${grn}"-m/--monitor"${endColor}" "${ylw}"VALUE"${endColor}")    Specify the monitoring provider you would like to work with.
                           A) "$(echo -e "${lorg}"./tronitor.sh"${endColor}" "${grn}"-m"${endColor}" "${ylw}"UptimeRobot"${endColor}" "${grn}"-\[OPTION\]"${endColor}" "${ylw}"\{ARGUMENT\}"${endColor}")"
@@ -245,9 +245,10 @@ get_scriptname() {
 }
 
 readonly scriptname="$(get_scriptname)"
-readonly scriptpath="$(cd -P "$(dirname "${scriptname}")" > /dev/null && pwd)"
+#readonly scriptpath="$(cd -P "$(dirname "${scriptname}")" > /dev/null && pwd)"
 
-# Function to create the directory to neatly store temp files, if it does not exist.
+# Function to create the directory to neatly store temp files, if it does
+# not exist.
 create_dir() {
     mkdir -p "${tempDir}"
     chmod 777 "${tempDir}"
@@ -698,6 +699,7 @@ display_paused_monitors() {
         echo "The following ${providerName^} monitors are currently paused:"
         echo ''
         column -ts "|" "${pausedMonitorsFile}"
+        echo ''
     else
         echo "There are currently no paused ${providerName^} monitors."
         echo ''
@@ -718,8 +720,8 @@ unpause_prompt() {
     fi
 }
 
-# Function to prompt the user to continue actioning valid monitors after finding
-# invalid ones.
+# Function to prompt the user to continue actioning valid monitors after
+# finding invalid ones.
 invalid_prompt() {
     echo 'Would you like to continue actioning the following valid monitors?'
     echo ''
@@ -981,7 +983,7 @@ unpause_specified_monitors() {
 send_notification() {
     if [[ -s ${pausedMonitorsFile} ]]; then
         pausedTests='"fields": ['
-        lineCount=$(wc -l < ${pausedMonitorsFile})
+        lineCount=$(wc -l < "${pausedMonitorsFile}")
         count=0
         while IFS= read -r line; do
             ((++count))
@@ -993,19 +995,19 @@ send_notification() {
         done < "${pausedMonitorsFile}"
         pausedTests="${pausedTests}]"
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused UptimeRobot monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused UptimeRobot monitors:","color": 3381759,'"${pausedTests}"'}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'statuscake' ]]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused StatusCake monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused StatusCake monitors:","color": 3381759,'"${pausedTests}"'}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused HealthChecks.io monitors:","color": 3381759,'"${pausedTests}"'}]}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused HealthChecks.io monitors:","color": 3381759,'"${pausedTests}"'}]}' "${webhookUrl}"
         fi
     elif [[ ${notifyAll} == 'true' ]]; then
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All UptimeRobot monitors are currently running.","color": 10092339}]}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All UptimeRobot monitors are currently running.","color": 10092339}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'statuscake' ]]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All StatusCake monitors are currently running.","color": 10092339}]}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All StatusCake monitors are currently running.","color": 10092339}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All HealthChecks.io monitors are currently running.","color": 10092339}]}' ${webhookUrl}
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All HealthChecks.io monitors are currently running.","color": 10092339}]}' "${webhookUrl}"
         fi
     fi
 }
@@ -1101,7 +1103,7 @@ get_info() {
     echo "${infoType}" | tr , '\n' | tr -d '"' > "${specifiedMonitorsFile}"
     check_bad_monitors
     convert_friendly_monitors
-    monitor=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' ${convertedMonitorsFile})
+    monitor=$(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
     if [[ ${providerName} == 'uptimerobot' ]]; then
         if [[ ${jq} == 'true' ]]; then
             curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" | jq 2> /dev/null || fatal
