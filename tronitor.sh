@@ -575,7 +575,7 @@ check_up_repo() {
                 echo -e "${red}You didn't define your ${providerName^} repository in the script!${endColor}"
                 echo ''
                 echo "Enter your ${providerName^} repository name:"
-                read -rs repo
+                read -r repo
                 echo ''
                 echo ''
                 sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo='${repo}'/" "${scriptname}"
@@ -615,7 +615,6 @@ check_api_key() {
                 sed -i "${urApiKeyLineNum} s/urApiKey='[^']*'/urApiKey='${API}'/" "${scriptname}"
                 urApiKey="${API}"
             else
-                echo 'Validating that the provided API key is functional...'
                 curl --fail -s -X POST "${apiUrl}"getAccountDetails -d "api_key=${urApiKey}" -d "format=json" > "${apiTestFullFile}" || fatal
                 status=$(jq -r .stat "${apiTestFullFile}" 2> /dev/null) || fatal
 
@@ -644,7 +643,6 @@ check_api_key() {
                 sed -i "${hcApiKeyLineNum} s/hcApiKey='[^']*'/hcApiKey='${API}'/" "${scriptname}"
                 hcApiKey="${API}"
             else
-                echo 'Validating that the provided API key is functional...'
                 curl --fail -s -H "X-Api-Key: ${hcApiKey}" -X GET "${apiUrl}"checks/ > "${apiTestFullFile}"
                 status=$(jq -r .error "${apiTestFullFile}" 2> /dev/null) || fatal
 
@@ -842,7 +840,11 @@ create_friendly_list() {
             fi
         fi
 
-        echo -e "${lorg}${friendlyName}${endColor} | URL: ${lblu}${siteURL}${endColor} | Status: ${friendlyStatus}" >> "${friendlyListFile}"
+        if [[ ${providerName} == 'upptime' ]]; then
+            echo -e "${lorg}${friendlyName}${endColor} | URL: ${lblu}${siteURL}${endColor} | Status: ${friendlyStatus}" >> "${friendlyListFile}"
+        else
+            echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor} | Status: ${friendlyStatus}" >> "${friendlyListFile}"
+        fi
 
     done < <(cat "${monitorsFile}")
 }
