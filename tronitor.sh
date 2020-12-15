@@ -502,6 +502,7 @@ check_sc_creds() {
                 sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
                 scUsername="${username}"
             elif [[ ${scStatus} == '1' ]]; then
+            echo "Validating that the provided ${providerName^} username and API key are functional..."
                 sed -i "${scApiStatusLineNum} s/scApiKeyStatus='[^']*'/scApiKeyStatus='ok'/" "${scriptname}"
                 scApiKeyStatus='ok'
                 sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
@@ -623,6 +624,7 @@ check_api_key() {
                     sed -i "${urApiKeyLineNum} s/urApiKey='[^']*'/urApiKey=''/" "${scriptname}"
                     urApiKey=''
                 elif [[ ${status} == 'ok' ]]; then
+                echo "Validating that the provided ${providerName^} API key is functional..."
                     sed -i "${urApiStatusLineNum} s/urApiKeyStatus='[^']*'/urApiKeyStatus='${status}'/" "${scriptname}"
                     urApiKeyStatus="${status}"
                     echo -e "${grn}Success!${endColor}"
@@ -651,6 +653,7 @@ check_api_key() {
                     sed -i "${hcApiKeyLineNum} s/hcApiKey='[^']*'/hcApiKey=''/" "${scriptname}"
                     hcApiKey=''
                 elif [[ ${status} == 'null' ]]; then
+                    echo "Validating that the provided ${providerName^} API key is functional..."
                     sed -i "${hcApiStatusLineNum} s/hcApiKeyStatus='[^']*'/hcApiKeyStatus='ok'/" "${scriptname}"
                     hcApiKeyStatus='ok'
                     echo -e "${grn}Success!${endColor}"
