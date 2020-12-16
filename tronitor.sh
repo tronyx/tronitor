@@ -301,8 +301,6 @@ check_monitor_opt() {
         echo -e "${red}You must specify the monitor you wish to work with!${endColor}"
         usage
         exit
-    else
-        :
     fi
 }
 
@@ -312,8 +310,6 @@ check_opt_num() {
         echo -e "${red}You specified an invalid number of options!${endColor}"
         usage
         exit
-    else
-        :
     fi
 }
 
@@ -334,8 +330,6 @@ check_pauseType_upptime() {
         echo -e "${red}You can only specify all for Upptime!${endColor}"
         usage
         exit
-    else
-        :
     fi
 }
 
@@ -346,8 +340,6 @@ check_curl() {
         echo -e "${red}cURL is not currently installed on this system!${endColor}"
         echo -e "${ylw}The script with NOT function without it. Install cURL and run the script again.${endColor}"
         exit
-    else
-        :
     fi
 }
 
@@ -398,8 +390,6 @@ convert_provider_name() {
 
     if [[ ${providerName} =~ [[:upper:]] ]]; then
         providerName=$(echo "${providerName}" | awk '{print tolower($0)}')
-    else
-        :
     fi
 }
 
@@ -571,33 +561,33 @@ check_gh_creds() {
 # Function to check that the provided Upptime repository is valid
 check_up_repo() {
     while [[ ${upRepoStatus} == 'invalid' ]]; do
-            if [[ -z ${upptimeRepo} ]]; then
-                echo -e "${red}You didn't define your ${providerName^} repository in the script!${endColor}"
-                echo ''
-                echo "Enter your ${providerName^} repository name:"
-                read -r repo
-                echo ''
-                echo ''
-                sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo='${repo}'/" "${scriptname}"
-                upptimeRepo="${repo}"
-                upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
-            else
-                echo 'Validating that the provided Upptime repository is functional...'
-                status=$(curl -w "%{http_code}\n" -sI -o /dev/null https://github.com/"${gitHubUsername}"/"${upptimeRepo}"/) || fatal
+        if [[ -z ${upptimeRepo} ]]; then
+            echo -e "${red}You didn't define your ${providerName^} repository in the script!${endColor}"
+            echo ''
+            echo "Enter your ${providerName^} repository name:"
+            read -r repo
+            echo ''
+            echo ''
+            sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo='${repo}'/" "${scriptname}"
+            upptimeRepo="${repo}"
+            upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
+        else
+            echo 'Validating that the provided Upptime repository is functional...'
+            status=$(curl -w "%{http_code}\n" -sI -o /dev/null https://github.com/"${gitHubUsername}"/"${upptimeRepo}"/) || fatal
 
-                if [[ ${status} != '200' ]]; then
-                    echo -e "${red}The Upptime repository that you provided does not appear to be valid!${endColor}"
-                    sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo=''/" "${scriptname}"
-                    upptimeRepo=''
-                elif [[ ${status} == '200' ]]; then
-                    sed -i "${upRepoStatusLineNum} s/upRepoStatus='[^']*'/upRepoStatus='ok'/" "${scriptname}"
-                    upRepoStatus='ok'
-                    upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
-                    echo -e "${grn}Success!${endColor}"
-                    echo ''
-                fi
+            if [[ ${status} != '200' ]]; then
+                echo -e "${red}The Upptime repository that you provided does not appear to be valid!${endColor}"
+                sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo=''/" "${scriptname}"
+                upptimeRepo=''
+            elif [[ ${status} == '200' ]]; then
+                sed -i "${upRepoStatusLineNum} s/upRepoStatus='[^']*'/upRepoStatus='ok'/" "${scriptname}"
+                upRepoStatus='ok'
+                upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
+                echo -e "${grn}Success!${endColor}"
+                echo ''
             fi
-        done
+        fi
+    done
 }
 
 # Function to check that the provided UptimeRobot or Healthchecks.io API Key
@@ -673,8 +663,6 @@ check_webhook_url() {
         echo ''
         sed -i "${webhookUrlLineNum} s|webhookUrl='[^']*'|webhookUrl='${url}'|" "${scriptname}"
         webhookUrl="${url}"
-    else
-        :
     fi
 }
 
@@ -863,8 +851,6 @@ display_all_monitors() {
             column -ts "|" "${friendlyListFile}"
             echo ''
         fi
-    else
-        :
     fi
 }
 
@@ -881,8 +867,6 @@ get_paused_monitors() {
                 friendlyName=$(curl --fail -s "${upRawURL}master/.upptimerc.yml" | grep -v href | grep -B1 "${siteURL}"$ | grep name | awk -F':' '{print $2}' | cut -c2- 2> /dev/null) || fatal
                 echo -e "${lorg}${friendlyName}${endColor} | URL: ${lblu}${siteURL}${endColor}" >> "${pausedMonitorsFile}"
             done < <(cat "${monitorsFile}")
-        else
-            :
         fi
     else
         while IFS= read -r monitor; do
@@ -892,8 +876,6 @@ get_paused_monitors() {
 
                 if [[ ${status} == '0' ]]; then
                     echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
-                else
-                    :
                 fi
             elif [[ ${providerName} == 'statuscake' ]]; then
                 friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -902,8 +884,6 @@ get_paused_monitors() {
 
                 if [[ ${status} == 'Up' ]] && [[ ${paused} == 'true' ]]; then
                     echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
-                else
-                    :
                 fi
             elif [[ ${providerName} == 'healthchecks' ]]; then
                 cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
@@ -912,8 +892,6 @@ get_paused_monitors() {
 
                 if [[ ${status} == 'paused' ]]; then
                     echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
-                else
-                    :
                 fi
             fi
         done < <(cat "${monitorsFile}")
@@ -943,8 +921,6 @@ unpause_prompt() {
     if ! [[ ${unpausePrompt} =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
         read -r unpausePrompt
-    else
-        :
     fi
 }
 
@@ -962,8 +938,6 @@ invalid_prompt() {
     if ! [[ ${invalidPrompt} =~ ^(Yes|yes|Y|y|No|no|N|n)$ ]]; then
         echo -e "${red}Please specify yes, y, no, or n.${endColor}"
         read -r invalidPrompt
-    else
-        :
     fi
 }
 
@@ -978,8 +952,6 @@ check_bad_monitors() {
             elif [[ ${monitor} != ^[A-Za-z]+$ ]]; then
                 echo -e "${lblu}${monitor}${endColor}" >> "${badMonitorsFile}"
             fi
-        else
-            :
         fi
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
 
@@ -1005,8 +977,6 @@ check_bad_monitors() {
             exit
         fi
         set -e
-    else
-        :
     fi
 }
 
@@ -1016,8 +986,6 @@ convert_friendly_monitors() {
 
     if [[ -s ${validMonitorsFile} ]]; then
         cat "${validMonitorsFile}" > "${specifiedMonitorsFile}"
-    else
-        :
     fi
 
     if [[ ${providerName} == 'healthchecks' ]]; then
@@ -1148,8 +1116,6 @@ pause_specified_monitors() {
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
         echo ''
-    else
-        :
     fi
 }
 
@@ -1311,8 +1277,6 @@ create_monitor() {
             echo -e "${red}Your choices are http, ping, port, or keyword.${endColor}"
             echo ''
             exit 0
-        else
-            :
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${createType} != 'http' && ${createType} != 'ping' && ${createType} != 'port' ]]; then
@@ -1320,8 +1284,6 @@ create_monitor() {
             echo -e "${red}Your choices are http, ping, or port.${endColor}"
             echo ''
             exit 0
-        else
-            :
         fi
     elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${createType} != 'ping' ]]; then
@@ -1329,8 +1291,6 @@ create_monitor() {
             echo -e "${red}Your only choice is ping.${endColor}"
             echo ''
             exit 0
-        else
-            :
         fi
     fi
 
@@ -1694,8 +1654,6 @@ main() {
                     exit 0
                 fi
             fi
-        else
-            :
         fi
 
         if [[ ${webhook} == 'true' ]]; then
@@ -1731,8 +1689,6 @@ main() {
         if [[ ${providerName} == 'statuscake' ]] || [[ ${providerName} == 'healthchecks' ]]; then
             echo -e "${red}Sorry, but that option is not currently possible with you ${providerName^} account!${endColor}"
             exit 0
-        else
-            :
         fi
 
         if [[ ${resetType} == 'all' ]]; then
