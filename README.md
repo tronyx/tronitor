@@ -1,12 +1,12 @@
 # Tronitor
 
-[![CodeFactor](https://www.codefactor.io/repository/github/christronyxyocum/tronitor/badge)](https://www.codefactor.io/repository/github/christronyxyocum/tronitor) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/christronyxyocum/tronitor) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/christronyxyocum/tronitor/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/christronyxyocum/tronitor.svg)](http://isitmaintained.com/project/christronyxyocum/tronitor "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/christronyxyocum/tronitor.svg)](http://isitmaintained.com/project/christronyxyocum/tronitor "Percentage of issues still open")
+[![CodeFactor](https://www.codefactor.io/repository/github/tronyx/tronitor/badge)](https://www.codefactor.io/repository/github/tronyx/tronitor) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/tronyx/tronitor) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tronyx/tronitor/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/tronyx/tronitor.svg)](http://isitmaintained.com/project/tronyx/tronitor "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/tronyx/tronitor.svg)](http://isitmaintained.com/project/tronyx/tronitor "Percentage of issues still open")
 
 A bash script to work with [UptimeRobot](https://uptimerobot.com), [StatusCake](https://www.statuscake.com), and [HealthChecks.io](https://healthchecks.io) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
 
 ## Contributors
 
-[![GitHub contributors](https://img.shields.io/github/contributors/christronyxyocum/tronitor.svg)](https://github.com/christronyxyocum/tronitor/graphs/contributors/)
+[![GitHub contributors](https://img.shields.io/github/contributors/tronyx/tronitor.svg)](https://github.com/tronyx/tronitor/graphs/contributors/)
 
 Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less complicated than what it's become.
 
@@ -14,7 +14,7 @@ Feel free to check out their work and buy them a beer too!
 
 ## Application Healthchecks
 
-This script partners up with my [Application Healthchecks](https://github.com/christronyxyocum/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc. This essentially allows you to create your own maintenance windows without having to pay for a premium account with either of the providers.
+This script partners up with my [Application Healthchecks](https://github.com/tronyx/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc. This essentially allows you to create your own maintenance windows without having to pay for a premium account with either of the providers.
 
 ## Package Requirements/Recommendations
 
