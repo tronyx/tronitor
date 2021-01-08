@@ -2,7 +2,7 @@
 
 [![CodeFactor](https://www.codefactor.io/repository/github/tronyx/tronitor/badge)](https://www.codefactor.io/repository/github/tronyx/tronitor) [![Travis (.org) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://travis-ci.org/tronyx/tronitor) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tronyx/tronitor/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/tronyx/tronitor.svg)](http://isitmaintained.com/project/tronyx/tronitor "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/tronyx/tronitor.svg)](http://isitmaintained.com/project/tronyx/tronitor "Percentage of issues still open")
 
-A bash script to work with [UptimeRobot](https://uptimerobot.com), [StatusCake](https://www.statuscake.com), and [HealthChecks.io](https://healthchecks.io) monitors via their respective APIs. It checks to make sure that the API key, and username for StatusCake, that you provided is valid before performing any requested operations.
+A bash script to work with [UptimeRobot](https://uptimerobot.com), [StatusCake](https://www.statuscake.com), [HealthChecks.io](https://healthchecks.io), and [Upptime](https://upptime.js.org/) monitors via their respective APIs. It checks to make sure that the API key/token, username for StatusCake, and your GitHub username and the name of your Upptime repository on GitHub, that you provided are valid before performing any requested operations.
 
 ## Contributors
 
@@ -67,7 +67,7 @@ Processing triggers for man-db (2.8.3-2) ...
 The best method to get the script working is to use `git` to clone the repository onto your preferred machine:
 
 ```bash
-tronyx@suladan:~$ git clone https://github.com/christronyxyocum/tronitor.git
+tronyx@suladan:~$ git clone https://github.com/tronyx/tronitor.git
 Cloning into 'tronitor'...
 remote: Enumerating objects: 108, done.
 remote: Counting objects: 100% (108/108), done.
@@ -79,9 +79,11 @@ Resolving deltas: 100% (143/143), done.
 
 :warning: **NOTE:** You CAN get away with just grabbing a copy of the `tronitor.sh` script itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
 
-The script stores the API keys, and username for StatusCake, for up to all three providers so that you do not need multiple copies of the script to work with each of the different providers.
+The script stores the API keys/token, username for StatusCake, and, for Upptime, your GitHub username, PAT (Personal Access Token), and the name of your Upptime reposistory, for up to all four providers so that you do not need multiple copies of the script to work with each of the different providers.
 
-The first time that you run the script for a specific monitor it will alert you that the API Key, etc. are missing and prompt you to input them:
+If you do not know how to create a PAT for your GitHub account, you can checkout their documentation on it [HERE](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token).
+
+The first time that you run the script for a specific monitor it will alert you that the API key/token, etc. are missing and prompt you to input them:
 
 ### UptimeRobot
 ![UptimeRobot User Data Prompt](/Images/ur_user_data.png)
@@ -92,9 +94,12 @@ The first time that you run the script for a specific monitor it will alert you 
 ### Healthchecks.io
 ![Healthchecks User Data Prompt](/Images/hc_user_data.png)
 
-:warning: **NOTE:** If you are running your own, self-hosted version of the Healthchecks.io application, you will need to modify the `healthchecksDomain` variable on `line 18` of the  `tronitor.sh` script with the domain name that you're hosting the application with.
+:warning: **NOTE:** If you are running your own, self-hosted version of the Healthchecks.io application, you will need to modify the `healthchecksDomain` variable on `line 24` of the  `tronitor.sh` script with the domain name that you're hosting the application with.
 
-You can also simply open the script with your favorite text editor and add your provider's API key, and, if you're using StatusCake, your account username.
+### Upptime
+![Upptime/GitHub User Data Prompt](/Images/up_user_data.png)
+
+You can also simply open the script with your favorite text editor and add your provider's API key, if you're using StatusCake, your account username, and, if you're using Upptime, your GitHub username, PAT (Personal Access Token), and the name of your Upptime reposistory.
 
 After entering the information, the script will check whether or not it is valid and then add it to the script for you.
 
@@ -115,6 +120,8 @@ tronyx@suladan:~/tronitor$ ./tronitor.sh -m statuscake -l
 tronyx@suladan:~/tronitor$ ./tronitor.sh -m sc -l
 tronyx@suladan:~/tronitor$ ./tronitor.sh -m healthchecks -l
 tronyx@suladan:~/tronitor$ ./tronitor.sh -m hc -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m upptime -l
+tronyx@suladan:~/tronitor$ ./tronitor.sh -m up -l
 ```
 
 ## Examples
@@ -313,7 +320,7 @@ Pausing Radarr:
 }
 ```
 
-:warning: **NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/MONITOR-NAME.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
+:warning: **NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/MONITOR-UUID.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
 
 ### Unpause all currently paused monitors
 
