@@ -11,6 +11,7 @@ IFS=$'\n\t'
 # If your provider is StatusCake, specify your username.
 scUsername=''
 # If your provider is Upptime, specify the following
+repoOwner=''
 gitHubUsername=''
 upptimeRepo='upptime'
 # Specify API key(s).
@@ -346,26 +347,26 @@ check_curl() {
 # Function to grab line numbers of the user-defined and status variables.
 get_line_numbers() {
     # Line numbers for user-defined variables.
-    scUsernameLineNum=$(head -66 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
-    ghUsernameLineNum=$(head -66 "${scriptname}" | grep -En 'gitHubUser' | awk -F: '{print $1}')
-    upRepoLineNum=$(head -66 "${scriptname}" | grep -En 'upptimeRepo' | awk -F: '{print $1}')
-    urApiKeyLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
-    scApiKeyLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
-    hcApiKeyLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'hc' | awk -F- '{print $1}')
-    ghTokenLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'gh' | awk -F- '{print $1}')
-    webhookUrlLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
+    scUsernameLineNum=$(head -67 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
+    ghUsernameLineNum=$(head -67 "${scriptname}" | grep -En 'gitHubUser' | awk -F: '{print $1}')
+    upRepoLineNum=$(head -67 "${scriptname}" | grep -En 'upptimeRepo' | awk -F: '{print $1}')
+    urApiKeyLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
+    scApiKeyLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
+    hcApiKeyLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'hc' | awk -F- '{print $1}')
+    ghTokenLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'gh' | awk -F- '{print $1}')
+    webhookUrlLineNum=$(head -67 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
     # Line numbers for status variables.
-    urApiStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'ur' | awk -F- '{print $1}')
-    scApiStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'sc' | awk -F- '{print $1}')
-    hcApiStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'hc' | awk -F- '{print $1}')
-    ghTokenStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'gh' | awk -F- '{print $1}')
-    urProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'ur' | awk -F- '{print $1}')
-    scProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'sc' | awk -F- '{print $1}')
-    hcProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'hc' | awk -F- '{print $1}')
-    upProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'up' | awk -F- '{print $1}')
-    scUserStatusLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
-    ghUserStatusLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Set initial GH username status' | tail -1 | awk -F- '{print $1}')
-    upRepoStatusLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Set initial Upptime repo status' | tail -1 | awk -F- '{print $1}')
+    urApiStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'ur' | awk -F- '{print $1}')
+    scApiStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'sc' | awk -F- '{print $1}')
+    hcApiStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'hc' | awk -F- '{print $1}')
+    ghTokenStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'gh' | awk -F- '{print $1}')
+    urProviderStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'ur' | awk -F- '{print $1}')
+    scProviderStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'sc' | awk -F- '{print $1}')
+    hcProviderStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'hc' | awk -F- '{print $1}')
+    upProviderStatusLineNum=$(head -67 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'up' | awk -F- '{print $1}')
+    scUserStatusLineNum=$(head -67 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
+    ghUserStatusLineNum=$(head -67 "${scriptname}" | grep -En -A1 'Set initial GH username status' | tail -1 | awk -F- '{print $1}')
+    upRepoStatusLineNum=$(head -67 "${scriptname}" | grep -En -A1 'Set initial Upptime repo status' | tail -1 | awk -F- '{print $1}')
 }
 
 # Function for catching when a curl or jq command fails to display a message and
