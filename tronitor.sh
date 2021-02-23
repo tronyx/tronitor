@@ -704,7 +704,7 @@ set_api_key() {
 # Function to grab data for all monitors.
 get_data() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
-        curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}" || fatal
+        curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}" || fatal
     elif [[ ${providerName} == 'statuscake' ]]; then
         curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${monitorsFullFile}" || fatal
     elif [[ ${providerName} == 'healthchecks' ]]; then
@@ -747,7 +747,7 @@ get_monitors() {
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" || fatal
         elif [[ ${providerName} == 'statuscake' ]]; then
             curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'healthchecks' ]]; then
@@ -1023,9 +1023,9 @@ pause_all_monitors() {
                 echo "Pausing ${friendlyName}:"
 
                 if [[ ${jq} == 'true' ]]; then
-                    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
+                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
                 elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
+                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
                 fi
             elif [[ ${providerName} == 'statuscake' ]]; then
                 friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1081,7 +1081,7 @@ pause_specified_monitors() {
             echo "Pausing ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
+                curl -s -X -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
                 curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
             fi
@@ -1133,9 +1133,9 @@ unpause_all_monitors() {
                 echo "Unpausing ${friendlyName}:"
 
                 if [[ ${jq} == 'true' ]]; then
-                    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
+                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
                 elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
+                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
                 fi
             elif [[ ${providerName} == 'statuscake' ]]; then
                 friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1185,9 +1185,9 @@ unpause_specified_monitors() {
             echo "Unpausing ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
+                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1308,9 +1308,9 @@ create_monitor() {
 
     if [[ ${providerName} == 'uptimerobot' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" || fatal
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
@@ -1352,9 +1352,9 @@ get_info() {
 
     if [[ ${providerName} == 'uptimerobot' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" || fatal
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
@@ -1380,9 +1380,9 @@ get_alert_contacts() {
         echo ''
 
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" || fatal
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         echo "The following alert contacts have been found for your ${providerName^} account:"
@@ -1430,9 +1430,9 @@ reset_all_monitors() {
         echo "Resetting ${friendlyName}:"
 
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
         fi
 
         echo ''
@@ -1458,9 +1458,9 @@ reset_specified_monitors() {
         echo "Resetting ${friendlyName}:"
 
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
         fi
         echo ''
 
@@ -1500,9 +1500,9 @@ delete_all_monitors() {
             echo "Deleting ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1549,9 +1549,9 @@ delete_specified_monitors() {
             echo "Deleting ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1619,9 +1619,9 @@ main() {
                                 echo "Unpausing ${friendlyName}:"
 
                                 if [[ ${jq} == 'true' ]]; then
-                                    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
+                                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
                                 elif [[ ${jq} == 'false' ]]; then
-                                    curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
+                                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
                                 fi
                             elif [[ ${providerName} == 'statuscake' ]]; then
                                 friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
