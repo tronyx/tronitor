@@ -812,7 +812,7 @@ create_friendly_list() {
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             siteURL=$(grep url "${tempDir}${monitor}"_short.txt | awk '{print $2}')
             friendlyName=$(curl --fail -s "${upRawURL}master/.upptimerc.yml" | grep -v href | grep -B1 "${siteURL}"$ | grep name | awk -F':' '{print $2}' | cut -c2- 2> /dev/null) || fatal
-            status=$(grep status "${tempDir}${monitor}"_short.txt | awk '{print $2}' 2> /dev/null) || fatal
+            status=$(grep status "${tempDir}${monitor}"_short.txt  | grep -v url | awk '{print $2}' 2> /dev/null) || fatal
             workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${gitHubUsername}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
 
             if [[ ${workflowStatus} == 'disabled_manually' ]]; then
