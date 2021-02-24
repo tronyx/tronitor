@@ -10,7 +10,7 @@ IFS=$'\n\t'
 # or just run it and it will prompt you for it.
 # If your provider is StatusCake, specify your username.
 scUsername=''
-# If your provider is Upptime, specify the following
+# If your provider is Upptime, specify the following.
 repoOwner=''
 gitHubUsername=''
 upptimeRepo='upptime'
@@ -325,7 +325,7 @@ check_empty_arg() {
     done
 }
 
-# Function to check that only all is used for pause and unpause if the provide
+# Function to check that only all is used for pause and unpause if the provider
 # is Upptime
 check_pauseType_upptime() {
     if [[ ${providerName} == 'upptime' ]] && [[ ${pause} == 'true' || ${unpause} == 'true' ]] && [[ ${pauseType} != 'all' && ${unpauseType} != 'all' ]]; then
@@ -452,7 +452,6 @@ check_provider() {
         readonly apiUrl="https://${healthchecksDomain}/api/v1/"
     elif [[ ${providerName} == 'upptime' ]]; then
         readonly apiUrl='https://api.github.com/'
-        #upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
         upRawURL="https://raw.githubusercontent.com/${repoOwner}/${upptimeRepo}/"
     fi
 }
@@ -509,7 +508,7 @@ check_sc_creds() {
     done
 }
 
-# Function to check that the provided GitHub username and PAT are valid
+# Function to check that the provided Upptime repo owner, GitHub username, and PAT are valid.
 check_gh_creds() {
     while [[ ${ghRepoOwnerStatus} == 'invalid' ]] || [[ ${ghUsernameStatus} == 'invalid' ]] || [[ ${ghTokenStatus} == 'invalid' ]]; do
         if [[ -z ${ghToken} ]]; then
@@ -540,7 +539,6 @@ check_gh_creds() {
             echo ''
             sed -i "${ghUsernameLineNum} s/gitHubUsername='[^']*'/gitHubUsername='${username}'/" "${scriptname}"
             gitHubUsername="${username}"
-            #upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
         else
             ghStatus=$(curl -s -XGET -H "Authorization: bearer ${ghToken}" "${apiUrl}"user | jq -r .login)
             ghStatus=$(echo "${ghStatus}" | awk '{print tolower($0)}')
@@ -575,7 +573,7 @@ check_gh_creds() {
     done
 }
 
-# Function to check that the provided Upptime repository is valid
+# Function to check that the provided Upptime repository is valid.
 check_up_repo() {
     while [[ ${upRepoStatus} == 'invalid' ]]; do
         if [[ -z ${upptimeRepo} ]]; then
