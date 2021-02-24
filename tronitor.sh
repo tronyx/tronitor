@@ -764,7 +764,7 @@ get_monitors() {
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'statuscake' ]]; then
             curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'healthchecks' ]]; then
@@ -1098,7 +1098,7 @@ pause_specified_monitors() {
             echo "Pausing ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
                 curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
             fi
