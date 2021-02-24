@@ -594,8 +594,10 @@ check_up_repo() {
 
             if [[ ${status} != '200' ]]; then
                 echo -e "${red}The Upptime repository that you provided does not appear to be valid!${endColor}"
+                echo -e "${ylw}Resetting it so that you can enter it again..."
                 sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo=''/" "${scriptname}"
                 upptimeRepo=''
+                echo ''
             elif [[ ${status} == '200' ]]; then
                 sed -i "${upRepoStatusLineNum} s/upRepoStatus='[^']*'/upRepoStatus='ok'/" "${scriptname}"
                 upRepoStatus='ok'
