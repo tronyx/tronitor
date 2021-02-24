@@ -10,7 +10,8 @@ IFS=$'\n\t'
 # or just run it and it will prompt you for it.
 # If your provider is StatusCake, specify your username.
 scUsername=''
-# If your provider is Upptime, specify the following
+# If your provider is Upptime, specify the following.
+repoOwner=''
 gitHubUsername=''
 upptimeRepo='upptime'
 # Specify API key(s).
@@ -60,7 +61,8 @@ hcProviderStatus='invalid'
 upProviderStatus='invalid'
 # Set initial SC username status.
 scUsernameStatus='invalid'
-# Set initial GH username status.
+# Set initial GH repo owner and username status.
+ghRepoOwnerStatus='invalid'
 ghUsernameStatus='invalid'
 # Set initial Upptime repo status.
 upRepoStatus='invalid'
@@ -323,7 +325,7 @@ check_empty_arg() {
     done
 }
 
-# Function to check that only all is used for pause and unpause if the provide
+# Function to check that only all is used for pause and unpause if the provider
 # is Upptime
 check_pauseType_upptime() {
     if [[ ${providerName} == 'upptime' ]] && [[ ${pause} == 'true' || ${unpause} == 'true' ]] && [[ ${pauseType} != 'all' && ${unpauseType} != 'all' ]]; then
@@ -346,26 +348,28 @@ check_curl() {
 # Function to grab line numbers of the user-defined and status variables.
 get_line_numbers() {
     # Line numbers for user-defined variables.
-    scUsernameLineNum=$(head -66 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
-    ghUsernameLineNum=$(head -66 "${scriptname}" | grep -En 'gitHubUser' | awk -F: '{print $1}')
-    upRepoLineNum=$(head -66 "${scriptname}" | grep -En 'upptimeRepo' | awk -F: '{print $1}')
-    urApiKeyLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
-    scApiKeyLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
-    hcApiKeyLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'hc' | awk -F- '{print $1}')
-    ghTokenLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'gh' | awk -F- '{print $1}')
-    webhookUrlLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
+    scUsernameLineNum=$(head -68 "${scriptname}" | grep -En -A1 'specify your username' | tail -1 | awk -F- '{print $1}')
+    ghRepoOwnerLineNum=$(head -68 "${scriptname}" | grep -En 'repoOwner' | awk -F: '{print $1}')
+    ghUsernameLineNum=$(head -68 "${scriptname}" | grep -En 'gitHubUser' | awk -F: '{print $1}')
+    upRepoLineNum=$(head -68 "${scriptname}" | grep -En 'upptimeRepo' | awk -F: '{print $1}')
+    urApiKeyLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'ur' | awk -F- '{print $1}')
+    scApiKeyLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'sc' | awk -F- '{print $1}')
+    hcApiKeyLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'hc' | awk -F- '{print $1}')
+    ghTokenLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Specify API key' | grep 'gh' | awk -F- '{print $1}')
+    webhookUrlLineNum=$(head -68 "${scriptname}" | grep -En -A1 'Discord/Slack' | tail -1 | awk -F- '{print $1}')
     # Line numbers for status variables.
-    urApiStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'ur' | awk -F- '{print $1}')
-    scApiStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'sc' | awk -F- '{print $1}')
-    hcApiStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'hc' | awk -F- '{print $1}')
-    ghTokenStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'gh' | awk -F- '{print $1}')
-    urProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'ur' | awk -F- '{print $1}')
-    scProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'sc' | awk -F- '{print $1}')
-    hcProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'hc' | awk -F- '{print $1}')
-    upProviderStatusLineNum=$(head -66 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'up' | awk -F- '{print $1}')
-    scUserStatusLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
-    ghUserStatusLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Set initial GH username status' | tail -1 | awk -F- '{print $1}')
-    upRepoStatusLineNum=$(head -66 "${scriptname}" | grep -En -A1 'Set initial Upptime repo status' | tail -1 | awk -F- '{print $1}')
+    urApiStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'ur' | awk -F- '{print $1}')
+    scApiStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'sc' | awk -F- '{print $1}')
+    hcApiStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'hc' | awk -F- '{print $1}')
+    ghTokenStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial API key' | grep 'gh' | awk -F- '{print $1}')
+    urProviderStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'ur' | awk -F- '{print $1}')
+    scProviderStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'sc' | awk -F- '{print $1}')
+    hcProviderStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'hc' | awk -F- '{print $1}')
+    upProviderStatusLineNum=$(head -68 "${scriptname}" | grep -En -A4 'Set initial provider status' | grep 'up' | awk -F- '{print $1}')
+    scUserStatusLineNum=$(head -68 "${scriptname}" | grep -En -A1 'Set initial SC username status' | tail -1 | awk -F- '{print $1}')
+    ghUserStatusLineNum=$(head -68 "${scriptname}" | grep -En -A2 'Set initial GH repo owner and username status' | grep ghUser | awk -F- '{print $1}')
+    ghRepoOwnerStatusLineNum=$(head -68 "${scriptname}" | grep -En -A2 'Set initial GH repo owner and username status' | grep RepoOwner | awk -F- '{print $1}')
+    upRepoStatusLineNum=$(head -68 "${scriptname}" | grep -En -A1 'Set initial Upptime repo status' | tail -1 | awk -F- '{print $1}')
 }
 
 # Function for catching when a curl or jq command fails to display a message and
@@ -448,7 +452,7 @@ check_provider() {
         readonly apiUrl="https://${healthchecksDomain}/api/v1/"
     elif [[ ${providerName} == 'upptime' ]]; then
         readonly apiUrl='https://api.github.com/'
-        upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
+        upRawURL="https://raw.githubusercontent.com/${repoOwner}/${upptimeRepo}/"
     fi
 }
 
@@ -504,9 +508,9 @@ check_sc_creds() {
     done
 }
 
-# Function to check that the provided GitHub username and PAT are valid
+# Function to check that the provided Upptime repo owner, GitHub username, and PAT are valid.
 check_gh_creds() {
-    while [[ ${ghUsernameStatus} == 'invalid' ]] || [[ ${ghTokenStatus} == 'invalid' ]]; do
+    while [[ ${ghRepoOwnerStatus} == 'invalid' ]] || [[ ${ghUsernameStatus} == 'invalid' ]] || [[ ${ghTokenStatus} == 'invalid' ]]; do
         if [[ -z ${ghToken} ]]; then
             echo -e "${red}You didn't define your ${providerName^} PAT in the script!${endColor}"
             echo ''
@@ -516,6 +520,16 @@ check_gh_creds() {
             echo ''
             sed -i "${ghTokenLineNum} s/ghToken='[^']*'/ghToken='${API}'/" "${scriptname}"
             ghToken="${API}"
+        elif [[ -z ${repoOwner} ]]; then
+            echo -e "${red}You didn't specify the owner of your Upptime repository in the script!${endColor}"
+            echo ''
+            echo "Enter your Upptime repo owner:"
+            read -r owner
+            echo ''
+            echo ''
+            sed -i "${ghRepoOwnerLineNum} s/repoOwner='[^']*'/repoOwner='${owner}'/" "${scriptname}"
+            repoOwner="${owner}"
+            upRawURL="https://raw.githubusercontent.com/${repoOwner}/${upptimeRepo}/"
         elif [[ -z ${gitHubUsername} ]]; then
             echo -e "${red}You didn't specify your GitHub username in the script!${endColor}"
             echo ''
@@ -525,7 +539,6 @@ check_gh_creds() {
             echo ''
             sed -i "${ghUsernameLineNum} s/gitHubUsername='[^']*'/gitHubUsername='${username}'/" "${scriptname}"
             gitHubUsername="${username}"
-            upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
         else
             ghStatus=$(curl -s -XGET -H "Authorization: bearer ${ghToken}" "${apiUrl}"user | jq -r .login)
             ghStatus=$(echo "${ghStatus}" | awk '{print tolower($0)}')
@@ -544,9 +557,11 @@ check_gh_creds() {
                 echo ''
                 sed -i "${ghUsernameLineNum} s/gitHubUsername='[^']*'/gitHubUsername='${username}'/" "${scriptname}"
                 gitHubUsername="${username}"
-                upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
+                upRawURL="https://raw.githubusercontent.com/${repoOwner}/${upptimeRepo}/"
             elif [[ ${ghStatus} == "${gitHubUsername}" ]]; then
-                echo 'Validating that the provided GitHub username and PAT are functional...'
+                echo 'Validating that the provided Upptime repo owner, GitHub username, and PAT are functional...'
+                sed -i "${ghRepoOwnerStatusLineNum} s/ghRepoOwnerStatus='[^']*'/ghRepoOwnerStatus='ok'/" "${scriptname}"
+                ghRepoOwnerStatus='ok'
                 sed -i "${ghTokenStatusLineNum} s/ghTokenStatus='[^']*'/ghTokenStatus='ok'/" "${scriptname}"
                 ghTokenStatus='ok'
                 sed -i "${ghUserStatusLineNum} s/ghUsernameStatus='[^']*'/ghUsernameStatus='ok'/" "${scriptname}"
@@ -558,7 +573,7 @@ check_gh_creds() {
     done
 }
 
-# Function to check that the provided Upptime repository is valid
+# Function to check that the provided Upptime repository is valid.
 check_up_repo() {
     while [[ ${upRepoStatus} == 'invalid' ]]; do
         if [[ -z ${upptimeRepo} ]]; then
@@ -570,19 +585,21 @@ check_up_repo() {
             echo ''
             sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo='${repo}'/" "${scriptname}"
             upptimeRepo="${repo}"
-            upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
+            upRawURL="https://raw.githubusercontent.com/${repoOwner}/${upptimeRepo}/"
         else
             echo 'Validating that the provided Upptime repository is functional...'
-            status=$(curl -w "%{http_code}\n" -sI -o /dev/null https://github.com/"${gitHubUsername}"/"${upptimeRepo}"/) || fatal
+            status=$(curl -w "%{http_code}\n" -sI -o /dev/null https://github.com/"${repoOwner}"/"${upptimeRepo}"/) || fatal
 
             if [[ ${status} != '200' ]]; then
                 echo -e "${red}The Upptime repository that you provided does not appear to be valid!${endColor}"
+                echo -e "${ylw}Resetting it so that you can enter it again...${endColor}"
                 sed -i "${upRepoLineNum} s/upptimeRepo='[^']*'/upptimeRepo=''/" "${scriptname}"
                 upptimeRepo=''
+                echo ''
             elif [[ ${status} == '200' ]]; then
                 sed -i "${upRepoStatusLineNum} s/upRepoStatus='[^']*'/upRepoStatus='ok'/" "${scriptname}"
                 upRepoStatus='ok'
-                upRawURL="https://raw.githubusercontent.com/${gitHubUsername}/${upptimeRepo}/"
+                upRawURL="https://raw.githubusercontent.com/${repoOwner}/${upptimeRepo}/"
                 echo -e "${grn}Success!${endColor}"
                 echo ''
             fi
@@ -704,13 +721,13 @@ set_api_key() {
 # Function to grab data for all monitors.
 get_data() {
     if [[ ${providerName} == 'uptimerobot' ]]; then
-        curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}" || fatal
+        curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" > "${monitorsFullFile}" || fatal
     elif [[ ${providerName} == 'statuscake' ]]; then
         curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}"Tests/ > "${monitorsFullFile}" || fatal
     elif [[ ${providerName} == 'healthchecks' ]]; then
         curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET "${apiUrl}"checks/ > "${monitorsFullFile}" || fatal
     elif [[ ${providerName} == 'upptime' ]]; then
-        curl --fail -s -H "Authorization: bearer ${ghToken}" "${apiUrl}repos/${gitHubUsername}/${upptimeRepo}/git/trees/master?recursive=1" | grep -e 'api\/' | awk -F'/' 'NF==2' | awk -F'/' '{print $2}' | tr -d '",' > "${monitorsFullFile}" || fatal
+        curl --fail -s -H "Authorization: bearer ${ghToken}" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/git/trees/master?recursive=1" | grep -e 'api\/' | awk -F'/' 'NF==2' | awk -F'/' '{print $2}' | tr -d '",' > "${monitorsFullFile}" || fatal
     fi
 }
 
@@ -747,7 +764,7 @@ get_monitors() {
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" > "${tempDir}${monitor}".txt || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'statuscake' ]]; then
             curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'healthchecks' ]]; then
@@ -812,8 +829,8 @@ create_friendly_list() {
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             siteURL=$(grep url "${tempDir}${monitor}"_short.txt | awk '{print $2}')
             friendlyName=$(curl --fail -s "${upRawURL}master/.upptimerc.yml" | grep -v href | grep -B1 "${siteURL}"$ | grep name | awk -F':' '{print $2}' | cut -c2- 2> /dev/null) || fatal
-            status=$(grep status "${tempDir}${monitor}"_short.txt | awk '{print $2}' 2> /dev/null) || fatal
-            workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${gitHubUsername}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
+            status=$(grep status "${tempDir}${monitor}"_short.txt  | grep -v url | awk '{print $2}' 2> /dev/null) || fatal
+            workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
 
             if [[ ${workflowStatus} == 'disabled_manually' ]]; then
                 status='paused'
@@ -859,7 +876,7 @@ get_paused_monitors() {
     true > "${pausedMonitorsFile}"
 
     if [[ ${providerName} == 'upptime' ]]; then
-        workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${gitHubUsername}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
+        workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
         if [[ ${workflowStatus} == 'disabled_manually' ]]; then
             while IFS= read -r monitor; do
                 cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
@@ -1013,7 +1030,7 @@ convert_friendly_monitors() {
 pause_all_monitors() {
     if [[ ${providerName} == 'upptime' ]]; then
         echo 'Pausing the Uptime CI workflow for your Upptime repository...'
-        curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${gitHubUsername}/${upptimeRepo}/actions/workflows/uptime.yml/disable" 2> /dev/null || fatal
+        curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/disable" 2> /dev/null || fatal
         echo -e "${grn}Success!${endColor}"
         echo ''
     else
@@ -1023,9 +1040,9 @@ pause_all_monitors() {
                 echo "Pausing ${friendlyName}:"
 
                 if [[ ${jq} == 'true' ]]; then
-                    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
+                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
                 elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
+                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
                 fi
             elif [[ ${providerName} == 'statuscake' ]]; then
                 friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1081,7 +1098,7 @@ pause_specified_monitors() {
             echo "Pausing ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
                 curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
             fi
@@ -1123,7 +1140,7 @@ pause_specified_monitors() {
 unpause_all_monitors() {
     if [[ ${providerName} == 'upptime' ]]; then
         echo 'Unpausing the Uptime CI workflow for your Upptime repository...'
-        curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${gitHubUsername}/${upptimeRepo}/actions/workflows/uptime.yml/enable" 2> /dev/null || fatal
+        curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/enable" 2> /dev/null || fatal
         echo -e "${grn}Success!${endColor}"
         echo ''
     else
@@ -1133,9 +1150,9 @@ unpause_all_monitors() {
                 echo "Unpausing ${friendlyName}:"
 
                 if [[ ${jq} == 'true' ]]; then
-                    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
+                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
                 elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
+                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
                 fi
             elif [[ ${providerName} == 'statuscake' ]]; then
                 friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1185,9 +1202,9 @@ unpause_specified_monitors() {
             echo "Unpausing ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
+                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1308,9 +1325,9 @@ create_monitor() {
 
     if [[ ${providerName} == 'uptimerobot' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"newMonitor -d @"${newMonitorConfigFile}" --header "Content-Type: application/json" || fatal
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
@@ -1352,9 +1369,9 @@ get_info() {
 
     if [[ ${providerName} == 'uptimerobot' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "monitors=${monitor}" -d "format=json" || fatal
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
@@ -1380,9 +1397,9 @@ get_alert_contacts() {
         echo ''
 
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getAlertContacts -d "api_key=${apiKey}" -d "format=json" || fatal
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         echo "The following alert contacts have been found for your ${providerName^} account:"
@@ -1430,9 +1447,9 @@ reset_all_monitors() {
         echo "Resetting ${friendlyName}:"
 
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
         fi
 
         echo ''
@@ -1458,9 +1475,9 @@ reset_specified_monitors() {
         echo "Resetting ${friendlyName}:"
 
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
         fi
         echo ''
 
@@ -1500,9 +1517,9 @@ delete_all_monitors() {
             echo "Deleting ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1549,9 +1566,9 @@ delete_specified_monitors() {
             echo "Deleting ${friendlyName}:"
 
             if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
             elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
             friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
@@ -1609,7 +1626,7 @@ main() {
                 if [[ ${unpausePrompt} =~ ^(Yes|yes|Y|y)$ ]]; then
                     if [[ ${providerName} == 'upptime' ]]; then
                         echo 'Unpausing the Uptime CI workflow for your Upptime repository...'
-                        curl --fail -s -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${gitHubUsername}/${upptimeRepo}/actions/workflows/uptime.yml/enable" || fatal
+                        curl --fail -s -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/enable" || fatal
                         echo -e "${grn}Success!${endColor}"
                         echo ''
                     else
@@ -1619,9 +1636,9 @@ main() {
                                 echo "Unpausing ${friendlyName}:"
 
                                 if [[ ${jq} == 'true' ]]; then
-                                    curl -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
+                                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
                                 elif [[ ${jq} == 'false' ]]; then
-                                    curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
+                                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
                                 fi
                             elif [[ ${providerName} == 'statuscake' ]]; then
                                 friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
