@@ -99,7 +99,7 @@ The first time that you run the script for a specific monitor it will alert you 
 ### Upptime
 ![Upptime/GitHub User Data Prompt](/Images/up_user_data.png)
 
-You can also simply open the script with your favorite text editor and add your provider's API key, if you're using StatusCake, your account username, and, if you're using Upptime, your GitHub username, PAT (Personal Access Token), and the name of your Upptime reposistory.
+You can also simply open the script with your favorite text editor and add your provider's API key, if you're using StatusCake, your account username, and, if you're using Upptime, the repository owner (organization or user), your GitHub username, PAT (Personal Access Token), and the name of your Upptime reposistory.
 
 After entering the information, the script will check whether or not it is valid and then add it to the script for you.
 
