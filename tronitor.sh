@@ -764,7 +764,8 @@ get_monitors() {
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" > "${tempDir}${monitor}".txt || fatal
+            #curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" > "${tempDir}${monitor}".txt || fatal
+            jq -r '. | {stat: .stat, pagination: .pagination, monitors: [.monitors[] | select(.id=='"${monitor}"')]} | .pagination.total=1' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
         elif [[ ${providerName} == 'statuscake' ]]; then
             curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'healthchecks' ]]; then
