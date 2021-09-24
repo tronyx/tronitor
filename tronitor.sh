@@ -769,7 +769,8 @@ create_monitor_files() {
         elif [[ ${providerName} == 'statuscake' ]]; then
             curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null > "${tempDir}${monitor}".txt || fatal
+            #curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null > "${tempDir}${monitor}".txt || fatal
+            jq --arg monitor "${monitor}" '.checks[] | select(.ping_url | contains($monitor))' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
         elif [[ ${providerName} == 'upptime' ]]; then
             curl --fail -s -H "Authorization: bearer ${ghToken}" "${upRawURL}master/history/${monitor}.yml" 2> /dev/null > "${tempDir}${monitor}".txt || fatal
         fi
