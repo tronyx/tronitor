@@ -496,7 +496,7 @@ check_sc_creds() {
                 sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
                 scUsername="${username}"
             elif [[ ${scStatus} == '1' ]]; then
-            echo "Validating that the provided ${providerName^} username and API key are functional..."
+                echo "Validating that the provided ${providerName^} username and API key are functional..."
                 sed -i "${scApiStatusLineNum} s/scApiKeyStatus='[^']*'/scApiKeyStatus='ok'/" "${scriptname}"
                 scApiKeyStatus='ok'
                 sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
@@ -630,7 +630,7 @@ check_api_key() {
                     sed -i "${urApiKeyLineNum} s/urApiKey='[^']*'/urApiKey=''/" "${scriptname}"
                     urApiKey=''
                 elif [[ ${status} == 'ok' ]]; then
-                echo "Validating that the provided ${providerName^} API key is functional..."
+                    echo "Validating that the provided ${providerName^} API key is functional..."
                     sed -i "${urApiStatusLineNum} s/urApiKeyStatus='[^']*'/urApiKeyStatus='${status}'/" "${scriptname}"
                     urApiKeyStatus="${status}"
                     echo -e "${grn}Success!${endColor}"
@@ -831,7 +831,7 @@ create_friendly_list() {
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             siteURL=$(grep url "${tempDir}${monitor}"_short.txt | awk '{print $2}')
             friendlyName=$(curl --fail -s "${upRawURL}master/.upptimerc.yml" | grep -v href | grep -B1 "${siteURL}"$ | grep name | awk -F':' '{print $2}' | cut -c2- 2> /dev/null) || fatal
-            status=$(grep status "${tempDir}${monitor}"_short.txt  | grep -v url | awk '{print $2}' 2> /dev/null) || fatal
+            status=$(grep status "${tempDir}${monitor}"_short.txt | grep -v url | awk '{print $2}' 2> /dev/null) || fatal
             workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
 
             if [[ ${workflowStatus} == 'disabled_manually' ]]; then
