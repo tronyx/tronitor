@@ -496,7 +496,7 @@ check_sc_creds() {
                 sed -i "${scUsernameLineNum} s/scUsername='[^']*'/scUsername='${username}'/" "${scriptname}"
                 scUsername="${username}"
             elif [[ ${scStatus} == '1' ]]; then
-            echo "Validating that the provided ${providerName^} username and API key are functional..."
+                echo "Validating that the provided ${providerName^} username and API key are functional..."
                 sed -i "${scApiStatusLineNum} s/scApiKeyStatus='[^']*'/scApiKeyStatus='ok'/" "${scriptname}"
                 scApiKeyStatus='ok'
                 sed -i "${scUserStatusLineNum} s/scUsernameStatus='[^']*'/scUsernameStatus='ok'/" "${scriptname}"
@@ -630,7 +630,7 @@ check_api_key() {
                     sed -i "${urApiKeyLineNum} s/urApiKey='[^']*'/urApiKey=''/" "${scriptname}"
                     urApiKey=''
                 elif [[ ${status} == 'ok' ]]; then
-                echo "Validating that the provided ${providerName^} API key is functional..."
+                    echo "Validating that the provided ${providerName^} API key is functional..."
                     sed -i "${urApiStatusLineNum} s/urApiKeyStatus='[^']*'/urApiKeyStatus='${status}'/" "${scriptname}"
                     urApiKeyStatus="${status}"
                     echo -e "${grn}Success!${endColor}"
@@ -764,12 +764,10 @@ get_monitors() {
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            #curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" > "${tempDir}${monitor}".txt || fatal
             jq -r '. | {stat: .stat, pagination: .pagination, monitors: [.monitors[] | select(.id=='"${monitor}"')]} | .pagination.total=1' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
         elif [[ ${providerName} == 'statuscake' ]]; then
             curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            #curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null > "${tempDir}${monitor}".txt || fatal
             jq --arg monitor "${monitor}" '.checks[] | select(.ping_url | contains($monitor))' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
         elif [[ ${providerName} == 'upptime' ]]; then
             curl --fail -s -H "Authorization: bearer ${ghToken}" "${upRawURL}master/history/${monitor}.yml" 2> /dev/null > "${tempDir}${monitor}".txt || fatal
@@ -831,7 +829,7 @@ create_friendly_list() {
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
             siteURL=$(grep url "${tempDir}${monitor}"_short.txt | awk '{print $2}')
             friendlyName=$(curl --fail -s "${upRawURL}master/.upptimerc.yml" | grep -v href | grep -B1 "${siteURL}"$ | grep name | awk -F':' '{print $2}' | cut -c2- 2> /dev/null) || fatal
-            status=$(grep status "${tempDir}${monitor}"_short.txt  | grep -v url | awk '{print $2}' 2> /dev/null) || fatal
+            status=$(grep status "${tempDir}${monitor}"_short.txt | grep -v url | awk '{print $2}' 2> /dev/null) || fatal
             workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
 
             if [[ ${workflowStatus} == 'disabled_manually' ]]; then
@@ -1031,10 +1029,15 @@ convert_friendly_monitors() {
 # Function to pause all monitors.
 pause_all_monitors() {
     if [[ ${providerName} == 'upptime' ]]; then
-        echo 'Pausing the Uptime CI workflow for your Upptime repository...'
-        curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/disable" 2> /dev/null || fatal
-        echo -e "${grn}Success!${endColor}"
-        echo ''
+        workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
+        if [[ ${workflowStatus} == 'disabled_manually' ]]; then
+            echo "${ylw}The Uptime CI workflow for your Upptime repository is already paused!${endColor}"
+        elif [[ ${workflowStatus} != 'disabled_manually' ]]; then
+            echo 'Pausing the Uptime CI workflow for your Upptime repository...'
+            curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/disable" 2> /dev/null || fatal
+            echo -e "${grn}Success!${endColor}"
+            echo ''
+        fi
     else
         while IFS= read -r monitor; do
             if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -1263,6 +1266,8 @@ send_notification() {
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused StatusCake monitors:","color": 3381759,'"${pausedTests}"'}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'healthchecks' ]]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused HealthChecks.io monitors:","color": 3381759,'"${pausedTests}"'}]}' "${webhookUrl}"
+        elif [[ ${providerName} == 'upptime' ]]; then
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "The Uptime CI workflow for your Upptime repository is currently disabled!","color": 3381759}]}' "${webhookUrl}"
         fi
     elif [[ ${notifyAll} == 'true' ]]; then
         if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -1271,6 +1276,8 @@ send_notification() {
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All StatusCake monitors are currently running.","color": 10092339}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'healthchecks' ]]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All HealthChecks.io monitors are currently running.","color": 10092339}]}' "${webhookUrl}"
+        elif [[ ${providerName} == 'upptime' ]]; then
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "The Uptime CI workflow for your Upptime repository is currently enabled.","color": 3381759}]}' "${webhookUrl}"
         fi
     fi
 }
