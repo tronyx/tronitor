@@ -1266,6 +1266,8 @@ send_notification() {
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused StatusCake monitors:","color": 3381759,'"${pausedTests}"'}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'healthchecks' ]]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "There are currently paused HealthChecks.io monitors:","color": 3381759,'"${pausedTests}"'}]}' "${webhookUrl}"
+        elif [[ ${providerName} == 'upptime' ]]; then
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "The Uptime CI workflow for your Upptime repository is currently disabled!","color": 3381759}]}' "${webhookUrl}"
         fi
     elif [[ ${notifyAll} == 'true' ]]; then
         if [[ ${providerName} == 'uptimerobot' ]]; then
@@ -1274,6 +1276,8 @@ send_notification() {
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All StatusCake monitors are currently running.","color": 10092339}]}' "${webhookUrl}"
         elif [[ ${providerName} == 'healthchecks' ]]; then
             curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "All HealthChecks.io monitors are currently running.","color": 10092339}]}' "${webhookUrl}"
+        elif [[ ${providerName} == 'upptime' ]]; then
+            curl -s -H "Content-Type: application/json" -X POST -d '{"embeds": [{ "title": "The Uptime CI workflow for your Upptime repository is currently enabled.","color": 3381759}]}' "${webhookUrl}"
         fi
     fi
 }
