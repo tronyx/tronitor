@@ -1029,10 +1029,15 @@ convert_friendly_monitors() {
 # Function to pause all monitors.
 pause_all_monitors() {
     if [[ ${providerName} == 'upptime' ]]; then
-        echo 'Pausing the Uptime CI workflow for your Upptime repository...'
-        curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/disable" 2> /dev/null || fatal
-        echo -e "${grn}Success!${endColor}"
-        echo ''
+        workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
+        if [[ ${workflowStatus} == 'disabled_manually' ]]; then
+            echo "${ylw}The Uptime CI workflow for your Upptime repository is already paused!${endColor}"
+        elif [[ ${workflowStatus} != 'disabled_manually' ]]; then
+            echo 'Pausing the Uptime CI workflow for your Upptime repository...'
+            curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/disable" 2> /dev/null || fatal
+            echo -e "${grn}Success!${endColor}"
+            echo ''
+        fi
     else
         while IFS= read -r monitor; do
             if [[ ${providerName} == 'uptimerobot' ]]; then
