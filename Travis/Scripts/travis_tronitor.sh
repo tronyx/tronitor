@@ -764,12 +764,10 @@ get_monitors() {
 create_monitor_files() {
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            #curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"getMonitors -d "api_key=${apiKey}" -d "format=json" -d "monitors=${monitor}" > "${tempDir}${monitor}".txt || fatal
             jq -r '. | {stat: .stat, pagination: .pagination, monitors: [.monitors[] | select(.id=='"${monitor}"')]} | .pagination.total=1' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
         elif [[ ${providerName} == 'statuscake' ]]; then
             curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
         elif [[ ${providerName} == 'healthchecks' ]]; then
-            #curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/ | jq --arg monitor $monitor '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null > "${tempDir}${monitor}".txt || fatal
             jq --arg monitor "${monitor}" '.checks[] | select(.ping_url | contains($monitor))' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
         elif [[ ${providerName} == 'upptime' ]]; then
             curl --fail -s -H "Authorization: bearer ${ghToken}" "${upRawURL}master/history/${monitor}.yml" 2> /dev/null > "${tempDir}${monitor}".txt || fatal
@@ -1013,7 +1011,7 @@ convert_friendly_monitors() {
                 echo "${monitor}" >> "${convertedMonitorsFile}"
             else
                 tempCurl=$(curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/) || fatal
-                tempJQ=$(echo "${tempCurl}" | jq -r --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url 2> /dev/null) || fatal
+                tempJQ=$(echo "${tempCurl}" | jq -r --arg monitor "${monitor}" '.checks[] | select(.name | match($monitor;"i"))'.ping_url 2> /dev/null) || fatal
                 echo "${tempJQ}" | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
@@ -1392,7 +1390,7 @@ get_info() {
         fi
     elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor ${monitor} '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null || fatal
+            curl -s "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor "${monitor}" '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
             curl --fail -s "${apiUrl}checks/${monitor}" -X POST -H "X-Api-Key: ${apiKey}" || fatal
         fi

@@ -1011,7 +1011,7 @@ convert_friendly_monitors() {
                 echo "${monitor}" >> "${convertedMonitorsFile}"
             else
                 tempCurl=$(curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/) || fatal
-                tempJQ=$(echo "${tempCurl}" | jq -r --arg monitor $monitor '.checks[] | select(.name | match($monitor;"i"))'.ping_url 2> /dev/null) || fatal
+                tempJQ=$(echo "${tempCurl}" | jq -r --arg monitor "${monitor}" '.checks[] | select(.name | match($monitor;"i"))'.ping_url 2> /dev/null) || fatal
                 echo "${tempJQ}" | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
             fi
         done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${specifiedMonitorsFile}")
@@ -1390,7 +1390,7 @@ get_info() {
         fi
     elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor ${monitor} '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null || fatal
+            curl -s "${apiUrl}"checks/ -X GET -H "X-Api-Key: ${apiKey}" | jq --arg monitor "${monitor}" '.checks[] | select(.ping_url | contains($monitor))' 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
             curl --fail -s "${apiUrl}checks/${monitor}" -X POST -H "X-Api-Key: ${apiKey}" || fatal
         fi
