@@ -1033,7 +1033,7 @@ pause_all_monitors() {
     if [[ ${providerName} == 'upptime' ]]; then
         workflowStatus=$(curl -s -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml" | jq -r .state)
         if [[ ${workflowStatus} == 'disabled_manually' ]]; then
-            echo "${ylw}The Uptime CI workflow for your Upptime repository is already paused!${endColor}"
+            echo -e "${ylw}The Uptime CI workflow for your Upptime repository is already paused!${endColor}"
         elif [[ ${workflowStatus} != 'disabled_manually' ]]; then
             echo 'Pausing the Uptime CI workflow for your Upptime repository...'
             curl --fail -X PUT -H "Authorization: bearer ${ghToken}" -H "Accept: application/vnd.github.v3+json" "${apiUrl}repos/${repoOwner}/${upptimeRepo}/actions/workflows/uptime.yml/disable" 2> /dev/null || fatal
