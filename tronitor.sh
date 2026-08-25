@@ -781,8 +781,7 @@ create_friendly_list() {
 
     while IFS= read -r monitor; do
         if [[ ${providerName} == 'uptimerobot' ]]; then
-            friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            status=$(jq .monitors[].status "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+            IFS=$'\t' read -r friendlyName status < <(jq -r '.monitors[] | [.friendly_name, .status] | @tsv' "${tempDir}${monitor}".txt 2> /dev/null) || fatal
 
             if [[ ${status} == '0' ]]; then
                 friendlyStatus="${ylw}Paused${endColor}"
@@ -796,9 +795,7 @@ create_friendly_list() {
                 friendlyStatus="${red}Down${endColor}"
             fi
         elif [[ ${providerName} == 'statuscake' ]]; then
-            friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            status=$(jq -r .Status "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            paused=$(jq -r .Paused "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+            IFS=$'\t' read -r friendlyName status paused < <(jq -r '[.WebsiteName, .Status, .Paused] | @tsv' "${tempDir}${monitor}".txt 2> /dev/null) || fatal
 
             if [[ ${status} == 'Up' ]] && [[ ${paused} == 'true' ]]; then
                 friendlyStatus="${ylw}Paused (Up)${endColor}"
@@ -811,8 +808,7 @@ create_friendly_list() {
             fi
         elif [[ ${providerName} == 'healthchecks' ]]; then
             cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-            friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-            status=$(jq -r .status "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
+            IFS=$'\t' read -r friendlyName status < <(jq -r '[.name, .status] | @tsv' "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
 
             if [[ ${status} == 'up' ]]; then
                 friendlyStatus="${grn}Up${endColor}"
@@ -888,24 +884,20 @@ get_paused_monitors() {
     else
         while IFS= read -r monitor; do
             if [[ ${providerName} == 'uptimerobot' ]]; then
-                friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                status=$(jq -r .monitors[].status "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+                IFS=$'\t' read -r friendlyName status < <(jq -r '.monitors[] | [.friendly_name, .status] | @tsv' "${tempDir}${monitor}".txt 2> /dev/null) || fatal
 
                 if [[ ${status} == '0' ]]; then
                     echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
                 fi
             elif [[ ${providerName} == 'statuscake' ]]; then
-                friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                status=$(jq -r .Status "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                paused=$(jq -r .Paused "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+                IFS=$'\t' read -r friendlyName status paused < <(jq -r '[.WebsiteName, .Status, .Paused] | @tsv' "${tempDir}${monitor}".txt 2> /dev/null) || fatal
 
                 if [[ ${status} == 'Up' ]] && [[ ${paused} == 'true' ]]; then
                     echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
                 fi
             elif [[ ${providerName} == 'healthchecks' ]]; then
                 cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-                friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-                status=$(jq -r .status "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
+                IFS=$'\t' read -r friendlyName status < <(jq -r '[.name, .status] | @tsv' "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
 
                 if [[ ${status} == 'paused' ]]; then
                     echo -e "${lorg}${friendlyName}${endColor} | ID: ${lblu}${monitor}${endColor}" >> "${pausedMonitorsFile}"
