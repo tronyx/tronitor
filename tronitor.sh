@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2102 # usage() heredoc contains literal "[OPTION]" display text, not a glob
 #
 # Script to utilize the UptimeRobot, StatusCake, and HealthChecks.io APIs to
 # retrieve information on and work with checks you've created.
@@ -275,7 +276,8 @@ get_scriptname() {
     echo "${source}"
 }
 
-readonly scriptname="$(get_scriptname)"
+scriptname="$(get_scriptname)"
+readonly scriptname
 
 # Function to create the directory to neatly store temp files, if it does
 # not exist.
@@ -769,6 +771,7 @@ create_monitor_files() {
         done < "${monitorsFile}"
     elif [[ ${providerName} == 'statuscake' ]]; then
         export apiKey scUsername apiUrl tempDir
+        # shellcheck disable=SC2016 # single quotes intentional: expanded by the bash -c subshell, not this shell
         xargs -P 8 -I{} bash -c 'curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=$1" > "${tempDir}$1".txt' _ {} < "${monitorsFile}" || fatal
     elif [[ ${providerName} == 'healthchecks' ]]; then
         while IFS= read -r monitor; do
@@ -776,6 +779,7 @@ create_monitor_files() {
         done < "${monitorsFile}"
     elif [[ ${providerName} == 'upptime' ]]; then
         export ghToken upRawURL tempDir
+        # shellcheck disable=SC2016 # single quotes intentional: expanded by the bash -c subshell, not this shell
         xargs -P 8 -I{} bash -c 'curl --fail -s -H "Authorization: bearer ${ghToken}" "${upRawURL}master/history/$1.yml" 2> /dev/null > "${tempDir}$1".txt' _ {} < "${monitorsFile}" || fatal
     fi
 }
@@ -1007,7 +1011,7 @@ convert_friendly_monitors() {
             if [[ $(echo "${monitor}" | tr -d ' ') =~ ${uuidPattern} ]]; then
                 echo "${monitor}" >> "${convertedMonitorsFile}"
             else
-                tempCurl=$(curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET ${apiUrl}checks/) || fatal
+                tempCurl=$(curl --fail -s -H "X-Api-Key: ${apiKey}" -X GET "${apiUrl}"checks/) || fatal
                 tempJQ=$(echo "${tempCurl}" | jq -r --arg monitor "${monitor}" '.checks[] | select(.name | match($monitor;"i"))'.ping_url 2> /dev/null) || fatal
                 echo "${tempJQ}" | rev | cut -c1-36 | rev >> "${convertedMonitorsFile}"
             fi
@@ -1202,8 +1206,8 @@ send_notification() {
 
         while IFS= read -r line; do
             ((++count))
-            pausedTests="${pausedTests}{\"name\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 1)\",
-              \"value\": \"$(echo ${line} | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 2)\"}"
+            pausedTests="${pausedTests}{\"name\": \"$(echo "${line}" | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 1)\",
+              \"value\": \"$(echo "${line}" | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | cut -d '|' -f 2)\"}"
 
             if [[ ${count} -ne ${lineCount} ]]; then
                 pausedTests="${pausedTests},"
@@ -1293,15 +1297,15 @@ create_monitor() {
         fi
     elif [[ ${providerName} == 'statuscake' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
+            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat "${newMonitorConfigFile}")" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat ${newMonitorConfigFile})" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" || fatal
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "$(cat "${newMonitorConfigFile}")" --header "Content-Type: application/json" -X PUT "${apiUrl}Tests/Update" || fatal
         fi
     elif [[ ${providerName} == 'healthchecks' ]]; then
         if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" | jq 2> /dev/null || fatal
+            curl -s -X POST "${apiUrl}"checks/ -d "$(cat "${newMonitorConfigFile}")" | jq 2> /dev/null || fatal
         elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST "${apiUrl}"checks/ -d "$(cat ${newMonitorConfigFile})" || fatal
+            curl --fail -s -X POST "${apiUrl}"checks/ -d "$(cat "${newMonitorConfigFile}")" || fatal
         fi
     fi
 
