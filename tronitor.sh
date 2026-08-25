@@ -761,18 +761,23 @@ get_monitors() {
 }
 
 # Function to create individual monitor files.
+# StatusCake and Upptime require one GET per monitor, so those are fetched concurrently.
 create_monitor_files() {
-    while IFS= read -r monitor; do
-        if [[ ${providerName} == 'uptimerobot' ]]; then
+    if [[ ${providerName} == 'uptimerobot' ]]; then
+        while IFS= read -r monitor; do
             jq -r '. | {stat: .stat, pagination: .pagination, monitors: [.monitors[] | select(.id=='"${monitor}"')]} | .pagination.total=1' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=${monitor}" > "${tempDir}${monitor}".txt || fatal
-        elif [[ ${providerName} == 'healthchecks' ]]; then
+        done < "${monitorsFile}"
+    elif [[ ${providerName} == 'statuscake' ]]; then
+        export apiKey scUsername apiUrl tempDir
+        xargs -P 8 -I{} bash -c 'curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -X GET "${apiUrl}Tests/Details/?TestID=$1" > "${tempDir}$1".txt' _ {} < "${monitorsFile}" || fatal
+    elif [[ ${providerName} == 'healthchecks' ]]; then
+        while IFS= read -r monitor; do
             jq --arg monitor "${monitor}" '.checks[] | select(.ping_url | contains($monitor))' "${monitorsFullFile}" > "${tempDir}${monitor}".txt
-        elif [[ ${providerName} == 'upptime' ]]; then
-            curl --fail -s -H "Authorization: bearer ${ghToken}" "${upRawURL}master/history/${monitor}.yml" 2> /dev/null > "${tempDir}${monitor}".txt || fatal
-        fi
-    done < <(cat "${monitorsFile}")
+        done < "${monitorsFile}"
+    elif [[ ${providerName} == 'upptime' ]]; then
+        export ghToken upRawURL tempDir
+        xargs -P 8 -I{} bash -c 'curl --fail -s -H "Authorization: bearer ${ghToken}" "${upRawURL}master/history/$1.yml" 2> /dev/null > "${tempDir}$1".txt' _ {} < "${monitorsFile}" || fatal
+    fi
 }
 
 # Function to create friendly output of all monitors.
@@ -1018,6 +1023,46 @@ convert_friendly_monitors() {
     fi
 }
 
+# Function to pause a single monitor for the current provider.
+# lockFile: healthchecks-specific lock file to (re)create; ignored for other providers.
+pause_monitor() {
+    local monitor="$1"
+    local lockFile="$2"
+
+    if [[ ${providerName} == 'uptimerobot' ]]; then
+        friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+        echo "Pausing ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
+        fi
+    elif [[ ${providerName} == 'statuscake' ]]; then
+        friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+        echo "Pausing ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" || fatal
+        fi
+    elif [[ ${providerName} == 'healthchecks' ]]; then
+        cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
+        friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
+        true > "${lockFile}"
+        echo "Pausing ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" || fatal
+        fi
+    fi
+
+    echo ''
+}
+
 # Function to pause all monitors.
 pause_all_monitors() {
     if [[ ${providerName} == 'upptime' ]]; then
@@ -1032,49 +1077,16 @@ pause_all_monitors() {
         fi
     else
         while IFS= read -r monitor; do
-            if [[ ${providerName} == 'uptimerobot' ]]; then
-                friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                echo "Pausing ${friendlyName}:"
-
-                if [[ ${jq} == 'true' ]]; then
-                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
-                elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
-                fi
-            elif [[ ${providerName} == 'statuscake' ]]; then
-                friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                echo "Pausing ${friendlyName}:"
-
-                if [[ ${jq} == 'true' ]]; then
-                    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
-                elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" || fatal
-                fi
-            elif [[ ${providerName} == 'healthchecks' ]]; then
-                cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-                friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-                true > "${healthchecksLockFile}"
-                echo "Pausing ${friendlyName}:"
-
-                if [[ ${jq} == 'true' ]]; then
-                    curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq 2> /dev/null || fatal
-                elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" || fatal
-                fi
-            fi
-
-            echo ''
-
-        done < <(cat "${monitorsFile}")
+            pause_monitor "${monitor}" "${healthchecksLockFile}"
+        done < "${monitorsFile}"
     fi
+
     if [[ ${providerName} == 'healthchecks' ]]; then
         echo ''
         echo -e "${ylw}**NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for${endColor}"
         echo -e "${ylw}the HC.io monitors, or work with the created lock file, all paused monitors will become${endColor}"
         echo -e "${ylw}active again the next time they receive a ping.${endColor}"
         echo ''
-    else
-        :
     fi
 }
 
@@ -1090,39 +1102,7 @@ pause_specified_monitors() {
     fi
 
     while IFS= read -r monitor; do
-        if [[ ${providerName} == 'uptimerobot' ]]; then
-            friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Pausing ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=0" || fatal
-            fi
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Pausing ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=1" -X PUT "${apiUrl}Tests/Update" || fatal
-            fi
-        elif [[ ${providerName} == 'healthchecks' ]]; then
-            cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-            friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-            true > "${tempDir}${monitor}".lock
-            echo "Pausing ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s "${apiUrl}checks/${monitor}"/pause -X POST -H "X-Api-Key: ${apiKey}" --data "" || fatal
-            fi
-        fi
-
-        echo ''
-
+        pause_monitor "${monitor}" "${tempDir}${monitor}.lock"
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 
     if [[ ${providerName} == 'healthchecks' ]]; then
@@ -1131,6 +1111,56 @@ pause_specified_monitors() {
         echo -e "${ylw}the HC.io monitors, all paused monitors will become active again the next time they receive a ping.${endColor}"
         echo ''
     fi
+}
+
+# Function to unpause a single monitor for the current provider.
+# lockMode: 'all' clears the shared + per-monitor lock files, 'specified' clears this
+# monitor's lock file, 'none' skips lock cleanup (used by the post-find unpause prompt).
+unpause_monitor() {
+    local monitor="$1"
+    local lockMode="$2"
+
+    if [[ ${providerName} == 'uptimerobot' ]]; then
+        friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+        echo "Unpausing ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
+        fi
+    elif [[ ${providerName} == 'statuscake' ]]; then
+        friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+        echo "Unpausing ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || fatal
+        fi
+    elif [[ ${providerName} == 'healthchecks' ]]; then
+        cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
+        friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
+        pingURL=$(jq -r .ping_url "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
+
+        if [[ ${lockMode} == 'all' ]]; then
+            rm -f "${healthchecksLockFile}"
+            rm -f "${tempDir}"*.lock
+        elif [[ ${lockMode} == 'specified' ]]; then
+            rm -f "${tempDir}${monitor}".lock
+        fi
+
+        echo "Unpausing ${friendlyName} by sending a ping:"
+        pingResponse=$(curl -fsS --retry 3 "${pingURL}")
+
+        if [[ ${pingResponse} == 'OK' ]]; then
+            echo -e "${grn}Success!${endColor}"
+        else
+            echo -e "${red}Unable to unpause ${friendlyName}!${endColor}"
+        fi
+    fi
+
+    echo ''
 }
 
 # Function to unpause all monitors.
@@ -1142,43 +1172,8 @@ unpause_all_monitors() {
         echo ''
     else
         while IFS= read -r monitor; do
-            if [[ ${providerName} == 'uptimerobot' ]]; then
-                friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                echo "Unpausing ${friendlyName}:"
-
-                if [[ ${jq} == 'true' ]]; then
-                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
-                elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
-                fi
-            elif [[ ${providerName} == 'statuscake' ]]; then
-                friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                echo "Unpausing ${friendlyName}:"
-
-                if [[ ${jq} == 'true' ]]; then
-                    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
-                elif [[ ${jq} == 'false' ]]; then
-                    curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || fatal
-                fi
-            elif [[ ${providerName} == 'healthchecks' ]]; then
-                cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-                friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-                pingURL=$(jq -r .ping_url "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-                rm -f "${healthchecksLockFile}"
-                rm -f "${tempDir}"*.lock
-                echo "Unpausing ${friendlyName} by sending a ping:"
-                pingResponse=$(curl -fsS --retry 3 "${pingURL}")
-
-                if [[ ${pingResponse} == 'OK' ]]; then
-                    echo -e "${grn}Success!${endColor}"
-                else
-                    echo -e "${red}Unable to unpause ${friendlyName}!${endColor}"
-                fi
-            fi
-
-            echo ''
-
-        done < <(cat "${monitorsFile}")
+            unpause_monitor "${monitor}" 'all'
+        done < "${monitorsFile}"
     fi
 }
 
@@ -1194,41 +1189,7 @@ unpause_specified_monitors() {
     fi
 
     while IFS= read -r monitor; do
-        if [[ ${providerName} == 'uptimerobot' ]]; then
-            friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Unpausing ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
-            fi
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Unpausing ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || fatal
-            fi
-        elif [[ ${providerName} == 'healthchecks' ]]; then
-            cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-            friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-            pingURL=$(jq -r .ping_url "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-            rm -f "${tempDir}${monitor}".lock
-            echo "Unpausing ${friendlyName} by sending a ping:"
-            pingResponse=$(curl -fsS --retry 3 "${pingURL}")
-
-            if [[ ${pingResponse} == 'OK' ]]; then
-                echo -e "${grn}Success!${endColor}"
-            else
-                echo -e "${red}Unable to unpause ${friendlyName}!${endColor}"
-            fi
-        fi
-
-        echo ''
-
+        unpause_monitor "${monitor}" 'specified'
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
@@ -1439,23 +1400,29 @@ reset_prompt() {
     fi
 }
 
+# Function to reset a single monitor. Only UptimeRobot supports this action.
+_reset_monitor() {
+    local monitor="$1"
+
+    friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+    echo "Resetting ${friendlyName}:"
+
+    if [[ ${jq} == 'true' ]]; then
+        curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+    elif [[ ${jq} == 'false' ]]; then
+        curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+    fi
+
+    echo ''
+}
+
 # Function to reset all monitors.
 reset_all_monitors() {
     reset_prompt
 
     while IFS= read -r monitor; do
-        friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-        echo "Resetting ${friendlyName}:"
-
-        if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
-        elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
-        fi
-
-        echo ''
-
-    done < <(cat "${monitorsFile}")
+        _reset_monitor "${monitor}"
+    done < "${monitorsFile}"
 }
 
 # Function to reset specified monitors.
@@ -1472,16 +1439,7 @@ reset_specified_monitors() {
     reset_prompt
 
     while IFS= read -r monitor; do
-        friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-        echo "Resetting ${friendlyName}:"
-
-        if [[ ${jq} == 'true' ]]; then
-            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
-        elif [[ ${jq} == 'false' ]]; then
-            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"resetMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
-        fi
-        echo ''
-
+        _reset_monitor "${monitor}"
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
@@ -1508,44 +1466,50 @@ delete_prompt() {
     fi
 }
 
+# Function to delete a single monitor for the current provider.
+_delete_monitor() {
+    local monitor="$1"
+
+    if [[ ${providerName} == 'uptimerobot' ]]; then
+        friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+        echo "Deleting ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
+        fi
+    elif [[ ${providerName} == 'statuscake' ]]; then
+        friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
+        echo "Deleting ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" || fatal
+        fi
+    elif [[ ${providerName} == 'healthchecks' ]]; then
+        cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
+        friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
+        echo "Deleting ${friendlyName}:"
+
+        if [[ ${jq} == 'true' ]]; then
+            curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq 2> /dev/null || fatal
+        elif [[ ${jq} == 'false' ]]; then
+            curl --fail -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" || fatal
+        fi
+    fi
+
+    echo ''
+}
+
 # Function to delete all monitors.
 delete_all_monitors() {
     delete_prompt
 
     while IFS= read -r monitor; do
-        if [[ ${providerName} == 'uptimerobot' ]]; then
-            friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Deleting ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
-            fi
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Deleting ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" || fatal
-            fi
-        elif [[ ${providerName} == 'healthchecks' ]]; then
-            cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-            friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-            echo "Deleting ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" || fatal
-            fi
-        fi
-
-        echo ''
-
-    done < <(cat "${monitorsFile}")
+        _delete_monitor "${monitor}"
+    done < "${monitorsFile}"
 }
 
 # Function to delete specified monitors.
@@ -1562,38 +1526,7 @@ delete_specified_monitors() {
     delete_prompt
 
     while IFS= read -r monitor; do
-        if [[ ${providerName} == 'uptimerobot' ]]; then
-            friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Deleting ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"deleteMonitor -d "api_key=${apiKey}" -d "id=${monitor}" || fatal
-            fi
-        elif [[ ${providerName} == 'statuscake' ]]; then
-            friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-            echo "Deleting ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -X DELETE "${apiUrl}Tests/Details/?TestID=${monitor}" || fatal
-            fi
-        elif [[ ${providerName} == 'healthchecks' ]]; then
-            cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-            friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-            echo "Deleting ${friendlyName}:"
-
-            if [[ ${jq} == 'true' ]]; then
-                curl -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" | jq 2> /dev/null || fatal
-            elif [[ ${jq} == 'false' ]]; then
-                curl --fail -s "${apiUrl}checks/${monitor}" -X DELETE -H "X-Api-Key: ${apiKey}" || fatal
-            fi
-        fi
-
-        echo ''
-
+        _delete_monitor "${monitor}"
     done < <(sed 's/\x1B\[[0-9;]*[JKmsu]//g' "${convertedMonitorsFile}")
 }
 
@@ -1632,40 +1565,7 @@ main() {
                         echo ''
                     else
                         while IFS= read -r monitor; do
-                            if [[ ${providerName} == 'uptimerobot' ]]; then
-                                friendlyName=$(jq -r .monitors[].friendly_name "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                                echo "Unpausing ${friendlyName}:"
-
-                                if [[ ${jq} == 'true' ]]; then
-                                    curl -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" | jq 2> /dev/null || fatal
-                                elif [[ ${jq} == 'false' ]]; then
-                                    curl --fail -s -X POST -H "Content-Type: application/x-www-form-urlencoded" -H "Cache-Control: no-cache" "${apiUrl}"editMonitor -d "api_key=${apiKey}" -d "id=${monitor}" -d "status=1" || fatal
-                                fi
-                            elif [[ ${providerName} == 'statuscake' ]]; then
-                                friendlyName=$(jq -r .WebsiteName "${tempDir}${monitor}".txt 2> /dev/null) || fatal
-                                echo "Unpausing ${friendlyName}:"
-
-                                if [[ ${jq} == 'true' ]]; then
-                                    curl -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" | jq 2> /dev/null || fatal
-                                elif [[ ${jq} == 'false' ]]; then
-                                    curl --fail -s -H "API: ${apiKey}" -H "Username: ${scUsername}" -d "TestID=${monitor}" -d "Paused=0" -X PUT "${apiUrl}Tests/Update" || fatal
-                                fi
-                            elif [[ ${providerName} == 'healthchecks' ]]; then
-                                cp "${tempDir}${monitor}".txt "${tempDir}${monitor}"_short.txt
-                                friendlyName=$(jq -r .name "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-                                pingURL=$(jq -r .ping_url "${tempDir}${monitor}"_short.txt 2> /dev/null) || fatal
-                                echo "Unpausing ${friendlyName} by sending a ping:"
-                                pingResponse=$(curl -fsS --retry 3 "${pingURL}")
-
-                                if [[ ${pingResponse} == 'OK' ]]; then
-                                    echo -e "${grn}Success!${endColor}"
-                                else
-                                    echo -e "${red}Unable to unpause ${friendlyName}!${endColor}"
-                                fi
-                            fi
-
-                            echo ''
-
+                            unpause_monitor "${monitor}" 'none'
                         done < <(awk -F: '{print $2}' "${pausedMonitorsFile}" | sed 's/\x1B\[[0-9;]*[JKmsu]//g' | tr -d ' ')
                     fi
                 elif [[ ${unpausePrompt} =~ ^(No|no|N|n)$ ]]; then
