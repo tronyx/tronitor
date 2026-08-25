@@ -115,7 +115,7 @@ If you use the alert option, be sure to also enter in your Discord/Slack webhook
 
 The `-m/--monitor` option accepts both full and shorthand versions of the provider's name:
 
-```json
+```bash
 tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -l
 tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -l
 tronyx@suladan:~/tronitor$ ./tronitor.sh -m statuscake -l
