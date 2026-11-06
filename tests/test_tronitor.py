@@ -7,6 +7,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from conftest import HC_UUID_DATABASE, HC_UUID_FILESYSTEM, hc_fixture_checks
 from fake_server import FakeServer
 
 import tronitor
@@ -476,3 +477,128 @@ def test_fake_server_records_query_and_filters_requests(fake_server: FakeServer)
     assert fake_server.requests[0].path == "/a"
     assert [r.body for r in fake_server.requests_for("POST", "/a")] == [{"k": "v"}]
     assert fake_server.requests_for("GET", "/b") == []
+
+
+def test_hc_list_monitors_maps_uuid_name_status(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """list_monitors maps each check to a Monitor and sends the API key."""
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": hc_fixture_checks()})
+    monitors = hc_provider.list_monitors()
+    assert [(m.id, m.name, m.status) for m in monitors] == [
+        (HC_UUID_FILESYSTEM, "Filesystem Backup", "up"),
+        (HC_UUID_DATABASE, "Database Backup", "paused"),
+    ]
+    assert monitors[0].raw == hc_fixture_checks()[0]
+    assert fake_server.requests[0].headers["X-Api-Key"] == "hc-test-key"
+
+
+def test_hc_read_only_key_is_rejected(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
+    """Checks without a uuid (a read-only key) raise a clear error."""
+    checks = [{"name": "Filesystem Backup", "status": "up", "unique_key": "abc"}]
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": checks})
+    with pytest.raises(
+        tronitor.ProviderError, match="the Healthchecks API key is read-only; tronitor needs a read-write key"
+    ):
+        hc_provider.list_monitors()
+
+
+def test_hc_pause_posts_to_pause_url(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
+    """pause posts an empty JSON body to the pause path."""
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}/pause", 200, {"status": "paused"})
+    hc_provider.pause(tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {}))
+    request = fake_server.requests[0]
+    assert (request.method, request.path, request.body) == ("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}/pause", {})
+    assert request.headers["X-Api-Key"] == "hc-test-key"
+    assert request.headers["Content-Type"] == "application/json"
+
+
+def test_hc_unpause_posts_to_resume_and_accepts_409(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """unpause posts to the resume path; 409 (not paused) is not an error."""
+    path = f"/api/v3/checks/{HC_UUID_DATABASE}/resume"
+    monitor = tronitor.Monitor(HC_UUID_DATABASE, "Database Backup", "paused", {})
+    fake_server.add("POST", path, 200, {"status": "new"}, once=True)
+    fake_server.add("POST", path, 409, {"error": "not paused"})
+    hc_provider.unpause(monitor)
+    hc_provider.unpause(monitor)
+    requests = fake_server.requests_for("POST", path)
+    assert len(requests) == 2
+    assert requests[0].body == {}
+    assert requests[0].headers["X-Api-Key"] == "hc-test-key"
+
+
+def test_hc_unpause_raises_on_other_errors(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
+    """unpause raises ProviderError for an error other than 409."""
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_DATABASE}/resume", 404, {"error": "not found"})
+    with pytest.raises(tronitor.ProviderError) as e:
+        hc_provider.unpause(tronitor.Monitor(HC_UUID_DATABASE, "Database Backup", "paused", {}))
+    assert e.value.status == 404
+
+
+def test_hc_info_alerts_create_delete_hit_the_right_paths(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """info, alert_contacts, create and delete use the documented methods and paths and return the body."""
+    check = hc_fixture_checks()[0]
+    channels = [{"id": "c1", "name": "Email", "kind": "email"}]
+    payload = {"name": "New", "timeout": 3600}
+    fake_server.add("GET", f"/api/v3/checks/{HC_UUID_FILESYSTEM}", 200, check)
+    fake_server.add("GET", "/api/v3/channels/", 200, {"channels": channels})
+    fake_server.add("POST", "/api/v3/checks/", 201, check)
+    fake_server.add("DELETE", f"/api/v3/checks/{HC_UUID_FILESYSTEM}", 200, check)
+    monitor = tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", check)
+    assert hc_provider.info(monitor) == check
+    assert hc_provider.alert_contacts() == channels
+    assert hc_provider.create(payload) == check
+    assert hc_provider.delete(monitor) is None
+    seen = [(r.method, r.path) for r in fake_server.requests]
+    assert seen == [
+        ("GET", f"/api/v3/checks/{HC_UUID_FILESYSTEM}"),
+        ("GET", "/api/v3/channels/"),
+        ("POST", "/api/v3/checks/"),
+        ("DELETE", f"/api/v3/checks/{HC_UUID_FILESYSTEM}"),
+    ]
+    assert all(r.headers["X-Api-Key"] == "hc-test-key" for r in fake_server.requests)
+    assert fake_server.requests[2].body == payload
+
+
+def test_hc_stats_and_reset_are_unsupported(hc_provider: tronitor.HealthchecksProvider) -> None:
+    """stats and reset raise Unsupported for Healthchecks."""
+    with pytest.raises(tronitor.Unsupported, match="Healthchecks does not support stats"):
+        hc_provider.stats()
+    monitor = tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {})
+    with pytest.raises(tronitor.Unsupported, match="Healthchecks does not support reset"):
+        hc_provider.reset(monitor)
+
+
+def test_hc_is_id_matches_uuids_only() -> None:
+    """is_id accepts UUIDs in either case and rejects names."""
+    assert tronitor.HealthchecksProvider.is_id(HC_UUID_FILESYSTEM)
+    assert tronitor.HealthchecksProvider.is_id(HC_UUID_FILESYSTEM.upper())
+    assert not tronitor.HealthchecksProvider.is_id("Plex")
+
+
+@pytest.mark.parametrize(
+    "body",
+    [None, {"items": []}, {"checks": [{"uuid": HC_UUID_FILESYSTEM, "status": "up"}]}],
+    ids=["no body", "no checks key", "check without name"],
+)
+def test_hc_unexpected_response_shape_is_a_provider_error(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer, body: object
+) -> None:
+    """A 200 with a body of the wrong shape raises ProviderError, not TypeError or KeyError."""
+    fake_server.add("GET", "/api/v3/checks/", 200, body)
+    with pytest.raises(tronitor.ProviderError, match="unexpected response from Healthchecks"):
+        hc_provider.list_monitors()
+
+
+def test_hc_info_with_empty_body_is_a_provider_error(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """info raises ProviderError when the 200 response has no body."""
+    fake_server.add("GET", f"/api/v3/checks/{HC_UUID_FILESYSTEM}", 200)
+    monitor = tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {})
+    with pytest.raises(tronitor.ProviderError, match="unexpected response from Healthchecks"):
+        hc_provider.info(monitor)

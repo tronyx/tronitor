@@ -10,6 +10,7 @@ import difflib
 import http.client
 import json
 import os
+import re
 import sys
 import tempfile
 import tomllib
@@ -353,6 +354,153 @@ class Http:
     def _host(req: urllib.request.Request) -> str:
         """Return the host (and port) of a request's URL."""
         return urllib.parse.urlsplit(req.full_url).netloc
+
+
+"""Providers: one class per monitoring service, each turning its records into Monitor objects."""
+
+PAUSED = "paused"
+UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+
+
+@dataclass(frozen=True)
+class Monitor:
+    """One monitor: its ID, name, status and the provider's raw record.
+
+    The status is one of "up", "down", "paused", "grace", "new", "pending" or "seems down".
+    """
+
+    id: str
+    name: str
+    status: str
+    raw: dict[str, Any]
+
+
+class Unsupported(ProviderError):
+    """The provider does not offer the requested action."""
+
+
+def _expect_dict(value: object, label: str) -> dict[str, Any]:
+    """Return value if it is a dict, else raise ProviderError for an unexpected response from label."""
+    if not isinstance(value, dict):
+        raise ProviderError(f"unexpected response from {label}")
+    return value
+
+
+def _expect_list(value: object, label: str) -> list[Any]:
+    """Return value if it is a list, else raise ProviderError for an unexpected response from label."""
+    if not isinstance(value, list):
+        raise ProviderError(f"unexpected response from {label}")
+    return value
+
+
+class Provider:
+    """The interface every monitoring service implements."""
+
+    label = ""
+    id_kind = ""
+    supports_lock_files = False
+
+    def list_monitors(self) -> list[Monitor]:
+        """Return every monitor in the account."""
+        raise NotImplementedError
+
+    def pause(self, monitor: Monitor) -> None:
+        """Pause a monitor."""
+        raise NotImplementedError
+
+    def unpause(self, monitor: Monitor) -> None:
+        """Unpause a monitor; a monitor that is already running is not an error."""
+        raise NotImplementedError
+
+    def info(self, monitor: Monitor) -> dict[str, Any]:
+        """Return the provider's full record for a monitor."""
+        raise NotImplementedError
+
+    def alert_contacts(self) -> list[dict[str, Any]]:
+        """Return the account's alert contacts (notification channels)."""
+        raise NotImplementedError
+
+    def create(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create a monitor from a provider-specific payload and return the new record."""
+        raise NotImplementedError
+
+    def delete(self, monitor: Monitor) -> None:
+        """Delete a monitor."""
+        raise NotImplementedError
+
+    def stats(self) -> dict[str, Any]:
+        """Return account statistics; most providers do not offer them."""
+        raise Unsupported(f"{self.label} does not support stats")
+
+    def reset(self, monitor: Monitor) -> None:
+        """Reset a monitor's statistics; most providers do not offer this."""
+        raise Unsupported(f"{self.label} does not support reset")
+
+    @staticmethod
+    def is_id(text: str) -> bool:
+        """Return True if text looks like this provider's monitor ID."""
+        return False
+
+
+class HealthchecksProvider(Provider):
+    """Healthchecks API v3."""
+
+    label = "Healthchecks"
+    id_kind = "UUID"
+    supports_lock_files = True
+
+    def __init__(self, http: Http, config: HealthchecksConfig) -> None:
+        self._http = http
+        self._api = f"{config.url}/api/v3"
+        self._headers = {"X-Api-Key": config.api_key}
+
+    def list_monitors(self) -> list[Monitor]:
+        """Return every check; a read-only API key (checks without a uuid) raises ProviderError."""
+        body = _expect_dict(self._http.request("GET", f"{self._api}/checks/", headers=self._headers).json, self.label)
+        checks = [_expect_dict(check, self.label) for check in _expect_list(body.get("checks"), self.label)]
+        if any(c.get("name") is None or c.get("status") is None for c in checks):
+            raise ProviderError(f"unexpected response from {self.label}")
+        if any("uuid" not in check for check in checks):
+            raise ProviderError("the Healthchecks API key is read-only; tronitor needs a read-write key")
+        return [Monitor(id=c["uuid"], name=c["name"], status=c["status"], raw=c) for c in checks]
+
+    def pause(self, monitor: Monitor) -> None:
+        """Pause a check."""
+        self._http.request("POST", f"{self._api}/checks/{monitor.id}/pause", headers=self._headers, json_body={})
+
+    def unpause(self, monitor: Monitor) -> None:
+        """Resume a check; 409 means it was not paused, which is fine."""
+        self._http.request(
+            "POST",
+            f"{self._api}/checks/{monitor.id}/resume",
+            headers=self._headers,
+            json_body={},
+            allow_statuses=(409,),
+        )
+
+    def info(self, monitor: Monitor) -> dict[str, Any]:
+        """Return the full record of a check."""
+        response = self._http.request("GET", f"{self._api}/checks/{monitor.id}", headers=self._headers)
+        return _expect_dict(response.json, self.label)
+
+    def alert_contacts(self) -> list[dict[str, Any]]:
+        """Return the account's integrations (channels)."""
+        body = _expect_dict(self._http.request("GET", f"{self._api}/channels/", headers=self._headers).json, self.label)
+        return [_expect_dict(channel, self.label) for channel in _expect_list(body.get("channels"), self.label)]
+
+    def create(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create a check and return it."""
+        response = self._http.request("POST", f"{self._api}/checks/", headers=self._headers, json_body=payload)
+        return _expect_dict(response.json, self.label)
+
+    def delete(self, monitor: Monitor) -> None:
+        """Delete a check."""
+        self._http.request("DELETE", f"{self._api}/checks/{monitor.id}", headers=self._headers)
+
+    @staticmethod
+    def is_id(text: str) -> bool:
+        """Return True if text is a UUID."""
+        return bool(UUID_RE.match(text))
 
 
 def build_parser() -> argparse.ArgumentParser:
