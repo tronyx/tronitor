@@ -602,3 +602,93 @@ def test_hc_info_with_empty_body_is_a_provider_error(
     monitor = tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {})
     with pytest.raises(tronitor.ProviderError, match="unexpected response from Healthchecks"):
         hc_provider.info(monitor)
+
+
+MONS = [
+    tronitor.Monitor("1", "Plex", "up", {}),
+    tronitor.Monitor("2", "Sonarr", "paused", {}),
+    tronitor.Monitor("3", "sonarr", "up", {}),
+    tronitor.Monitor("4", "Radarr, 4K", "up", {}),
+]
+
+
+def test_split_selection_handles_quotes_spaces_and_all() -> None:
+    """Items are split on commas, trimmed and unquoted; a lone "all" in any case becomes ["all"]."""
+    assert tronitor.split_selection(" 'Plex', \"Tautulli\" ,18095689") == ["Plex", "Tautulli", "18095689"]
+    assert tronitor.split_selection("ALL") == ["all"]
+    assert tronitor.split_selection("Plex,,  ,") == ["Plex"]
+    assert tronitor.split_selection("all,Plex") == ["all", "Plex"]
+
+
+def test_select_all_returns_everything_in_order() -> None:
+    """The item "all" matches every monitor in the provider's order."""
+    selection = tronitor.select_monitors(MONS, ["all"], str.isdigit)
+    assert selection.matched == MONS
+    assert selection.ok
+
+
+def test_select_by_name_is_exact_and_case_insensitive() -> None:
+    """Names match whole and ignoring case; a partial name is unmatched."""
+    assert tronitor.select_monitors(MONS, ["plex"], str.isdigit).matched == [MONS[0]]
+    selection = tronitor.select_monitors(MONS, ["ple"], str.isdigit)
+    assert selection.matched == []
+    assert selection.unmatched == ["ple"]
+    assert not selection.ok
+
+
+def test_select_by_id() -> None:
+    """An item that looks like an ID matches on the ID, not the name."""
+    selection = tronitor.select_monitors(MONS, ["2", "9"], str.isdigit)
+    assert selection.matched == [MONS[1]]
+    assert selection.unmatched == ["9"]
+
+
+def test_id_match_is_case_insensitive() -> None:
+    """UUIDs typed in upper case still match."""
+    uuid = "abcdef12-0000-0000-0000-000000000000"
+    mons = [tronitor.Monitor(uuid, "X", "up", {})]
+    selection = tronitor.select_monitors(mons, [uuid.upper()], tronitor.HealthchecksProvider.is_id)
+    assert selection.matched == mons
+
+
+def test_duplicate_items_match_once() -> None:
+    """The same monitor named by name and by ID appears once."""
+    selection = tronitor.select_monitors(MONS, ["Plex", "1"], str.isdigit)
+    assert selection.matched == [MONS[0]]
+
+
+def test_ambiguous_name_is_reported_with_ids() -> None:
+    """A name shared by several monitors is ambiguous and the message lists their IDs."""
+    selection = tronitor.select_monitors(MONS, ["Sonarr"], str.isdigit)
+    assert selection.matched == []
+    assert selection.ambiguous == {"Sonarr": [MONS[1], MONS[2]]}
+    assert not selection.ok
+    text = tronitor.describe_selection_problems(selection, MONS, "ID")
+    assert text == '"Sonarr" matches 2 monitors; use the ID instead:\n  Sonarr (ID 2)\n  sonarr (ID 3)'
+
+
+def test_unmatched_is_reported_and_comma_names_get_the_hint() -> None:
+    """Pieces of a name containing a comma are unmatched and the message explains why."""
+    items = tronitor.split_selection('"Radarr, 4K"')
+    selection = tronitor.select_monitors(MONS, items, str.isdigit)
+    assert selection.unmatched == ["Radarr", "4K"]
+    text = tronitor.describe_selection_problems(selection, MONS, "ID")
+    assert text == "Not found: Radarr\nNot found: 4K\nNames with commas cannot be selected; use the ID instead."
+
+
+def test_split_selection_drops_a_stray_quote() -> None:
+    """A quoted name containing a comma is split in two; the leftover quote characters are removed."""
+    assert tronitor.split_selection('"Radarr, 4K"') == ["Radarr", "4K"]
+
+
+def test_prefix_of_another_name_gets_no_hint() -> None:
+    """An unmatched item that merely starts a longer name (no comma) does not trigger the comma hint."""
+    mons = [tronitor.Monitor("1", "Plex Media Server", "up", {})]
+    selection = tronitor.select_monitors(mons, ["Plex"], str.isdigit)
+    assert tronitor.describe_selection_problems(selection, mons, "ID") == "Not found: Plex"
+
+
+def test_unmatched_without_a_name_prefix_has_no_hint() -> None:
+    """The comma hint only appears when an unmatched item starts a monitor name."""
+    selection = tronitor.select_monitors(MONS, ["Nope"], str.isdigit)
+    assert tronitor.describe_selection_problems(selection, MONS, "ID") == "Not found: Nope"

@@ -503,6 +503,71 @@ class HealthchecksProvider(Provider):
         return bool(UUID_RE.match(text))
 
 
+"""Selection: which monitors an action applies to."""
+
+
+def split_selection(text: str) -> list[str]:
+    """Split a comma-separated selection into items, or return ["all"] for the single item all."""
+    items = []
+    for part in text.split(","):
+        item = part.strip()
+        if len(item) >= 2 and item[0] == item[-1] and item[0] in "'\"":
+            item = item[1:-1].strip()
+        else:
+            item = item.removeprefix('"').removeprefix("'").removesuffix('"').removesuffix("'").strip()
+        if item:
+            items.append(item)
+    if len(items) == 1 and items[0].casefold() == "all":
+        return ["all"]
+    return items
+
+
+@dataclass
+class Selection:
+    """The outcome of matching the user's items against the provider's monitors."""
+
+    matched: list[Monitor]
+    unmatched: list[str]
+    ambiguous: dict[str, list[Monitor]]
+
+    @property
+    def ok(self) -> bool:
+        """Return True if every item matched exactly one monitor."""
+        return not self.unmatched and not self.ambiguous
+
+
+def select_monitors(monitors: Sequence[Monitor], items: Sequence[str], is_id: Callable[[str], bool]) -> Selection:
+    """Match items against monitors by ID or by exact, case-insensitive name."""
+    if list(items) == ["all"]:
+        return Selection(matched=list(monitors), unmatched=[], ambiguous={})
+    selection = Selection(matched=[], unmatched=[], ambiguous={})
+    for item in items:
+        wanted = item.casefold()
+        if is_id(item):
+            found = [m for m in monitors if m.id.casefold() == wanted]
+        else:
+            found = [m for m in monitors if m.name.casefold() == wanted]
+        if not found:
+            selection.unmatched.append(item)
+        elif len(found) > 1:
+            selection.ambiguous[item] = found
+        elif found[0] not in selection.matched:
+            selection.matched.append(found[0])
+    return selection
+
+
+def describe_selection_problems(selection: Selection, monitors: Sequence[Monitor], id_kind: str) -> str:
+    """Describe the items that were not found or matched several monitors."""
+    lines = [f"Not found: {item}" for item in selection.unmatched]
+    for item, found in selection.ambiguous.items():
+        lines.append(f'"{item}" matches {len(found)} monitors; use the {id_kind} instead:')
+        lines.extend(f"  {m.name} ({id_kind} {m.id})" for m in found)
+    names = [m.name.casefold() for m in monitors]
+    if any(name.startswith(item.casefold() + ",") for item in selection.unmatched for name in names):
+        lines.append(f"Names with commas cannot be selected; use the {id_kind} instead.")
+    return "\n".join(lines)
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line parser."""
     parser = argparse.ArgumentParser(prog="tronitor")
