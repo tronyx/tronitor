@@ -17,7 +17,7 @@ import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable, Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -566,6 +566,92 @@ def describe_selection_problems(selection: Selection, monitors: Sequence[Monitor
     if any(name.startswith(item.casefold() + ",") for item in selection.unmatched for name in names):
         lines.append(f"Names with commas cannot be selected; use the {id_kind} instead.")
     return "\n".join(lines)
+
+
+"""Lock files: how a paused Healthchecks check keeps the pinging script quiet."""
+
+
+class LockError(Exception):
+    """The lock directory cannot be used."""
+
+
+class LockFiles:
+    """Create and remove the lock files that the HealthChecks-Linux pinging script looks for."""
+
+    ALL_NAME = "healthchecks.lock"
+
+    def __init__(self, lock_dir: Path) -> None:
+        self.lock_dir = lock_dir
+
+    def path_for(self, monitor_id: str) -> Path:
+        """Return the path of the lock file for one monitor."""
+        return self.lock_dir / f"{monitor_id}.lock"
+
+    def prepare(self) -> None:
+        """Create the lock directory if needed and check that files can be written to it."""
+        if self.lock_dir.exists() and not self.lock_dir.is_dir():
+            raise LockError(f"{self.lock_dir} is not a directory")
+        try:
+            self.lock_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise LockError(f"cannot create {self.lock_dir}: {exc.strerror or exc}") from exc
+        probe = self.lock_dir / f".tronitor-write-test-{os.getpid()}"
+        try:
+            probe.touch()
+            probe.unlink(missing_ok=True)
+        except OSError as exc:
+            raise LockError(f"cannot write to {self.lock_dir}: {exc.strerror or exc}") from exc
+
+    def lock_all(self) -> Path:
+        """Create the lock file that makes the pinging script skip every check."""
+        return self._create(self.lock_dir / self.ALL_NAME)
+
+    def lock(self, monitor_id: str) -> Path:
+        """Create the lock file that makes the pinging script skip one check."""
+        return self._create(self.path_for(monitor_id))
+
+    def unlock_all(self, monitor_ids: Iterable[str]) -> list[Path]:
+        """Remove healthchecks.lock and the lock file of each given ID; return the paths removed."""
+        removed = []
+        if self._remove(self.lock_dir / self.ALL_NAME):
+            removed.append(self.lock_dir / self.ALL_NAME)
+        for monitor_id in monitor_ids:
+            if self.unlock(monitor_id):
+                removed.append(self.path_for(monitor_id))
+        return removed
+
+    def unlock(self, monitor_id: str) -> bool:
+        """Remove the lock file of one monitor; return True if there was one."""
+        return self._remove(self.path_for(monitor_id))
+
+    def is_locked(self, monitor_id: str) -> bool:
+        """Return True if the monitor has a lock file."""
+        return self.path_for(monitor_id).exists()
+
+    @property
+    def all_locked(self) -> bool:
+        """Return True if healthchecks.lock exists."""
+        return (self.lock_dir / self.ALL_NAME).exists()
+
+    @staticmethod
+    def _create(path: Path) -> Path:
+        """Create the empty file at path and return it; failure raises LockError."""
+        try:
+            path.touch()
+        except OSError as exc:
+            raise LockError(f"cannot create {path}: {exc.strerror or exc}") from exc
+        return path
+
+    @staticmethod
+    def _remove(path: Path) -> bool:
+        """Delete path; return True if this call removed it, False if there was none."""
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            return False
+        except OSError as exc:
+            raise LockError(f"cannot remove {path}: {exc.strerror or exc}") from exc
+        return True
 
 
 def build_parser() -> argparse.ArgumentParser:

@@ -1,5 +1,6 @@
 """Unit tests for the tronitor module."""
 
+import os
 import re
 import socket
 import sys
@@ -692,3 +693,82 @@ def test_unmatched_without_a_name_prefix_has_no_hint() -> None:
     """The comma hint only appears when an unmatched item starts a monitor name."""
     selection = tronitor.select_monitors(MONS, ["Nope"], str.isdigit)
     assert tronitor.describe_selection_problems(selection, MONS, "ID") == "Not found: Nope"
+
+
+def test_lock_all_and_lock_one_create_empty_files(tmp_path: Path) -> None:
+    """lock_all and lock create empty files and return their paths."""
+    locks = tronitor.LockFiles(tmp_path)
+    all_path = locks.lock_all()
+    one_path = locks.lock("abc")
+    assert all_path == tmp_path / "healthchecks.lock"
+    assert one_path == tmp_path / "abc.lock"
+    assert all_path.read_bytes() == b""
+    assert one_path.read_bytes() == b""
+    assert locks.all_locked
+    assert locks.is_locked("abc")
+    assert not locks.is_locked("other")
+
+
+def test_unlock_all_removes_only_known_files(tmp_path: Path) -> None:
+    """unlock_all removes healthchecks.lock and the lock files of the given IDs, nothing else."""
+    for name in ("healthchecks.lock", "a.lock", "b.lock", "other.lock"):
+        (tmp_path / name).touch()
+    removed = tronitor.LockFiles(tmp_path).unlock_all(["a", "b", "missing"])
+    assert removed == [tmp_path / "healthchecks.lock", tmp_path / "a.lock", tmp_path / "b.lock"]
+    assert [p.name for p in tmp_path.iterdir()] == ["other.lock"]
+
+
+def test_unlock_missing_is_not_an_error(tmp_path: Path) -> None:
+    """Unlocking files that do not exist is fine and reports nothing removed."""
+    locks = tronitor.LockFiles(tmp_path)
+    assert locks.unlock("nope") is False
+    assert locks.unlock_all(["nope"]) == []
+    locks.lock("yes")
+    assert locks.unlock("yes") is True
+    assert not locks.is_locked("yes")
+
+
+def test_prepare_creates_nested_dir(tmp_path: Path) -> None:
+    """prepare creates missing parent directories and leaves no probe file behind."""
+    target = tmp_path / "a" / "b"
+    tronitor.LockFiles(target).prepare()
+    assert target.is_dir()
+    assert list(target.iterdir()) == []
+
+
+def test_prepare_rejects_a_file_in_place_of_the_dir(tmp_path: Path) -> None:
+    """prepare refuses a path that is a regular file."""
+    path = tmp_path / "file"
+    path.write_text("x")
+    with pytest.raises(tronitor.LockError, match="is not a directory"):
+        tronitor.LockFiles(path).prepare()
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32" or (sys.platform != "win32" and os.geteuid() == 0), reason="needs a read-only directory"
+)
+def test_prepare_rejects_an_unwritable_dir(tmp_path: Path) -> None:
+    """prepare reports a directory it cannot write to."""
+    target = tmp_path / "ro"
+    target.mkdir()
+    target.chmod(0o500)
+    try:
+        with pytest.raises(tronitor.LockError, match="cannot write"):
+            tronitor.LockFiles(target).prepare()
+    finally:
+        target.chmod(0o700)
+
+
+def test_lock_in_a_missing_dir_is_a_lock_error(tmp_path: Path) -> None:
+    """lock and lock_all report a missing directory as a LockError."""
+    locks = tronitor.LockFiles(tmp_path / "missing")
+    with pytest.raises(tronitor.LockError, match="cannot create"):
+        locks.lock("a")
+    with pytest.raises(tronitor.LockError, match="cannot create"):
+        locks.lock_all()
+
+
+def test_unlock_all_handles_a_duplicate_id(tmp_path: Path) -> None:
+    """A repeated ID is removed once and is not an error."""
+    (tmp_path / "a.lock").touch()
+    assert tronitor.LockFiles(tmp_path).unlock_all(["a", "a"]) == [tmp_path / "a.lock"]
