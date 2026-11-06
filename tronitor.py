@@ -6,8 +6,15 @@ environment variables.
 """
 
 import argparse
+import difflib
+import os
 import sys
-from collections.abc import Sequence
+import tempfile
+import tomllib
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
 __version__ = "2026-11-06"
 
@@ -15,6 +22,206 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_USAGE = 2
 EXIT_PARTIAL = 3
+
+UR_BASE_URL = "https://api.uptimerobot.com/v3"
+
+
+"""Configuration: the TOML file and the environment variables that override it."""
+
+HC_DEFAULT_URL = "https://healthchecks.io"
+NOTIFY_FORMATS = ("discord", "slack")
+KNOWN_KEYS: dict[str, dict[str, type]] = {
+    "general": {"lock_dir": str},
+    "healthchecks": {"url": str, "api_key": str},
+    "uptimerobot": {"api_key": str, "base_url": str},
+    "notify": {"webhook_url": str, "format": str, "notify_all": bool},
+}
+
+
+class ConfigError(Exception):
+    """The configuration file or an environment variable is invalid."""
+
+
+@dataclass(frozen=True)
+class HealthchecksConfig:
+    """Healthchecks connection settings."""
+
+    url: str
+    api_key: str
+
+
+@dataclass(frozen=True)
+class UptimeRobotConfig:
+    """UptimeRobot connection settings."""
+
+    api_key: str
+    base_url: str = UR_BASE_URL
+
+
+@dataclass(frozen=True)
+class NotifyConfig:
+    """Webhook notification settings."""
+
+    webhook_url: str = ""
+    format: str = "discord"
+    notify_all: bool = False
+
+
+@dataclass(frozen=True)
+class Config:
+    """The complete configuration."""
+
+    lock_dir: Path
+    healthchecks: HealthchecksConfig | None
+    uptimerobot: UptimeRobotConfig | None
+    notify: NotifyConfig
+
+
+def default_lock_dir() -> Path:
+    """Return the default lock directory: /tmp, or the temp directory on Windows."""
+    if sys.platform != "win32":
+        return Path("/tmp")
+    temp = os.environ.get("TEMP")
+    return Path(temp) if temp else Path(tempfile.gettempdir())
+
+
+def config_search_paths(script_path: Path, home: Path, env: Mapping[str, str]) -> list[Path]:
+    """Return the places to look for a config file, in order."""
+    user_dir = home / ".config"
+    if sys.platform == "win32" and env.get("APPDATA"):
+        user_dir = Path(env["APPDATA"])
+    return [script_path.parent / "tronitor.toml", user_dir / "tronitor" / "tronitor.toml"]
+
+
+def _suggest(name: str, known: Sequence[str]) -> str:
+    """Return a did-you-mean hint for name, or an empty string."""
+    match = difflib.get_close_matches(name, known, n=1, cutoff=0.6)
+    return f" (did you mean '{match[0]}'?)" if match else ""
+
+
+def _read_toml(path: Path) -> dict[str, Any]:
+    """Parse the TOML file at path."""
+    try:
+        return tomllib.loads(path.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError) as exc:
+        raise ConfigError(f"{path}: {exc}") from exc
+
+
+def _check_type(value: object, label: str, expected: type, source: str) -> None:
+    """Raise ConfigError if value is not of the expected type."""
+    if not isinstance(value, expected):
+        what = "true or false" if expected is bool else "a string"
+        raise ConfigError(f"{source}: {label} must be {what}")
+
+
+def _check_table(table: str, values: Mapping[str, Any], source: str) -> None:
+    """Raise ConfigError for unknown keys or wrong types in one table."""
+    known = KNOWN_KEYS[table]
+    for key, value in values.items():
+        if key not in known:
+            raise ConfigError(f"{source}: unknown key '{table}.{key}'{_suggest(key, list(known))}")
+        _check_type(value, f"{table}.{key}", known[key], source)
+
+
+def _check_known_keys(doc: Mapping[str, Any], source: str) -> None:
+    """Raise ConfigError for unknown tables or keys and for values of the wrong type."""
+    for name, value in doc.items():
+        if isinstance(value, dict):
+            if name not in KNOWN_KEYS:
+                raise ConfigError(f"{source}: unknown table '{name}'{_suggest(name, list(KNOWN_KEYS))}")
+            _check_table(name, value, source)
+        elif name in KNOWN_KEYS:
+            raise ConfigError(f"{source}: {name} must be a table")
+        else:
+            raise ConfigError(f"{source}: unknown key '{name}'{_table_hint(name)}")
+
+
+def _table_hint(key: str) -> str:
+    """Return a hint naming the table that has a key called key, or an empty string."""
+    for table, keys in KNOWN_KEYS.items():
+        if key in keys:
+            return f" (did you mean '{table}.{key}'?)"
+    return ""
+
+
+def _url(value: str, prefix: str, subject: str) -> str:
+    """Strip value, require an http or https scheme, and drop trailing slashes."""
+    value = value.strip()
+    if not value.startswith(("http://", "https://")):
+        raise ConfigError(f"{prefix}: {subject}must start with http:// or https://")
+    return value.rstrip("/")
+
+
+def _setting(doc: Mapping[str, Any], table: str, key: str, default: str = "") -> str:
+    """Return the stripped string at doc[table][key], or default."""
+    return str(doc.get(table, {}).get(key, default)).strip()
+
+
+def _env_value(env: Mapping[str, str], name: str) -> str:
+    """Return the stripped environment variable name; a variable that is unset or empty gives ''."""
+    return env.get(name, "").strip()
+
+
+def _resolve(
+    doc: Mapping[str, Any], env: Mapping[str, str], var: str, table: str, key: str, source: str
+) -> tuple[str, str, str]:
+    """Return (value, error prefix, error subject) for a setting; the environment wins over the file."""
+    value = _env_value(env, var)
+    if value:
+        return value, var, ""
+    return _setting(doc, table, key), source, f"{table}.{key} "
+
+
+def _healthchecks(doc: Mapping[str, Any], env: Mapping[str, str], source: str) -> HealthchecksConfig | None:
+    """Build the Healthchecks settings, or None when there is no API key."""
+    api_key = _resolve(doc, env, "TRONITOR_HEALTHCHECKS_API_KEY", "healthchecks", "api_key", source)[0]
+    value, prefix, subject = _resolve(doc, env, "TRONITOR_HEALTHCHECKS_URL", "healthchecks", "url", source)
+    url = _url(value or HC_DEFAULT_URL, prefix, subject)
+    return HealthchecksConfig(url, api_key) if api_key else None
+
+
+def _uptimerobot(doc: Mapping[str, Any], env: Mapping[str, str], source: str) -> UptimeRobotConfig | None:
+    """Build the UptimeRobot settings, or None when there is no API key."""
+    api_key = _resolve(doc, env, "TRONITOR_UPTIMEROBOT_API_KEY", "uptimerobot", "api_key", source)[0]
+    base_url = _url(_setting(doc, "uptimerobot", "base_url") or UR_BASE_URL, source, "uptimerobot.base_url ")
+    return UptimeRobotConfig(api_key, base_url) if api_key else None
+
+
+def _notify(doc: Mapping[str, Any], env: Mapping[str, str], source: str) -> NotifyConfig:
+    """Build the notification settings."""
+    fmt = _setting(doc, "notify", "format", "discord")
+    if fmt not in NOTIFY_FORMATS:
+        raise ConfigError(f'{source}: notify.format must be "discord" or "slack"')
+    webhook, prefix, subject = _resolve(doc, env, "TRONITOR_WEBHOOK_URL", "notify", "webhook_url", source)
+    if webhook:
+        webhook = _url(webhook, prefix, subject)
+    return NotifyConfig(webhook, fmt, bool(doc.get("notify", {}).get("notify_all", False)))
+
+
+def _find_config_file(path: Path | None, env: Mapping[str, str], search_paths: Sequence[Path]) -> Path | None:
+    """Return the config file to read, or None when there is none."""
+    if path is None and _env_value(env, "TRONITOR_CONFIG"):
+        path = Path(_env_value(env, "TRONITOR_CONFIG"))
+    if path is not None:
+        if not path.is_file():
+            raise ConfigError(f"{path}: config file does not exist")
+        return path
+    return next((p for p in search_paths if p.is_file()), None)
+
+
+def load_config(path: Path | None, env: Mapping[str, str], search_paths: Sequence[Path]) -> Config:
+    """Load the configuration from the file and the environment (the environment wins)."""
+    found = _find_config_file(path, env, search_paths)
+    source = str(found) if found else "configuration"
+    doc = _read_toml(found) if found else {}
+    _check_known_keys(doc, source)
+    lock_dir = _resolve(doc, env, "TRONITOR_LOCK_DIR", "general", "lock_dir", source)[0]
+    return Config(
+        lock_dir=Path(lock_dir) if lock_dir else default_lock_dir(),
+        healthchecks=_healthchecks(doc, env, source),
+        uptimerobot=_uptimerobot(doc, env, source),
+        notify=_notify(doc, env, source),
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
