@@ -1,11 +1,13 @@
 """Unit tests for the tronitor module."""
 
 import re
+import socket
 import sys
 import tempfile
 from pathlib import Path
 
 import pytest
+from fake_server import FakeServer
 
 import tronitor
 
@@ -269,3 +271,208 @@ def test_empty_appdata_falls_back_to_dot_config(monkeypatch: pytest.MonkeyPatch)
     home = Path("/home/u")
     paths = tronitor.config_search_paths(Path("/opt/t.py"), home, {"APPDATA": ""})
     assert paths[1] == home / ".config" / "tronitor" / "tronitor.toml"
+
+
+def test_http_get_json(fake_server: FakeServer) -> None:
+    """A GET returns the status and decoded JSON, and sends the key and Accept headers."""
+    fake_server.add("GET", "/ping", 200, {"ok": True})
+    r = tronitor.Http().request("GET", fake_server.url + "/ping", headers={"X-Api-Key": "k"})
+    assert r.status == 200 and r.json == {"ok": True}
+    assert fake_server.requests[0].headers["X-Api-Key"] == "k"
+    assert fake_server.requests[0].headers["Accept"] == "application/json"
+    assert fake_server.requests[0].headers["User-Agent"] == f"tronitor/{tronitor.__version__}"
+
+
+def test_http_posts_json_body_and_content_type(fake_server: FakeServer) -> None:
+    """An empty dict is still sent as a JSON body with a Content-Type header."""
+    fake_server.add("POST", "/p", 200, {})
+    tronitor.Http().request("POST", fake_server.url + "/p", json_body={})
+    seen = fake_server.requests[0]
+    assert seen.body == {}
+    assert seen.headers["Content-Type"] == "application/json"
+
+
+def test_http_empty_2xx_body_is_none(fake_server: FakeServer) -> None:
+    """A success with no body gives json=None."""
+    fake_server.add("POST", "/e", 200)
+    r = tronitor.Http().request("POST", fake_server.url + "/e")
+    assert r.status == 200 and r.json is None
+
+
+def test_http_error_status_raises_with_message_field(fake_server: FakeServer) -> None:
+    """An error status raises ProviderError carrying the message field."""
+    fake_server.add("GET", "/x", 401, {"code": "000-005", "message": "The API key is missing, invalid or expired."})
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert e.value.status == 401 and "invalid or expired" in str(e.value)
+
+
+def test_http_error_with_message_list_joins_it(fake_server: FakeServer) -> None:
+    """A message that is a list is joined with semicolons."""
+    fake_server.add("GET", "/x", 400, {"message": ["a", "b"]})
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert str(e.value) == "HTTP 400: a; b"
+
+
+def test_http_error_falls_back_to_error_then_detail(fake_server: FakeServer) -> None:
+    """The error field, then the detail field, supply the message when message is absent."""
+    fake_server.add("GET", "/a", 400, {"error": "bad one"})
+    fake_server.add("GET", "/b", 400, {"detail": "bad two"})
+    http = tronitor.Http()
+    with pytest.raises(tronitor.ProviderError, match="HTTP 400: bad one"):
+        http.request("GET", fake_server.url + "/a")
+    with pytest.raises(tronitor.ProviderError, match="HTTP 400: bad two"):
+        http.request("GET", fake_server.url + "/b")
+
+
+def test_http_html_error_page_is_reported_not_raised_raw(fake_server: FakeServer) -> None:
+    """A non-JSON error body is reported as collapsed text."""
+    fake_server.add("GET", "/x", 502, "<html>Bad Gateway</html>")
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert str(e.value) == "HTTP 502: <html>Bad Gateway</html>"
+    assert e.value.status == 502
+
+
+def test_http_allowed_status_is_returned(fake_server: FakeServer) -> None:
+    """A status listed in allow_statuses is returned, not raised."""
+    fake_server.add("POST", "/x", 409, {"message": "already"})
+    r = tronitor.Http().request("POST", fake_server.url + "/x", allow_statuses={409})
+    assert r == tronitor.HttpResponse(409, {"message": "already"})
+
+
+def test_http_unreachable_host_is_a_provider_error() -> None:
+    """A refused connection raises ProviderError with no status."""
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = sock.getsockname()[1]
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http(timeout=5).request("GET", f"http://127.0.0.1:{port}/")
+    assert e.value.status is None and "cannot reach" in str(e.value)
+
+
+def test_http_verbose_logs_method_and_url_only(fake_server: FakeServer) -> None:
+    """Verbose logging shows the method and URL, never headers or bodies."""
+    fake_server.add("POST", "/ping", 200, {"ok": True})
+    lines: list[str] = []
+    tronitor.Http(verbose=True, log=lines.append).request(
+        "POST", fake_server.url + "/ping", headers={"X-Api-Key": "secret-key"}, json_body={"token": "secret-body"}
+    )
+    assert lines == [f"POST {fake_server.url}/ping"]
+
+
+def test_http_is_silent_unless_verbose(fake_server: FakeServer) -> None:
+    """Without verbose, nothing is logged."""
+    fake_server.add("GET", "/ping", 200, {})
+    lines: list[str] = []
+    tronitor.Http(log=lines.append).request("GET", fake_server.url + "/ping")
+    assert lines == []
+
+
+def test_http_non_json_success_is_an_error(fake_server: FakeServer) -> None:
+    """A success whose body is not JSON raises ProviderError."""
+    fake_server.add("GET", "/x", 200, "<html>")
+    with pytest.raises(tronitor.ProviderError, match="response is not JSON") as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert e.value.status == 200
+
+
+def test_http_error_body_read_failure_is_a_provider_error(fake_server: FakeServer) -> None:
+    """An error response whose body is cut short raises ProviderError, not a raw exception.
+
+    The route declares Content-Length 100 but sends a short body and the server closes the connection,
+    so reading the body raises http.client.IncompleteRead.
+    """
+    fake_server.add("GET", "/x", 500, {"message": "short"}, headers={"Content-Length": "100"})
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert e.value.status == 500 and "could not read the response body" in str(e.value)
+
+
+def test_http_truncated_success_body_is_a_provider_error(fake_server: FakeServer) -> None:
+    """A success response cut short raises ProviderError."""
+    fake_server.add("GET", "/x", 200, {"ok": True}, headers={"Content-Length": "100"})
+    with pytest.raises(tronitor.ProviderError, match="cannot reach"):
+        tronitor.Http().request("GET", fake_server.url + "/x")
+
+
+@pytest.mark.parametrize("url", ["file:///etc/passwd", "ftp://x", "not a url", "http://[::1"])
+def test_http_rejects_non_http_urls(url: str) -> None:
+    """A URL that is not http or https raises ProviderError before any request is made."""
+    with pytest.raises(tronitor.ProviderError, match="unsupported URL") as e:
+        tronitor.Http().request("GET", url)
+    assert e.value.status is None
+
+
+def test_http_verbose_uses_the_label_and_strips_the_query(fake_server: FakeServer) -> None:
+    """The verbose line shows the label when given, else the URL without its query."""
+    fake_server.add("POST", "/hook/secret-token", 204)
+    fake_server.add("GET", "/list", 200, {})
+    lines: list[str] = []
+    http = tronitor.Http(verbose=True, log=lines.append)
+    http.request("POST", fake_server.url + "/hook/secret-token", json_body={}, log_label="webhook")
+    http.request("GET", fake_server.url + "/list?api_key=secret")
+    assert lines == ["POST webhook", f"GET {fake_server.url}/list"]
+
+
+def test_http_empty_error_body_uses_the_reason_phrase(fake_server: FakeServer) -> None:
+    """An error with no body is described by the standard reason phrase."""
+    fake_server.add("GET", "/x", 500)
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert str(e.value) == "HTTP 500: Internal Server Error"
+
+
+def test_http_json_error_detail_is_collapsed_and_cut(fake_server: FakeServer) -> None:
+    """A JSON message is whitespace-collapsed and limited to ERROR_TEXT_LIMIT characters."""
+    fake_server.add("GET", "/x", 400, {"message": "a\n  b " + "z" * 500})
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert str(e.value) == "HTTP 400: " + ("a b " + "z" * 500)[: tronitor.ERROR_TEXT_LIMIT]
+
+
+def test_http_allowed_status_with_non_json_body_gives_none(fake_server: FakeServer) -> None:
+    """An allowed non-2xx status with a body that is not JSON returns json=None."""
+    fake_server.add("GET", "/x", 404, "<html>nope</html>")
+    r = tronitor.Http().request("GET", fake_server.url + "/x", allow_statuses={404})
+    assert r == tronitor.HttpResponse(404, None)
+
+
+def test_fake_server_once_responses_are_used_in_order_then_fall_back(fake_server: FakeServer) -> None:
+    """Once responses are consumed in order, then the next registered response for the route applies."""
+    fake_server.add("GET", "/p", 200, {"page": 1}, once=True)
+    fake_server.add("GET", "/p", 200, {"page": 2}, once=True)
+    fake_server.add("GET", "/p", 200, {"page": "rest"})
+    http = tronitor.Http()
+    pages = [http.request("GET", fake_server.url + "/p").json["page"] for _ in range(4)]
+    assert pages == [1, 2, "rest", "rest"]
+
+
+def test_fake_server_route_with_only_consumed_once_responses_is_404(fake_server: FakeServer) -> None:
+    """After its once responses are used up, a route answers like an unknown one."""
+    fake_server.add("GET", "/p", 200, {}, once=True)
+    http = tronitor.Http()
+    http.request("GET", fake_server.url + "/p")
+    with pytest.raises(tronitor.ProviderError) as e:
+        http.request("GET", fake_server.url + "/p")
+    assert e.value.status == 404
+
+
+def test_fake_server_unknown_route_is_404_no_route(fake_server: FakeServer) -> None:
+    """An unknown route answers 404 with the no-route error."""
+    r = tronitor.Http().request("GET", fake_server.url + "/nope", allow_statuses={404})
+    assert r == tronitor.HttpResponse(404, {"error": "no route"})
+
+
+def test_fake_server_records_query_and_filters_requests(fake_server: FakeServer) -> None:
+    """The query is parsed into RecordedRequest.query, routes match on the path, requests_for filters."""
+    fake_server.add("GET", "/a", 200, {})
+    fake_server.add("POST", "/a", 200, {})
+    http = tronitor.Http()
+    http.request("GET", fake_server.url + "/a?x=1&x=2&y=3")
+    http.request("POST", fake_server.url + "/a", json_body={"k": "v"})
+    assert fake_server.requests[0].query == {"x": ["1", "2"], "y": ["3"]}
+    assert fake_server.requests[0].path == "/a"
+    assert [r.body for r in fake_server.requests_for("POST", "/a")] == [{"k": "v"}]
+    assert fake_server.requests_for("GET", "/b") == []

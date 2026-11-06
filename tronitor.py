@@ -7,11 +7,16 @@ environment variables.
 
 import argparse
 import difflib
+import http.client
+import json
 import os
 import sys
 import tempfile
 import tomllib
-from collections.abc import Mapping, Sequence
+import urllib.error
+import urllib.parse
+import urllib.request
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -222,6 +227,132 @@ def load_config(path: Path | None, env: Mapping[str, str], search_paths: Sequenc
         uptimerobot=_uptimerobot(doc, env, source),
         notify=_notify(doc, env, source),
     )
+
+
+"""HTTP: the one place that talks to the network."""
+
+ERROR_TEXT_LIMIT = 200
+
+
+class ProviderError(Exception):
+    """A provider's API could not be reached, or it answered with an error."""
+
+    def __init__(self, message: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.message = message
+        self.status = status
+
+
+@dataclass(frozen=True)
+class HttpResponse:
+    """A successful response: the status and the decoded JSON body (None when the body is empty)."""
+
+    status: int
+    json: Any
+
+
+def _collapse(text: str) -> str:
+    """Collapse whitespace in text and cut it to the error text limit."""
+    return " ".join(text.split())[:ERROR_TEXT_LIMIT]
+
+
+def _error_detail(text: str, status: int) -> str:
+    """Return the most useful description of an error body: its message, error or detail field, else the text.
+
+    An empty body gives the standard reason phrase for the status.
+    """
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        data = None
+    if isinstance(data, dict):
+        for key in ("message", "error", "detail"):
+            value = data.get(key)
+            if isinstance(value, list):
+                value = "; ".join(str(item) for item in value)
+            if isinstance(value, str) and _collapse(value):
+                return _collapse(value)
+    return _collapse(text) or http.client.responses.get(status, "error")
+
+
+class Http:
+    """Send HTTP requests and turn every network or API failure into a ProviderError."""
+
+    def __init__(
+        self, *, timeout: float = 30.0, verbose: bool = False, log: Callable[[str], None] | None = None
+    ) -> None:
+        self.timeout = timeout
+        self.verbose = verbose
+        self._log = log or (lambda line: print(line, file=sys.stderr))
+
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        json_body: object | None = None,
+        allow_statuses: Collection[int] = (),
+        log_label: str | None = None,
+    ) -> HttpResponse:
+        """Send a request and return the response; a status that is not 2xx or allowed raises ProviderError.
+
+        With verbose, the log line shows the method and log_label, or the URL without its query when there is no
+        label (a label hides a URL that carries a secret).
+        """
+        try:
+            scheme = urllib.parse.urlsplit(url).scheme.lower()
+        except ValueError:
+            scheme = ""
+        if scheme not in ("http", "https"):
+            raise ProviderError(f"unsupported URL: {url}")
+        all_headers = {"Accept": "application/json", "User-Agent": f"tronitor/{__version__}", **(headers or {})}
+        data = None
+        if json_body is not None:
+            data = json.dumps(json_body).encode("utf-8")
+            all_headers["Content-Type"] = "application/json"
+        try:
+            req = urllib.request.Request(url, data=data, method=method, headers=all_headers)
+        except ValueError:
+            raise ProviderError(f"unsupported URL: {url}") from None
+        if self.verbose:
+            self._log(f"{method} {log_label if log_label is not None else url.split('?', 1)[0]}")
+        status, text = self._send(req)
+        if not 200 <= status < 300 and status not in allow_statuses:
+            raise ProviderError(f"HTTP {status}: {_error_detail(text, status)}", status)
+        if not text:
+            return HttpResponse(status, None)
+        try:
+            return HttpResponse(status, json.loads(text))
+        except json.JSONDecodeError:
+            if 200 <= status < 300:
+                raise ProviderError(f"HTTP {status}: response is not JSON", status) from None
+            return HttpResponse(status, None)
+
+    def _send(self, req: urllib.request.Request) -> tuple[int, str]:
+        """Send req and return (status, body text); network failures raise ProviderError."""
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as response:
+                return int(response.status), response.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as exc:
+            with exc:
+                try:
+                    return exc.code, exc.read().decode("utf-8", errors="replace")
+                except (OSError, http.client.HTTPException):
+                    raise ProviderError(f"HTTP {exc.code}: could not read the response body", exc.code) from None
+        except TimeoutError:
+            raise ProviderError(f"cannot reach {self._host(req)}: timed out") from None
+        except urllib.error.URLError as exc:
+            if isinstance(exc.reason, TimeoutError):
+                raise ProviderError(f"cannot reach {self._host(req)}: timed out") from None
+            raise ProviderError(f"cannot reach {self._host(req)}: {exc.reason}") from exc
+        except (OSError, http.client.HTTPException) as exc:
+            raise ProviderError(f"cannot reach {self._host(req)}: {exc}") from exc
+
+    @staticmethod
+    def _host(req: urllib.request.Request) -> str:
+        """Return the host (and port) of a request's URL."""
+        return urllib.parse.urlsplit(req.full_url).netloc
 
 
 def build_parser() -> argparse.ArgumentParser:
