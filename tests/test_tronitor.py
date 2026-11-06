@@ -1,10 +1,12 @@
 """Unit tests for the tronitor module."""
 
+import io
 import os
 import re
 import socket
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -772,3 +774,111 @@ def test_unlock_all_handles_a_duplicate_id(tmp_path: Path) -> None:
     """A repeated ID is removed once and is not an error."""
     (tmp_path / "a.lock").touch()
     assert tronitor.LockFiles(tmp_path).unlock_all(["a", "a"]) == [tmp_path / "a.lock"]
+
+
+class FakeTty(io.StringIO):
+    """A StringIO that claims to be a terminal."""
+
+    def isatty(self) -> bool:
+        """Return True."""
+        return True
+
+
+class NoIsatty:
+    """A file-like object whose isatty raises."""
+
+    def isatty(self) -> bool:
+        """Raise like a stream without terminal support."""
+        raise ValueError("closed")
+
+
+def test_use_color_rules() -> None:
+    """Colour needs a terminal, no NO_COLOR and no flag."""
+    assert tronitor.use_color(FakeTty(), {}, False) is True
+    assert tronitor.use_color(FakeTty(), {"NO_COLOR": ""}, False) is False
+    assert tronitor.use_color(FakeTty(), {}, True) is False
+    assert tronitor.use_color(io.StringIO(), {}, False) is False
+    assert tronitor.use_color(NoIsatty(), {}, False) is False  # type: ignore[arg-type]
+
+
+def sample_monitors() -> list[tronitor.Monitor]:
+    """Return two monitors with different name lengths."""
+    return [
+        tronitor.Monitor("id1", "web", "paused", {}),
+        tronitor.Monitor("id2", "database", "seems down", {}),
+    ]
+
+
+def test_table_pads_names_and_capitalises_status() -> None:
+    """Names are padded to the longest and the status is capitalised."""
+    text = tronitor.format_monitor_table(sample_monitors(), "UUID", False)
+    assert text == "web       UUID: id1  Status: Paused\ndatabase  UUID: id2  Status: Seems down"
+    assert tronitor.format_monitor_table([], "UUID", True) == ""
+
+
+def test_table_colours_only_the_status() -> None:
+    """Only the status text carries colour codes."""
+    text = tronitor.format_monitor_table(sample_monitors(), "UUID", True)
+    first, second = text.split("\n")
+    assert first.startswith("web       UUID: id1  Status: ")
+    assert "\x1b[33mPaused\x1b[0m" in first
+    assert "\x1b[38;5;202mSeems down\x1b[0m" in second
+    unknown = tronitor.Monitor("i", "n", "odd", {})
+    assert tronitor.format_monitor_table([unknown], "ID", True) == "n  ID: i  Status: Odd"
+
+
+def test_format_json_is_sorted_indented_and_unescaped() -> None:
+    """JSON output is indented, sorted and keeps accents."""
+    assert tronitor.format_json({"b": 1, "a": "é"}) == '{\n  "a": "é",\n  "b": 1\n}'
+
+
+def test_confirm_assume_yes_skips_the_prompt() -> None:
+    """assume_yes returns True without asking."""
+
+    def fail(prompt: str) -> str:
+        raise AssertionError("must not prompt")
+
+    assert tronitor.confirm("Go?", assume_yes=True, interactive=False, input_fn=fail) is True
+
+
+def test_confirm_without_terminal_raises() -> None:
+    """Without a terminal and without assume_yes, NeedsTerminal carries the question."""
+    with pytest.raises(tronitor.NeedsTerminal, match=r"Go\?"):
+        tronitor.confirm("Go?", assume_yes=False, interactive=False)
+
+
+def test_confirm_accepts_yes_variants_and_defaults_to_no() -> None:
+    """y and yes in any case are yes; everything else, including EOF, is no."""
+    prompts: list[str] = []
+
+    def answer(text: str) -> Callable[[str], str]:
+        def fn(prompt: str) -> str:
+            prompts.append(prompt)
+            return text
+
+        return fn
+
+    for text, expected in [("Y", True), (" yes ", True), ("", False), ("n", False), ("maybe", False)]:
+        assert tronitor.confirm("Go?", assume_yes=False, interactive=True, input_fn=answer(text)) is expected
+    assert prompts[0] == "Go? [y/N]: "
+
+    def eof(prompt: str) -> str:
+        raise EOFError
+
+    assert tronitor.confirm("Go?", assume_yes=False, interactive=True, input_fn=eof) is False
+
+
+def test_table_strips_control_characters() -> None:
+    """Control characters in a name or ID become "?" and never reach the terminal."""
+    monitor = tronitor.Monitor("i\x07d", "Bad\x1b[31mName\n", "up", {})
+    line = tronitor.format_monitor_table([monitor], "ID", False)
+    assert "Bad?[31mName?" in line
+    assert "ID: i?d" in line
+    assert "\x1b" not in line
+    assert "\n" not in line
+
+
+def test_status_colors_cover_every_status() -> None:
+    """STATUS_COLORS has exactly the known statuses and each value is an ANSI sequence."""
+    assert set(tronitor.STATUS_COLORS) == {"up", "down", "paused", "grace", "seems down", "new", "pending"}
+    assert all(code.startswith("\x1b[") for code in tronitor.STATUS_COLORS.values())

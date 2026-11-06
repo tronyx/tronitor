@@ -20,7 +20,7 @@ import urllib.request
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 __version__ = "2026-11-06"
 
@@ -652,6 +652,85 @@ class LockFiles:
         except OSError as exc:
             raise LockError(f"cannot remove {path}: {exc.strerror or exc}") from exc
         return True
+
+
+"""Output: tables, colour, JSON and the yes/no prompt."""
+
+RESET = "\x1b[0m"
+STATUS_COLORS: dict[str, str] = {
+    "up": "\x1b[32m",
+    "down": "\x1b[31m",
+    "paused": "\x1b[33m",
+    "grace": "\x1b[38;5;202m",
+    "seems down": "\x1b[38;5;202m",
+    "new": "\x1b[35m",
+    "pending": "\x1b[35m",
+}
+
+
+class NeedsTerminal(Exception):
+    """Raised when a confirmation is needed but there is no terminal; the message is the question."""
+
+
+def use_color(stream: TextIO, env: Mapping[str, str], no_color_flag: bool) -> bool:
+    """Return True if output to stream may be coloured.
+
+    Colour needs a terminal, no NO_COLOR variable (any value) and no --no-color flag.
+    """
+    if no_color_flag or "NO_COLOR" in env:
+        return False
+    try:
+        return bool(stream.isatty())
+    except (AttributeError, ValueError, OSError):
+        return False
+
+
+def plain_text(text: str) -> str:
+    """Return text with every control character replaced by "?", so provider data cannot move the cursor."""
+    return re.sub(r"[\x00-\x1f\x7f-\x9f]", "?", text)
+
+
+def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool) -> str:
+    """Return one line per monitor: the padded name, the ID and the status, coloured if color is true."""
+    if not monitors:
+        return ""
+    names = [plain_text(monitor.name) for monitor in monitors]
+    width = max(len(name) for name in names)
+    lines = []
+    for monitor, name in zip(monitors, names, strict=True):
+        status_text = monitor.status.capitalize()
+        code = STATUS_COLORS.get(monitor.status)
+        if color and code:
+            status_text = f"{code}{status_text}{RESET}"
+        lines.append(f"{name:<{width}}  {id_kind}: {plain_text(monitor.id)}  Status: {status_text}")
+    return "\n".join(lines)
+
+
+def format_json(data: object) -> str:
+    """Return data as indented JSON with sorted keys."""
+    return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+
+
+def confirm(
+    question: str,
+    *,
+    assume_yes: bool,
+    interactive: bool,
+    input_fn: Callable[[str], str] = input,
+) -> bool:
+    """Ask a yes/no question and return the answer.
+
+    assume_yes returns True without asking. Without a terminal, raise NeedsTerminal. The default answer is no.
+    """
+    if assume_yes:
+        return True
+    if not interactive:
+        raise NeedsTerminal(question)
+    try:
+        answer = input_fn(f"{question} [y/N]: ")
+    except EOFError:
+        return False
+    return answer.strip().lower() in ("y", "yes")
 
 
 def build_parser() -> argparse.ArgumentParser:
