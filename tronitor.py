@@ -7,7 +7,9 @@ environment variables.
 
 import argparse
 import difflib
+import functools
 import http.client
+import io
 import json
 import os
 import re
@@ -18,7 +20,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, TextIO
 
@@ -399,6 +401,7 @@ class Provider:
     label = ""
     id_kind = ""
     supports_lock_files = False
+    supports_reset = False
 
     def list_monitors(self) -> list[Monitor]:
         """Return every monitor in the account."""
@@ -672,17 +675,20 @@ class NeedsTerminal(Exception):
     """Raised when a confirmation is needed but there is no terminal; the message is the question."""
 
 
+def is_terminal(stream: TextIO | None) -> bool:
+    """Return True if stream is a terminal."""
+    try:
+        return stream is not None and bool(stream.isatty())
+    except (AttributeError, ValueError, OSError):
+        return False
+
+
 def use_color(stream: TextIO, env: Mapping[str, str], no_color_flag: bool) -> bool:
     """Return True if output to stream may be coloured.
 
     Colour needs a terminal, no NO_COLOR variable (any value) and no --no-color flag.
     """
-    if no_color_flag or "NO_COLOR" in env:
-        return False
-    try:
-        return bool(stream.isatty())
-    except (AttributeError, ValueError, OSError):
-        return False
+    return not no_color_flag and "NO_COLOR" not in env and is_terminal(stream)
 
 
 def plain_text(text: str) -> str:
@@ -733,22 +739,574 @@ def confirm(
     return answer.strip().lower() in ("y", "yes")
 
 
+"""Command line: options, actions and exit codes."""
+
+DOCS_URL = "https://github.com/tronyx/tronitor/blob/master/docs/usage.md"
+EXIT_INTERRUPTED = 130
+PROVIDER_NAMES = {
+    "hc": "healthchecks",
+    "healthchecks": "healthchecks",
+    "ur": "uptimerobot",
+    "uptimerobot": "uptimerobot",
+}
+HC_REMINDER = (
+    "Note: a paused Healthchecks check becomes active again when it next receives a ping. "
+    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+)
+DESCRIPTION = "Pause and unpause Healthchecks and UptimeRobot monitors, from cron or by hand."
+EPILOG = f"""\
+PROVIDER is healthchecks (hc) or uptimerobot (ur).
+
+TARGETS is "all", or a comma-separated list of monitor names and IDs. Put names
+in quotes, for example: -p "Filesystem Backup,Database Backup". A name must
+match the whole monitor name, but capital letters do not matter. A Healthchecks
+ID is the check's UUID; an UptimeRobot ID is the monitor's number.
+
+Examples:
+  tronitor -m hc -l
+  tronitor -m hc -p all
+  tronitor -m ur -u "Plex,Tautulli"
+
+Documentation: {DOCS_URL}"""
+
+
+class UsageError(Exception):
+    """The command line asks for something that cannot be done; the message says why."""
+
+
+class SelectionProblem(Exception):
+    """Some requested monitors were not found or matched several; the message lists them."""
+
+
+class NothingToDo(Exception):
+    """There is nothing to act on; the message says so."""
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build the command-line parser."""
-    parser = argparse.ArgumentParser(prog="tronitor")
+    parser = argparse.ArgumentParser(
+        prog="tronitor",
+        description=DESCRIPTION,
+        epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "-m",
+        "--monitor",
+        "--provider",
+        dest="provider",
+        metavar="PROVIDER",
+        required=True,
+        help="the monitoring service: healthchecks (hc) or uptimerobot (ur)",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        metavar="PATH",
+        help="the config file (default: tronitor.toml next to the script, then in your user config folder)",
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="delete or reset without asking, and act on the monitors that were found when some were not",
+    )
+    parser.add_argument("--json", action="store_true", help="print the provider's records as JSON instead of a table")
+    parser.add_argument("--no-color", action="store_true", help="never colour the output")
+    parser.add_argument("--verbose", action="store_true", help="show each API request on stderr")
     parser.add_argument("--version", action="version", version=f"tronitor {__version__}")
+    actions = parser.add_argument_group("actions (choose one)").add_mutually_exclusive_group(required=True)
+    actions.add_argument("-l", "--list", action="store_true", help="list every monitor and its status")
+    actions.add_argument(
+        "-f", "--find", action="store_true", help="list the paused monitors; on a terminal, offer to unpause them"
+    )
+    actions.add_argument("-n", "--no-prompt", action="store_true", help="list the paused monitors and never ask")
+    actions.add_argument(
+        "-w", "--webhook", action="store_true", help="list the paused monitors and post them to the webhook"
+    )
+    actions.add_argument("-s", "--stats", action="store_true", help="show the account statistics (UptimeRobot only)")
+    actions.add_argument(
+        "-a", "--alerts", action="store_true", help="list the alert contacts (Healthchecks: integrations)"
+    )
+    actions.add_argument("-i", "--info", metavar="TARGET", help="show the full record of one monitor")
+    actions.add_argument("-c", "--create", type=Path, metavar="FILE", help="create a monitor from a JSON file")
+    actions.add_argument("-p", "--pause", metavar="TARGETS", help="pause monitors")
+    actions.add_argument("-u", "--unpause", metavar="TARGETS", help="unpause monitors")
+    actions.add_argument("-d", "--delete", metavar="TARGETS", help="delete monitors (asks first)")
+    actions.add_argument(
+        "-r", "--reset", metavar="TARGETS", help="clear the statistics of monitors (asks first; not Healthchecks)"
+    )
     return parser
+
+
+def resolve_provider_name(text: str) -> str:
+    """Return the full provider name for a short or full name, in any case."""
+    name = PROVIDER_NAMES.get(text.strip().lower())
+    if name is None:
+        raise ConfigError(f"unknown provider '{text}'; use healthchecks (hc) or uptimerobot (ur)")
+    return name
+
+
+def make_provider(name: str, config: Config, http: Http) -> Provider:
+    """Return the provider called name, built from its settings."""
+    if name == "healthchecks":
+        if config.healthchecks is None:
+            raise ConfigError(
+                "no Healthchecks API key: set [healthchecks] api_key in the config or TRONITOR_HEALTHCHECKS_API_KEY"
+            )
+        return HealthchecksProvider(http, config.healthchecks)
+    if name == "uptimerobot":
+        raise ConfigError("UptimeRobot is not available yet")
+    raise ConfigError(f"unknown provider '{name}'")
+
+
+def print_error(stream: TextIO, message: str) -> None:
+    """Print message to stream, prefixing "tronitor: " to every line that is not indented."""
+    for line in message.splitlines() or [""]:
+        line = plain_text(line)
+        print(line if line.startswith(" ") else f"tronitor: {line}", file=stream)
+
+
+@dataclass
+class Context:
+    """What every action needs: the provider, the settings, the streams and the user's choices."""
+
+    provider: Provider
+    config: Config
+    out: TextIO
+    err: TextIO
+    color: bool
+    json_output: bool
+    assume_yes: bool
+    interactive: bool
+    lock_files: LockFiles | None
+    stdin: TextIO
+
+    def say(self, text: str) -> None:
+        """Print a line of normal output."""
+        print(text, file=self.out)
+
+    def ask(self, question: str, *, assume_yes: bool) -> bool:
+        """Ask a yes/no question on the terminal (see confirm)."""
+        return confirm(question, assume_yes=assume_yes, interactive=self.interactive, input_fn=self._read_answer)
+
+    def _read_answer(self, prompt: str) -> str:
+        """Show prompt and read one line from stdin; the end of input raises EOFError."""
+        self.out.write(prompt)
+        self.out.flush()
+        line = self.stdin.readline()
+        if not line:
+            raise EOFError
+        return line.rstrip("\r\n")
+
+
+@dataclass
+class Targets:
+    """The monitors an action applies to, and whether the user asked for all of them."""
+
+    listed: list[Monitor]
+    chosen: list[Monitor]
+    everything: bool
+    incomplete: bool
+
+
+@dataclass
+class Outcome:
+    """What happened when an action ran on each monitor."""
+
+    done: list[Monitor] = field(default_factory=list)
+    failed: list[Monitor] = field(default_factory=list)
+    lock_errors: int = 0
+
+    def exit_code(self, incomplete: bool) -> int:
+        """Return 1 if only failures, 3 if some failures or an incomplete selection, else 0."""
+        failures = len(self.failed) + self.lock_errors
+        if failures and not self.done:
+            return EXIT_ERROR
+        if failures or incomplete:
+            return EXIT_PARTIAL
+        return EXIT_OK
+
+
+def parse_targets(option: str, text: str) -> list[str]:
+    """Split the value of a selection option; an empty selection is a usage error."""
+    items = split_selection(text)
+    if not items:
+        raise UsageError(f'{option} needs "all" or a comma-separated list of monitors')
+    return items
+
+
+def select_targets(ctx: Context, items: list[str]) -> Targets:
+    """List the monitors and pick the ones items name.
+
+    Unmatched or ambiguous items raise SelectionProblem, unless --yes was given, nothing was ambiguous and something
+    matched: then the problems are reported and the action goes ahead with the matches.
+    """
+    listed = ctx.provider.list_monitors()
+    everything = items == ["all"]
+    if everything and not listed:
+        raise NothingToDo("No monitors found.")
+    selection = select_monitors(listed, items, ctx.provider.is_id)
+    if not selection.ok:
+        problems = describe_selection_problems(selection, listed, ctx.provider.id_kind)
+        if not (ctx.assume_yes and selection.matched and not selection.ambiguous):
+            raise SelectionProblem(problems)
+        print_error(ctx.err, problems)
+    return Targets(listed, selection.matched, everything, incomplete=not selection.ok)
+
+
+def act_on_each(
+    ctx: Context, verb: str, monitors: Sequence[Monitor], step: Callable[[Monitor], object], *, show_id: bool = True
+) -> Outcome:
+    """Run step on each monitor and never stop early.
+
+    Prints "<verb> <name>... done" on stdout, or "<verb> <name>... failed: <reason>" as an error on stderr.
+    """
+    outcome = Outcome()
+    for monitor in monitors:
+        what = f"{verb} {plain_text(monitor.name)}"
+        if show_id:
+            what += f" ({ctx.provider.id_kind} {plain_text(monitor.id)})"
+        try:
+            step(monitor)
+        except Unsupported:
+            raise
+        except (ProviderError, LockError) as exc:
+            print_error(ctx.err, f"{what}... failed: {exc}")
+            outcome.failed.append(monitor)
+        else:
+            ctx.say(f"{what}... done")
+            outcome.done.append(monitor)
+    return outcome
+
+
+def try_lock_removal(ctx: Context, remove: Callable[[], object]) -> int:
+    """Call remove; return 0, or report its LockError and return 1."""
+    try:
+        remove()
+    except LockError as exc:
+        print_error(ctx.err, str(exc))
+        return 1
+    return 0
+
+
+def remove_locks(ctx: Context, lock_files: LockFiles, ids: Sequence[str], *, everything: bool) -> int:
+    """Remove the lock files of ids, and healthchecks.lock first when everything.
+
+    Each removal is tried on its own, so one that fails does not stop the rest; failures are reported and counted.
+    """
+    errors = 0
+    if everything:
+        errors += try_lock_removal(ctx, lambda: lock_files.unlock_all([]))
+    for monitor_id in ids:
+        errors += try_lock_removal(ctx, functools.partial(lock_files.unlock, monitor_id))
+    return errors
+
+
+def unpause_monitors(ctx: Context, targets: Sequence[Monitor], *, listed: Sequence[Monitor] | None) -> Outcome:
+    """Unpause the paused monitors among targets, then remove lock files.
+
+    With listed (every monitor, for "all" and the --find prompt), healthchecks.lock goes with the lock file of each
+    listed monitor; without it, only the targets' lock files go. A monitor whose unpause failed keeps its lock file.
+    """
+    for monitor in targets:
+        if monitor.status != PAUSED:
+            ctx.say(f"{plain_text(monitor.name)} is already running")
+    outcome = act_on_each(ctx, "Unpausing", [m for m in targets if m.status == PAUSED], ctx.provider.unpause)
+    if ctx.lock_files is not None:
+        failed = {m.id for m in outcome.failed}
+        ids = [m.id for m in (targets if listed is None else listed) if m.id not in failed]
+        outcome.lock_errors = remove_locks(ctx, ctx.lock_files, ids, everything=listed is not None)
+        if listed is None and ctx.lock_files.all_locked:
+            print_error(
+                ctx.err,
+                f"{LockFiles.ALL_NAME} is still present, so the pinging script skips every check "
+                "until you run --unpause all",
+            )
+    return outcome
+
+
+def show_monitors(ctx: Context, monitors: Sequence[Monitor], header: str, empty: str) -> None:
+    """Print monitors as JSON with --json, else as a table under header, or empty when there are none."""
+    if ctx.json_output:
+        ctx.say(format_json([m.raw for m in monitors]))
+    elif monitors:
+        ctx.say(header)
+        ctx.say(format_monitor_table(monitors, ctx.provider.id_kind, ctx.color))
+    else:
+        ctx.say(empty)
+
+
+def send_notification(ctx: Context, paused: Sequence[Monitor]) -> int:
+    """Post the paused monitors to the webhook; webhooks are not built yet, so this does nothing."""
+    return EXIT_OK
+
+
+def action_list(ctx: Context, args: argparse.Namespace) -> int:
+    """List every monitor."""
+    label = ctx.provider.label
+    show_monitors(
+        ctx, ctx.provider.list_monitors(), f"The following {label} monitors were found:", "No monitors found."
+    )
+    return EXIT_OK
+
+
+def action_find(ctx: Context, args: argparse.Namespace) -> int:
+    """List the paused monitors; -f on a terminal offers to unpause them, -w posts them to the webhook."""
+    label = ctx.provider.label
+    monitors = ctx.provider.list_monitors()
+    paused = [m for m in monitors if m.status == PAUSED]
+    show_monitors(ctx, paused, f"The following {label} monitors are paused:", f"No {label} monitors are paused.")
+    if args.webhook:
+        return send_notification(ctx, paused)
+    if args.find and paused and ctx.interactive and not ctx.json_output and ctx.ask("Unpause them?", assume_yes=False):
+        return unpause_monitors(ctx, paused, listed=monitors).exit_code(incomplete=False)
+    return EXIT_OK
+
+
+def action_pause(ctx: Context, args: argparse.Namespace) -> int:
+    """Pause monitors, creating their lock files first when the provider uses them."""
+    items = parse_targets("--pause", args.pause)
+    locks = ctx.lock_files
+    if locks is not None:
+        locks.prepare()
+    targets = select_targets(ctx, items)
+    if locks is not None and targets.everything:
+        locks.lock_all()
+
+    def pause(monitor: Monitor) -> None:
+        """Create the monitor's lock file when needed, then pause it."""
+        if locks is not None and not targets.everything:
+            locks.lock(monitor.id)
+        ctx.provider.pause(monitor)
+
+    outcome = act_on_each(ctx, "Pausing", targets.chosen, pause)
+    if outcome.done and ctx.provider.supports_lock_files:
+        ctx.say("")
+        ctx.say(HC_REMINDER)
+    return outcome.exit_code(targets.incomplete)
+
+
+def action_unpause(ctx: Context, args: argparse.Namespace) -> int:
+    """Unpause monitors and remove their lock files; "all" on an empty account still removes healthchecks.lock."""
+    try:
+        targets = select_targets(ctx, parse_targets("--unpause", args.unpause))
+    except NothingToDo:
+        if ctx.lock_files is not None:
+            remove_locks(ctx, ctx.lock_files, [], everything=True)
+        raise
+    outcome = unpause_monitors(ctx, targets.chosen, listed=targets.listed if targets.everything else None)
+    return outcome.exit_code(targets.incomplete)
+
+
+def action_info(ctx: Context, args: argparse.Namespace) -> int:
+    """Print the full record of one monitor."""
+    items = split_selection(args.info)
+    if len(items) != 1 or items == ["all"]:
+        raise UsageError("--info takes one monitor")
+    ctx.say(format_json(ctx.provider.info(select_targets(ctx, items).chosen[0])))
+    return EXIT_OK
+
+
+def action_alerts(ctx: Context, args: argparse.Namespace) -> int:
+    """Print the alert contacts."""
+    contacts = ctx.provider.alert_contacts()
+    if not ctx.json_output:
+        ctx.say(f"The following {ctx.provider.label} alert contacts were found:")
+    ctx.say(format_json(contacts))
+    return EXIT_OK
+
+
+def action_stats(ctx: Context, args: argparse.Namespace) -> int:
+    """Print the account statistics."""
+    ctx.say(format_json(ctx.provider.stats()))
+    return EXIT_OK
+
+
+def read_payload(path: Path) -> dict[str, Any]:
+    """Return the JSON object in the file at path; a missing file or bad JSON raises ConfigError."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ConfigError(f"{path}: cannot read the file: {exc.strerror or exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise ConfigError(f"{path}: cannot read the file: {exc}") from exc
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ConfigError(f"{path}: not valid JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ConfigError(f"{path}: must hold a JSON object")
+    return payload
+
+
+def action_create(ctx: Context, args: argparse.Namespace) -> int:
+    """Create a monitor from a JSON file and print the new record."""
+    ctx.say(format_json(ctx.provider.create(read_payload(args.create))))
+    return EXIT_OK
+
+
+def confirm_and_act(
+    ctx: Context, items: list[str], *, question: str, refusal: str, verb: str, step: Callable[[Monitor], object]
+) -> int:
+    """Select the monitors, ask question (with {count} and {label} filled in), then run step on each."""
+    targets = select_targets(ctx, items)
+    try:
+        agreed = ctx.ask(
+            question.format(count=len(targets.chosen), label=ctx.provider.label), assume_yes=ctx.assume_yes
+        )
+    except NeedsTerminal:
+        raise UsageError(f"Refusing to {refusal} without a terminal; pass --yes to confirm.") from None
+    if not agreed:
+        ctx.say("Cancelled.")
+        return EXIT_OK
+    return act_on_each(ctx, verb, targets.chosen, step, show_id=False).exit_code(targets.incomplete)
+
+
+def action_delete(ctx: Context, args: argparse.Namespace) -> int:
+    """Delete monitors after asking."""
+    return confirm_and_act(
+        ctx,
+        parse_targets("--delete", args.delete),
+        question="Delete {count} monitor(s) from {label}? This cannot be undone.",
+        refusal="delete",
+        verb="Deleting",
+        step=ctx.provider.delete,
+    )
+
+
+def action_reset(ctx: Context, args: argparse.Namespace) -> int:
+    """Clear the statistics of monitors after asking; a provider without reset is a usage error."""
+    items = parse_targets("--reset", args.reset)
+    if not ctx.provider.supports_reset:
+        raise Unsupported(f"{ctx.provider.label} does not support reset")
+    return confirm_and_act(
+        ctx,
+        items,
+        question="Reset statistics for {count} monitor(s) in {label}? This cannot be undone.",
+        refusal="reset",
+        verb="Resetting",
+        step=ctx.provider.reset,
+    )
+
+
+ACTIONS: dict[str, Callable[[Context, argparse.Namespace], int]] = {
+    "list": action_list,
+    "find": action_find,
+    "no_prompt": action_find,
+    "webhook": action_find,
+    "stats": action_stats,
+    "alerts": action_alerts,
+    "info": action_info,
+    "create": action_create,
+    "pause": action_pause,
+    "unpause": action_unpause,
+    "delete": action_delete,
+    "reset": action_reset,
+}
+
+
+def chosen_action(args: argparse.Namespace) -> Callable[[Context, argparse.Namespace], int]:
+    """Return the function for the action option that was given."""
+    for name, action in ACTIONS.items():
+        if getattr(args, name, None) not in (None, False):
+            return action
+    raise UsageError("choose an action, for example --list")
+
+
+def search_paths(env: Mapping[str, str]) -> list[Path]:
+    """Return the config file search paths for this script and user."""
+    script = Path(__file__).resolve()
+    try:
+        home = Path.home()
+    except RuntimeError:
+        return [script.parent / "tronitor.toml"]
+    return config_search_paths(script, home, env)
+
+
+def make_context(
+    args: argparse.Namespace,
+    *,
+    stdin: TextIO,
+    stdout: TextIO,
+    stderr: TextIO,
+    env: Mapping[str, str],
+    interactive: bool,
+) -> Context:
+    """Load the configuration and build the provider and the context for the action."""
+    config = load_config(args.config, env, search_paths(env))
+    name = resolve_provider_name(args.provider)
+    http = Http(verbose=args.verbose, log=lambda line: print(line, file=stderr))
+    provider = make_provider(name, config, http)
+    return Context(
+        provider=provider,
+        config=config,
+        out=stdout,
+        err=stderr,
+        color=use_color(stdout, env, args.no_color),
+        json_output=args.json,
+        assume_yes=args.yes,
+        interactive=interactive,
+        lock_files=LockFiles(config.lock_dir) if provider.supports_lock_files else None,
+        stdin=stdin,
+    )
+
+
+def run(
+    args: argparse.Namespace,
+    *,
+    stdin: TextIO,
+    stdout: TextIO,
+    stderr: TextIO,
+    env: Mapping[str, str],
+    interactive: bool,
+) -> int:
+    """Run the action args ask for and turn every error into its message and exit code."""
+    ctx: Context | None = None
+    try:
+        ctx = make_context(args, stdin=stdin, stdout=stdout, stderr=stderr, env=env, interactive=interactive)
+        return chosen_action(args)(ctx, args)
+    except NothingToDo as exc:
+        print(exc, file=stdout)
+        return EXIT_OK
+    except SelectionProblem as exc:
+        print_error(stderr, str(exc))
+        return EXIT_PARTIAL
+    except (ConfigError, UsageError, Unsupported) as exc:
+        print_error(stderr, str(exc))
+        return EXIT_USAGE
+    except NeedsTerminal as exc:
+        print_error(stderr, f'cannot ask "{exc}" without a terminal; pass --yes to confirm')
+        return EXIT_USAGE
+    except ProviderError as exc:
+        label = ctx.provider.label if ctx else ""
+        print_error(stderr, exc.message if label in exc.message else f"{label}: {exc.message}")
+        return EXIT_ERROR
+    except LockError as exc:
+        print_error(stderr, str(exc))
+        return EXIT_ERROR
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=stderr)
+        return EXIT_INTERRUPTED
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run tronitor with argv (default: sys.argv[1:]) and return the exit code."""
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     args = list(sys.argv[1:] if argv is None else argv)
     parser = build_parser()
     if not args:
         parser.print_usage(sys.stderr)
         return EXIT_USAGE
-    parser.parse_args(args)
-    return EXIT_OK
+    try:
+        namespace = parser.parse_args(args)
+    except SystemExit as exc:
+        return exc.code if isinstance(exc.code, int) else EXIT_USAGE
+    interactive = is_terminal(sys.stdin) and is_terminal(sys.stdout)
+    return run(
+        namespace, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, env=os.environ, interactive=interactive
+    )
 
 
 if __name__ == "__main__":

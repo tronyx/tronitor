@@ -1,32 +1,14 @@
 """Tests that run tronitor.py as a subprocess."""
 
-import os
-import subprocess
-import sys
+import json
 from pathlib import Path
+
+from conftest import HC_UUID_DATABASE, HC_UUID_FILESYSTEM, RunCli, hc_fixture_checks, run_tronitor, serve_checks
+from fake_server import FakeServer
 
 import tronitor
 
-SCRIPT = Path(__file__).resolve().parent.parent / "tronitor.py"
-
-
-def run(
-    *args: str, env: dict[str, str] | None = None, stdin: str = ""
-) -> subprocess.CompletedProcess[str]:
-    """Run tronitor.py with args and return the result with text output.
-
-    The environment holds only PATH and SYSTEMROOT, plus whatever env adds.
-    """
-    full_env = {"PATH": os.environ.get("PATH", ""), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")}
-    full_env.update(env or {})
-    return subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
-        capture_output=True,
-        text=True,
-        env=full_env,
-        input=stdin,
-        check=False,
-    )
+run = run_tronitor
 
 
 def test_version_prints_the_date_and_exits_0() -> None:
@@ -41,3 +23,140 @@ def test_no_arguments_prints_usage_and_exits_2() -> None:
     result = run()
     assert result.returncode == 2
     assert "usage:" in result.stderr
+
+
+def test_cli_list_against_fake_server(fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli) -> None:
+    """-l prints the header and one row per check."""
+    serve_checks(fake_server)
+    result = run_cli("-m", "hc", "-l")
+    assert result.returncode == 0, result.stderr
+    assert "The following Healthchecks monitors were found:" in result.stdout
+    assert f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Status: Up" in result.stdout
+    assert f"Database Backup    UUID: {HC_UUID_DATABASE}  Status: Paused" in result.stdout
+    assert result.stderr == ""
+
+
+def test_cli_pause_all_without_tty_needs_no_input(
+    fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli, tmp_path: Path
+) -> None:
+    """Pausing never prompts, so it works from cron with nothing on stdin."""
+    serve_checks(fake_server)
+    for uuid in (HC_UUID_FILESYSTEM, HC_UUID_DATABASE):
+        fake_server.add("POST", f"/api/v3/checks/{uuid}/pause", 200, {"status": "paused"})
+    result = run_cli("-m", "healthchecks", "-p", "all")
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "locks" / "healthchecks.lock").is_file()
+    assert result.stdout.count("... done") == 2
+
+
+def test_cli_delete_without_yes_refuses_and_exits_2(
+    fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli
+) -> None:
+    """Without a terminal and without --yes, delete refuses and sends no DELETE."""
+    serve_checks(fake_server)
+    result = run_cli("-m", "hc", "-d", "all")
+    assert result.returncode == 2
+    assert "tronitor: Refusing to delete without a terminal; pass --yes to confirm." in result.stderr
+    assert not [r for r in fake_server.requests if r.method == "DELETE"]
+
+
+def test_cli_failure_reaches_stderr(fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli) -> None:
+    """A failed pause is reported on stderr, so cron sees it even when stdout is thrown away."""
+    serve_checks(fake_server)
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}/pause", 500, {"error": "server error"})
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_DATABASE}/pause", 200, {"status": "paused"})
+    result = run_cli("-m", "hc", "-p", "all")
+    assert result.returncode == 3
+    failed = f"tronitor: Pausing Filesystem Backup (UUID {HC_UUID_FILESYSTEM})... failed: HTTP 500: server error"
+    assert failed in result.stderr
+    assert "failed" not in result.stdout
+    assert f"Pausing Database Backup (UUID {HC_UUID_DATABASE})... done" in result.stdout
+
+
+def test_cli_find_f_without_tty_behaves_like_n(fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli) -> None:
+    """-f without a terminal lists the paused checks and does not prompt or unpause."""
+    serve_checks(fake_server)
+    result = run_cli("-m", "hc", "-f", stdin="y\n")
+    assert result.returncode == 0, result.stderr
+    assert "The following Healthchecks monitors are paused:" in result.stdout
+    assert "Database Backup" in result.stdout
+    assert "Filesystem Backup" not in result.stdout
+    assert "Unpause them?" not in result.stdout
+    assert not [r for r in fake_server.requests if r.method == "POST"]
+
+
+def test_cli_help_mentions_providers_and_all() -> None:
+    """--help explains the provider names and "all" and points at the docs."""
+    result = run("--help")
+    assert result.returncode == 0
+    assert "healthchecks (hc)" in result.stdout
+    assert "uptimerobot (ur)" in result.stdout
+    assert '"all"' in result.stdout
+    assert result.stdout.rstrip().endswith(
+        "Documentation: https://github.com/tronyx/tronitor/blob/master/docs/usage.md"
+    )
+
+
+def test_cli_colour_is_off_when_piped(fake_server: FakeServer, hc_config_file: Path) -> None:
+    """Piped output has no colour codes even without NO_COLOR."""
+    serve_checks(fake_server)
+    result = run("-m", "hc", "-l", env={"TRONITOR_CONFIG": str(hc_config_file), "NO_PROXY": "127.0.0.1"})
+    assert result.returncode == 0, result.stderr
+    assert "Status: Paused" in result.stdout
+    assert "\x1b[" not in result.stdout
+
+
+def test_cli_env_only_no_config_file(fake_server: FakeServer, tmp_path: Path) -> None:
+    """With the URL, key and lock directory in the environment, no config file is needed."""
+    serve_checks(fake_server)
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_DATABASE}/pause", 200, {"status": "paused"})
+    env = {
+        "TRONITOR_HEALTHCHECKS_URL": fake_server.url,
+        "TRONITOR_HEALTHCHECKS_API_KEY": "hc-test-key",
+        "TRONITOR_LOCK_DIR": str(tmp_path / "env-locks"),
+        "HOME": str(tmp_path),
+        "APPDATA": str(tmp_path),
+        "NO_COLOR": "1",
+        "NO_PROXY": "127.0.0.1",
+    }
+    result = run("-m", "hc", "-p", "Database Backup", env=env)
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "env-locks" / f"{HC_UUID_DATABASE}.lock").is_file()
+    assert fake_server.requests[0].headers["X-Api-Key"] == "hc-test-key"
+
+
+def test_cli_secret_never_printed_with_verbose(fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli) -> None:
+    """--verbose logs the requests but never the API key, even when a request fails."""
+    serve_checks(fake_server)
+    fake_server.add("GET", f"/api/v3/checks/{HC_UUID_FILESYSTEM}", 401, {"error": "The API key is invalid."})
+    listed = run_cli("-m", "hc", "-l", "--verbose")
+    failed = run_cli("-m", "hc", "-i", "Filesystem Backup", "--verbose")
+    assert listed.returncode == 0
+    assert failed.returncode == 1
+    assert "GET " in listed.stderr
+    for result in (listed, failed):
+        assert "hc-test-key" not in result.stdout + result.stderr
+
+
+def test_cli_json_with_a_non_latin_name_does_not_crash(fake_server: FakeServer, run_cli: RunCli) -> None:
+    """A name outside the console's code page is printed as UTF-8 rather than crashing."""
+    checks = hc_fixture_checks()
+    checks[0]["name"] = "Sauvegarde 日本"
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": checks})
+    result = run_cli("-m", "hc", "-l", "--json")
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)[0]["name"] == "Sauvegarde 日本"
+
+
+def test_cli_missing_provider_is_a_usage_error() -> None:
+    """An action without -m is rejected by argparse with exit 2."""
+    result = run("-l")
+    assert result.returncode == 2
+    assert "-m/--monitor/--provider" in result.stderr
+
+
+def test_cli_two_actions_are_a_usage_error() -> None:
+    """Two actions at once are rejected with exit 2."""
+    result = run("-m", "hc", "-l", "-f")
+    assert result.returncode == 2
+    assert "not allowed with" in result.stderr

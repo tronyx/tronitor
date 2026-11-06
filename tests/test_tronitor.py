@@ -1,6 +1,7 @@
 """Unit tests for the tronitor module."""
 
 import io
+import json
 import os
 import re
 import socket
@@ -10,7 +11,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from conftest import HC_UUID_DATABASE, HC_UUID_FILESYSTEM, hc_fixture_checks
+from conftest import HC_UUID_DATABASE, HC_UUID_FILESYSTEM, hc_fixture_checks, serve_checks
 from fake_server import FakeServer
 
 import tronitor
@@ -882,3 +883,722 @@ def test_status_colors_cover_every_status() -> None:
     """STATUS_COLORS has exactly the known statuses and each value is an ANSI sequence."""
     assert set(tronitor.STATUS_COLORS) == {"up", "down", "paused", "grace", "seems down", "new", "pending"}
     assert all(code.startswith("\x1b[") for code in tronitor.STATUS_COLORS.values())
+
+
+"""Command line: the actions, run through main() against the fake server."""
+
+FS_PAUSE = f"/api/v3/checks/{HC_UUID_FILESYSTEM}/pause"
+DB_PAUSE = f"/api/v3/checks/{HC_UUID_DATABASE}/pause"
+DB_RESUME = f"/api/v3/checks/{HC_UUID_DATABASE}/resume"
+REMINDER = (
+    "Note: a paused Healthchecks check becomes active again when it next receives a ping. "
+    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+)
+
+
+@pytest.fixture
+def hc_env(hc_config_file: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Point TRONITOR_CONFIG at the Healthchecks config, set NO_COLOR and clear other TRONITOR_ variables."""
+    for name in list(os.environ):
+        if name.startswith("TRONITOR_"):
+            monkeypatch.delenv(name)
+    monkeypatch.setenv("TRONITOR_CONFIG", str(hc_config_file))
+    monkeypatch.setenv("NO_COLOR", "1")
+    return hc_config_file
+
+
+@pytest.fixture
+def locks(hc_config_file: Path) -> Path:
+    """Return the lock directory named in the Healthchecks config (not created)."""
+    return hc_config_file.parent / "locks"
+
+
+def posts(fake_server: FakeServer) -> list[str]:
+    """Return the paths of every POST request received."""
+    return [r.path for r in fake_server.requests if r.method == "POST"]
+
+
+def deletes(fake_server: FakeServer) -> list[str]:
+    """Return the paths of every DELETE request received."""
+    return [r.path for r in fake_server.requests if r.method == "DELETE"]
+
+
+def make_tty(monkeypatch: pytest.MonkeyPatch, answer: str) -> None:
+    """Make stdin and stdout look like a terminal, with answer waiting on stdin."""
+    monkeypatch.setattr(sys, "stdin", FakeTty(answer))
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
+
+
+def test_list_prints_table(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """-l prints the header and one row per check and exits 0."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-l"]) == 0
+    out, err = capsys.readouterr()
+    assert out.splitlines() == [
+        "The following Healthchecks monitors were found:",
+        f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Status: Up",
+        f"Database Backup    UUID: {HC_UUID_DATABASE}  Status: Paused",
+    ]
+    assert err == ""
+
+
+def test_list_with_no_monitors(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """An empty account says so."""
+    serve_checks(fake_server, [])
+    assert tronitor.main(["-m", "hc", "-l"]) == 0
+    assert capsys.readouterr().out == "No monitors found.\n"
+
+
+def test_list_json(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """--json prints the raw records and nothing else."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-l", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == hc_fixture_checks()
+
+
+def test_find_shows_paused_only_and_does_not_prompt_without_tty(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """-f without a terminal lists the paused check, asks nothing and sends no POST."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-f"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "The following Healthchecks monitors are paused:",
+        f"Database Backup  UUID: {HC_UUID_DATABASE}  Status: Paused",
+    ]
+    assert posts(fake_server) == []
+
+
+def test_find_with_nothing_paused(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """No paused check gives the 'none paused' line, for -f, -n and -w alike."""
+    serve_checks(fake_server, hc_fixture_checks()[:1])
+    for flag in ("-f", "-n", "-w"):
+        assert tronitor.main(["-m", "hc", flag]) == 0
+        assert capsys.readouterr().out == "No Healthchecks monitors are paused.\n"
+
+
+def test_find_json_prints_paused_records(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """-n --json prints only the paused records."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-n", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == [hc_fixture_checks()[1]]
+
+
+def test_find_prompt_yes_unpauses_and_removes_locks(
+    hc_env: Path,
+    locks: Path,
+    fake_server: FakeServer,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """On a terminal, answering y unpauses the paused check and removes the lock files."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {"status": "new"})
+    locks.mkdir()
+    for name in ("healthchecks.lock", f"{HC_UUID_DATABASE}.lock", "other.lock"):
+        (locks / name).touch()
+    make_tty(monkeypatch, "y\n")
+    assert tronitor.main(["-m", "hc", "-f"]) == 0
+    out = capsys.readouterr().out
+    assert "Unpause them? [y/N]: " in out
+    assert f"Unpausing Database Backup (UUID {HC_UUID_DATABASE})... done" in out
+    assert "already running" not in out
+    assert posts(fake_server) == [DB_RESUME]
+    assert sorted(p.name for p in locks.iterdir()) == ["other.lock"]
+
+
+def test_find_prompt_no_changes_nothing(
+    hc_env: Path,
+    locks: Path,
+    fake_server: FakeServer,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Answering anything but yes leaves the checks and lock files alone; --yes does not answer for -f."""
+    serve_checks(fake_server)
+    locks.mkdir()
+    (locks / "healthchecks.lock").touch()
+    make_tty(monkeypatch, "\n")
+    assert tronitor.main(["-m", "hc", "-f", "--yes"]) == 0
+    assert "Unpause them? [y/N]: " in capsys.readouterr().out
+    assert posts(fake_server) == []
+    assert (locks / "healthchecks.lock").exists()
+
+
+def test_find_n_and_w_never_prompt_on_a_terminal(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """-n and -w do not prompt even on a terminal."""
+    serve_checks(fake_server)
+    make_tty(monkeypatch, "y\n")
+    for flag in ("-n", "-w"):
+        assert tronitor.main(["-m", "hc", flag]) == 0
+        assert "Unpause" not in capsys.readouterr().out
+    assert posts(fake_server) == []
+
+
+def test_pause_all_creates_lock_and_posts_each(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--pause all creates healthchecks.lock, pauses every check and ends with the reminder."""
+    serve_checks(fake_server)
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    out = capsys.readouterr().out
+    assert (locks / "healthchecks.lock").is_file()
+    assert posts(fake_server) == [FS_PAUSE, DB_PAUSE]
+    assert f"Pausing Filesystem Backup (UUID {HC_UUID_FILESYSTEM})... done" in out
+    assert f"Pausing Database Backup (UUID {HC_UUID_DATABASE})... done" in out
+    assert out.rstrip().endswith(REMINDER)
+
+
+def test_pause_named_creates_per_monitor_lock(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--pause NAME creates only that check's lock file and pauses only it."""
+    serve_checks(fake_server)
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "'filesystem backup'"]) == 0
+    assert [p.name for p in locks.iterdir()] == [f"{HC_UUID_FILESYSTEM}.lock"]
+    assert posts(fake_server) == [FS_PAUSE]
+
+
+def test_pause_unmatched_name_does_nothing_and_exits_3(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A name that matches nothing stops everything, even the names that did match."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-p", "Filesystem Backup,Tautulli"]) == 3
+    out, err = capsys.readouterr()
+    assert err == "tronitor: Not found: Tautulli\n"
+    assert out == ""
+    assert posts(fake_server) == []
+    assert list(locks.iterdir()) == []
+
+
+def test_pause_unmatched_with_yes_acts_on_the_rest_and_exits_3(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With --yes, the matched checks are paused and the exit code still reports the miss."""
+    serve_checks(fake_server)
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "Filesystem Backup,Tautulli", "--yes"]) == 3
+    out, err = capsys.readouterr()
+    assert err == "tronitor: Not found: Tautulli\n"
+    assert posts(fake_server) == [FS_PAUSE]
+    assert f"Pausing Filesystem Backup (UUID {HC_UUID_FILESYSTEM})... done" in out
+
+
+def test_pause_ambiguous_name_exits_3_even_with_yes(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A name shared by two checks lists their UUIDs and touches nothing, --yes or not."""
+    other = "0f0e0d0c-0b0a-4908-8706-050403020100"
+    serve_checks(fake_server, [*hc_fixture_checks(), {**hc_fixture_checks()[0], "uuid": other}])
+    assert tronitor.main(["-m", "hc", "-p", "Filesystem Backup,Database Backup", "--yes"]) == 3
+    assert capsys.readouterr().err == (
+        'tronitor: "Filesystem Backup" matches 2 monitors; use the UUID instead:\n'
+        f"  Filesystem Backup (UUID {HC_UUID_FILESYSTEM})\n"
+        f"  Filesystem Backup (UUID {other})\n"
+    )
+    assert posts(fake_server) == []
+
+
+def test_pause_lock_dir_is_a_file_exits_1_before_any_request(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A lock directory that cannot be used stops the pause before the API is called."""
+    serve_checks(fake_server)
+    locks.write_text("not a directory", encoding="utf-8")
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 1
+    assert capsys.readouterr().err == f"tronitor: {locks} is not a directory\n"
+    assert fake_server.requests == []
+
+
+def test_pause_api_failure_continues_and_exits_3(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A failed pause is reported, the rest go ahead, and the exit code is 3."""
+    serve_checks(fake_server)
+    fake_server.add("POST", FS_PAUSE, 500, {"error": "server error"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 3
+    out, err = capsys.readouterr()
+    assert err == f"tronitor: Pausing Filesystem Backup (UUID {HC_UUID_FILESYSTEM})... failed: HTTP 500: server error\n"
+    assert "failed" not in out
+    assert f"Pausing Database Backup (UUID {HC_UUID_DATABASE})... done" in out
+    assert posts(fake_server) == [FS_PAUSE, DB_PAUSE]
+
+
+def test_pause_every_failure_exits_1(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """When every pause fails nothing was done, so the exit code is 1 and there is no reminder."""
+    serve_checks(fake_server)
+    fake_server.add("POST", FS_PAUSE, 500)
+    assert tronitor.main(["-m", "hc", "-p", "Filesystem Backup"]) == 1
+    out, err = capsys.readouterr()
+    assert "failed: HTTP 500: Internal Server Error" in err
+    assert "Note:" not in out
+
+
+def test_pause_empty_selection_is_a_usage_error(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An empty or comma-only selection is a usage error, before any request."""
+    for text in ("", " , "):
+        assert tronitor.main(["-m", "hc", "-p", text]) == 2
+        assert capsys.readouterr().err == 'tronitor: --pause needs "all" or a comma-separated list of monitors\n'
+    for option in ("--unpause", "--delete", "--reset"):
+        assert tronitor.main(["-m", "hc", option, ","]) == 2
+        assert capsys.readouterr().err.startswith(f'tronitor: {option} needs "all"')
+    assert fake_server.requests == []
+
+
+def test_pause_name_with_control_characters_is_printed_safely(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A check name with an escape sequence is printed with the control characters replaced."""
+    serve_checks(fake_server, [{**hc_fixture_checks()[0], "name": "Bad\x1b[2JName"}])
+    fake_server.add("POST", FS_PAUSE, 200, {})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    out = capsys.readouterr().out
+    assert "Pausing Bad?[2JName (UUID" in out
+    assert "\x1b" not in out
+
+
+def test_unpause_all_skips_running_checks_and_removes_locks(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--unpause all resumes only the paused check and removes the lock files of listed checks only."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {"status": "new"})
+    locks.mkdir()
+    for name in ("healthchecks.lock", f"{HC_UUID_FILESYSTEM}.lock", f"{HC_UUID_DATABASE}.lock", "other.lock"):
+        (locks / name).touch()
+    assert tronitor.main(["-m", "hc", "-u", "all"]) == 0
+    out = capsys.readouterr().out
+    assert posts(fake_server) == [DB_RESUME]
+    assert "Filesystem Backup is already running" in out
+    assert f"Unpausing Database Backup (UUID {HC_UUID_DATABASE})... done" in out
+    assert sorted(p.name for p in locks.iterdir()) == ["other.lock"]
+
+
+def test_unpause_all_keeps_the_lock_of_a_failed_check(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A check whose unpause failed keeps its lock file; nothing was done, so the exit code is 1."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 500)
+    locks.mkdir()
+    for name in ("healthchecks.lock", f"{HC_UUID_FILESYSTEM}.lock", f"{HC_UUID_DATABASE}.lock"):
+        (locks / name).touch()
+    assert tronitor.main(["-m", "hc", "-u", "all"]) == 1
+    assert "failed: HTTP 500" in capsys.readouterr().err
+    assert sorted(p.name for p in locks.iterdir()) == [f"{HC_UUID_DATABASE}.lock"]
+
+
+def test_unpause_all_cleanup_continues_past_a_failed_removal(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """healthchecks.lock that cannot be removed is reported, and the per-check lock files still go (exit 3)."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {"status": "new"})
+    locks.mkdir()
+    (locks / "healthchecks.lock").mkdir()
+    for name in (f"{HC_UUID_FILESYSTEM}.lock", f"{HC_UUID_DATABASE}.lock"):
+        (locks / name).touch()
+    assert tronitor.main(["-m", "hc", "-u", "all"]) == 3
+    err = capsys.readouterr().err
+    assert err.startswith(f"tronitor: cannot remove {locks / 'healthchecks.lock'}")
+    assert err.count("\n") == 1
+    assert [p.name for p in locks.iterdir()] == ["healthchecks.lock"]
+
+
+def test_unpause_all_with_no_monitors_removes_the_all_lock(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--unpause all on an empty account still removes a leftover healthchecks.lock and exits 0."""
+    serve_checks(fake_server, [])
+    locks.mkdir()
+    (locks / "healthchecks.lock").touch()
+    (locks / "other.lock").touch()
+    assert tronitor.main(["-m", "hc", "-u", "all"]) == 0
+    assert capsys.readouterr() == ("No monitors found.\n", "")
+    assert [p.name for p in locks.iterdir()] == ["other.lock"]
+
+
+def test_unpause_all_with_no_monitors_reports_a_stuck_all_lock(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """On an empty account, a healthchecks.lock that cannot be removed is reported, but the exit code is still 0."""
+    serve_checks(fake_server, [])
+    locks.mkdir()
+    (locks / "healthchecks.lock").mkdir()
+    assert tronitor.main(["-m", "hc", "-u", "all"]) == 0
+    out, err = capsys.readouterr()
+    assert out == "No monitors found.\n"
+    assert err.startswith(f"tronitor: cannot remove {locks / 'healthchecks.lock'}")
+
+
+def test_named_unpause_warns_when_the_all_lock_remains(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """After a named unpause, a remaining healthchecks.lock is pointed out on stderr; the exit code stays 0."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {"status": "new"})
+    locks.mkdir()
+    (locks / "healthchecks.lock").touch()
+    (locks / f"{HC_UUID_DATABASE}.lock").touch()
+    assert tronitor.main(["-m", "hc", "-u", "Database Backup"]) == 0
+    assert capsys.readouterr().err == (
+        "tronitor: healthchecks.lock is still present, so the pinging script skips every check "
+        "until you run --unpause all\n"
+    )
+    assert [p.name for p in locks.iterdir()] == ["healthchecks.lock"]
+
+
+def test_named_unpause_without_the_all_lock_does_not_warn(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Without healthchecks.lock there is no warning."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {"status": "new"})
+    assert tronitor.main(["-m", "hc", "-u", "Database Backup"]) == 0
+    assert capsys.readouterr().err == ""
+
+
+def test_unpause_named_removes_its_lock(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--unpause UUID resumes that check and removes only its lock file."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {"status": "new"})
+    locks.mkdir()
+    for name in ("healthchecks.lock", f"{HC_UUID_FILESYSTEM}.lock", f"{HC_UUID_DATABASE}.lock"):
+        (locks / name).touch()
+    assert tronitor.main(["-m", "hc", "-u", HC_UUID_DATABASE.upper()]) == 0
+    assert f"Unpausing Database Backup (UUID {HC_UUID_DATABASE})... done" in capsys.readouterr().out
+    assert posts(fake_server) == [DB_RESUME]
+    assert sorted(p.name for p in locks.iterdir()) == [f"{HC_UUID_FILESYSTEM}.lock", "healthchecks.lock"]
+
+
+def test_unpause_named_running_check_says_so_and_removes_a_stale_lock(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A named check that is already running is not resumed, but its leftover lock file goes."""
+    serve_checks(fake_server)
+    locks.mkdir()
+    (locks / f"{HC_UUID_FILESYSTEM}.lock").touch()
+    assert tronitor.main(["-m", "hc", "-u", "Filesystem Backup"]) == 0
+    assert capsys.readouterr().out == "Filesystem Backup is already running\n"
+    assert posts(fake_server) == []
+    assert list(locks.iterdir()) == []
+
+
+def test_unpause_lock_removal_failure_is_reported(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A lock file that cannot be removed is reported and counts as a failure (exit 3 after a success)."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {"status": "new"})
+    locks.mkdir()
+    (locks / f"{HC_UUID_DATABASE}.lock").mkdir()
+    assert tronitor.main(["-m", "hc", "-u", "Database Backup"]) == 3
+    out, err = capsys.readouterr()
+    assert f"Unpausing Database Backup (UUID {HC_UUID_DATABASE})... done" in out
+    assert err.startswith(f"tronitor: cannot remove {locks / (HC_UUID_DATABASE + '.lock')}")
+
+
+def test_info_prints_json(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """--info prints the full record of one check."""
+    serve_checks(fake_server)
+    record = {**hc_fixture_checks()[0], "desc": "nightly"}
+    fake_server.add("GET", f"/api/v3/checks/{HC_UUID_FILESYSTEM}", 200, record)
+    assert tronitor.main(["-m", "hc", "-i", "Filesystem Backup"]) == 0
+    assert json.loads(capsys.readouterr().out) == record
+
+
+def test_info_with_two_targets_is_a_usage_error(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--info with two monitors, all or nothing is a usage error before any request."""
+    for text in ("Filesystem Backup,Database Backup", "all", ""):
+        assert tronitor.main(["-m", "hc", "-i", text]) == 2
+        assert capsys.readouterr().err == "tronitor: --info takes one monitor\n"
+    assert fake_server.requests == []
+
+
+def test_info_unknown_name_exits_3(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """--info with a name that matches nothing exits 3, --yes or not."""
+    serve_checks(fake_server)
+    for extra in ([], ["--yes"]):
+        assert tronitor.main(["-m", "hc", "-i", "Tautulli", *extra]) == 3
+        assert capsys.readouterr().err == "tronitor: Not found: Tautulli\n"
+
+
+def test_alerts_prints_channels(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """--alerts prints a header and the channels as JSON; --json drops the header."""
+    channels = [{"id": "c1", "name": "Email", "kind": "email"}]
+    fake_server.add("GET", "/api/v3/channels/", 200, {"channels": channels})
+    assert tronitor.main(["-m", "hc", "-a"]) == 0
+    header, _, body = capsys.readouterr().out.partition("\n")
+    assert header == "The following Healthchecks alert contacts were found:"
+    assert json.loads(body) == channels
+    assert tronitor.main(["-m", "hc", "-a", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == channels
+
+
+def test_stats_is_unsupported_for_healthchecks(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--stats on Healthchecks is a usage error with a clear message."""
+    assert tronitor.main(["-m", "hc", "-s"]) == 2
+    assert capsys.readouterr().err == "tronitor: Healthchecks does not support stats\n"
+    assert fake_server.requests == []
+
+
+def test_create_posts_the_file(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    """--create posts the file's JSON as it is and prints the new record."""
+    payload = {"name": "New check", "timeout": 3600, "tags": "café"}
+    created = {**hc_fixture_checks()[0], "name": "New check"}
+    fake_server.add("POST", "/api/v3/checks/", 201, created)
+    path = tmp_path / "new.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    assert tronitor.main(["-m", "hc", "-c", str(path)]) == 0
+    assert fake_server.requests_for("POST", "/api/v3/checks/")[0].body == payload
+    assert json.loads(capsys.readouterr().out) == created
+
+
+def test_create_missing_file_is_usage_error(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    """A missing file, invalid JSON or JSON that is not an object is a usage error, with no request."""
+    missing = tmp_path / "missing.json"
+    assert tronitor.main(["-m", "hc", "-c", str(missing)]) == 2
+    assert capsys.readouterr().err.startswith(f"tronitor: {missing}: cannot read the file")
+    bad = tmp_path / "bad.json"
+    bad.write_text("{not json", encoding="utf-8")
+    assert tronitor.main(["-m", "hc", "-c", str(bad)]) == 2
+    assert capsys.readouterr().err.startswith(f"tronitor: {bad}: not valid JSON")
+    listed = tmp_path / "list.json"
+    listed.write_text("[]", encoding="utf-8")
+    assert tronitor.main(["-m", "hc", "-c", str(listed)]) == 2
+    assert capsys.readouterr().err == f"tronitor: {listed}: must hold a JSON object\n"
+    assert fake_server.requests == []
+
+
+def test_delete_without_terminal_refuses(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Without a terminal and --yes, delete refuses with exit 2 and sends no DELETE."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-d", "Filesystem Backup"]) == 2
+    assert capsys.readouterr().err == "tronitor: Refusing to delete without a terminal; pass --yes to confirm.\n"
+    assert deletes(fake_server) == []
+
+
+def test_delete_with_yes_deletes(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """--yes deletes each selected check without asking."""
+    serve_checks(fake_server)
+    for uuid in (HC_UUID_FILESYSTEM, HC_UUID_DATABASE):
+        fake_server.add("DELETE", f"/api/v3/checks/{uuid}", 200, {})
+    assert tronitor.main(["-m", "hc", "-d", "all", "--yes"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "Deleting Filesystem Backup... done",
+        "Deleting Database Backup... done",
+    ]
+    assert deletes(fake_server) == [f"/api/v3/checks/{HC_UUID_FILESYSTEM}", f"/api/v3/checks/{HC_UUID_DATABASE}"]
+
+
+def test_delete_prompt_on_a_terminal(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On a terminal delete asks first; answering no deletes nothing."""
+    serve_checks(fake_server)
+    make_tty(monkeypatch, "n\n")
+    assert tronitor.main(["-m", "hc", "-d", "all"]) == 0
+    assert capsys.readouterr().out == (
+        "Delete 2 monitor(s) from Healthchecks? This cannot be undone. [y/N]: Cancelled.\n"
+    )
+    assert deletes(fake_server) == []
+
+
+def test_reset_is_unsupported_for_healthchecks(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--reset on Healthchecks is a usage error before any request or prompt."""
+    for extra in ([], ["--yes"]):
+        assert tronitor.main(["-m", "hc", "-r", "all", *extra]) == 2
+        assert capsys.readouterr().err == "tronitor: Healthchecks does not support reset\n"
+    assert fake_server.requests == []
+
+
+def test_provider_label_is_not_repeated(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A provider message that already names the provider is not prefixed with the label again."""
+    fake_server.add("GET", "/api/v3/checks/", 200, {"items": []})
+    assert tronitor.main(["-m", "hc", "-l"]) == 1
+    assert capsys.readouterr().err == "tronitor: unexpected response from Healthchecks\n"
+
+
+def test_bad_api_key_is_exit_1_with_label(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An API error exits 1 and the message names the provider."""
+    fake_server.add("GET", "/api/v3/checks/", 401, {"error": "The API key is either missing or invalid."})
+    assert tronitor.main(["-m", "hc", "-l"]) == 1
+    assert capsys.readouterr().err == "tronitor: Healthchecks: HTTP 401: The API key is either missing or invalid.\n"
+
+
+def test_missing_api_key_is_exit_2(
+    hc_env: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A config without Healthchecks settings is a usage error that says how to fix it."""
+    config = tmp_path / "empty.toml"
+    config.write_text("[general]\nlock_dir = 'x'\n", encoding="utf-8")
+    monkeypatch.setenv("TRONITOR_CONFIG", str(config))
+    assert tronitor.main(["-m", "hc", "-l"]) == 2
+    assert capsys.readouterr().err == (
+        "tronitor: no Healthchecks API key: set [healthchecks] api_key in the config or TRONITOR_HEALTHCHECKS_API_KEY\n"
+    )
+
+
+def test_unknown_provider_is_exit_2(hc_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """An unknown provider name is a usage error naming the valid ones."""
+    assert tronitor.main(["-m", "statuscake", "-l"]) == 2
+    assert capsys.readouterr().err == (
+        "tronitor: unknown provider 'statuscake'; use healthchecks (hc) or uptimerobot (ur)\n"
+    )
+
+
+def test_uptimerobot_is_not_available_yet(hc_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """UptimeRobot is recognised but not built yet."""
+    assert tronitor.main(["--provider", "UR", "-l"]) == 2
+    assert capsys.readouterr().err == "tronitor: UptimeRobot is not available yet\n"
+
+
+def test_resolve_provider_name() -> None:
+    """Short and long names, in any case, map to the long name."""
+    assert tronitor.resolve_provider_name("hc") == "healthchecks"
+    assert tronitor.resolve_provider_name("Healthchecks") == "healthchecks"
+    assert tronitor.resolve_provider_name("ur") == "uptimerobot"
+    assert tronitor.resolve_provider_name("uptimerobot") == "uptimerobot"
+    with pytest.raises(tronitor.ConfigError, match="unknown provider 'x'"):
+        tronitor.resolve_provider_name("x")
+
+
+def test_missing_config_option_file_is_exit_2(hc_env: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A --config file that does not exist exits 2 with the message."""
+    missing = tmp_path / "nope.toml"
+    assert tronitor.main(["-m", "hc", "-l", "--config", str(missing)]) == 2
+    assert capsys.readouterr().err == f"tronitor: {missing}: config file does not exist\n"
+
+
+def test_parse_errors_and_version_return_codes(capsys: pytest.CaptureFixture[str]) -> None:
+    """main() returns argparse's exit codes instead of raising SystemExit."""
+    assert tronitor.main(["--version"]) == 0
+    assert tronitor.main(["-m", "hc"]) == 2
+    assert tronitor.main(["-m", "hc", "-l", "-n"]) == 2
+    assert tronitor.main(["-l"]) == 2
+    assert "usage:" in capsys.readouterr().err
+
+
+def test_ctrl_c_exits_130(hc_env: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    """Ctrl+C prints Interrupted. and exits 130."""
+
+    def interrupt(self: tronitor.HealthchecksProvider) -> list[tronitor.Monitor]:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(tronitor.HealthchecksProvider, "list_monitors", interrupt)
+    assert tronitor.main(["-m", "hc", "-l"]) == 130
+    assert capsys.readouterr().err == "\nInterrupted.\n"
+
+
+def test_verbose_logs_to_stderr(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """--verbose logs each request to stderr."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-l", "--verbose"]) == 0
+    assert capsys.readouterr().err == f"GET {fake_server.url}/api/v3/checks/\n"
+
+
+def test_run_takes_its_streams_and_terminal_flag(hc_env: Path, fake_server: FakeServer) -> None:
+    """run() reads the answer from its stdin and writes to its own streams."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {})
+    args = tronitor.build_parser().parse_args(["-m", "hc", "-f"])
+    out, err = io.StringIO(), io.StringIO()
+    code = tronitor.run(args, stdin=io.StringIO("yes\n"), stdout=out, stderr=err, env=os.environ, interactive=True)
+    assert code == 0
+    assert "Unpause them? [y/N]: " in out.getvalue()
+    assert posts(fake_server) == [DB_RESUME]
+    assert err.getvalue() == ""
+
+
+def test_find_json_on_a_terminal_never_prompts(hc_env: Path, fake_server: FakeServer) -> None:
+    """-f --json on a terminal prints the JSON and does not ask, so nothing is unpaused."""
+    serve_checks(fake_server)
+    fake_server.add("POST", DB_RESUME, 200, {})
+    args = tronitor.build_parser().parse_args(["-m", "hc", "-f", "--json"])
+    out = io.StringIO()
+    code = tronitor.run(
+        args, stdin=io.StringIO("y\n"), stdout=out, stderr=io.StringIO(), env=os.environ, interactive=True
+    )
+    assert code == 0
+    assert json.loads(out.getvalue()) == [hc_fixture_checks()[1]]
+    assert posts(fake_server) == []
+
+
+def test_find_prompt_unpause_failure_exits_3(hc_env: Path, locks: Path, fake_server: FakeServer) -> None:
+    """Answering y when one of two resumes fails reports the failure on stderr, keeps its lock and exits 3."""
+    checks = hc_fixture_checks()
+    checks[0]["status"] = "paused"
+    serve_checks(fake_server, checks)
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}/resume", 500, {"error": "server error"})
+    fake_server.add("POST", DB_RESUME, 200, {})
+    locks.mkdir()
+    for name in ("healthchecks.lock", f"{HC_UUID_FILESYSTEM}.lock", f"{HC_UUID_DATABASE}.lock"):
+        (locks / name).touch()
+    args = tronitor.build_parser().parse_args(["-m", "hc", "-f"])
+    out, err = io.StringIO(), io.StringIO()
+    code = tronitor.run(args, stdin=io.StringIO("y\n"), stdout=out, stderr=err, env=os.environ, interactive=True)
+    assert code == 3
+    assert err.getvalue() == (
+        f"tronitor: Unpausing Filesystem Backup (UUID {HC_UUID_FILESYSTEM})... failed: HTTP 500: server error\n"
+    )
+    assert f"Unpausing Database Backup (UUID {HC_UUID_DATABASE})... done" in out.getvalue()
+    assert [p.name for p in locks.iterdir()] == [f"{HC_UUID_FILESYSTEM}.lock"]
+
+
+def test_reset_follows_supports_reset(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The reset action follows the provider's supports_reset flag."""
+    assert tronitor.Provider.supports_reset is False
+    assert tronitor.HealthchecksProvider.supports_reset is False
+    reset: list[str] = []
+
+    def fake_reset(self: tronitor.HealthchecksProvider, monitor: tronitor.Monitor) -> None:
+        reset.append(monitor.id)
+
+    monkeypatch.setattr(tronitor.HealthchecksProvider, "supports_reset", True)
+    monkeypatch.setattr(tronitor.HealthchecksProvider, "reset", fake_reset)
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-r", "Database Backup", "--yes"]) == 0
+    assert capsys.readouterr().out == "Resetting Database Backup... done\n"
+    assert reset == [HC_UUID_DATABASE]
+
+
+def test_prompt_at_end_of_input_means_no(hc_env: Path, fake_server: FakeServer) -> None:
+    """A prompt that meets the end of input is a no."""
+    serve_checks(fake_server)
+    args = tronitor.build_parser().parse_args(["-m", "hc", "-d", "all"])
+    out = io.StringIO()
+    code = tronitor.run(args, stdin=io.StringIO(""), stdout=out, stderr=io.StringIO(), env=os.environ, interactive=True)
+    assert code == 0
+    assert out.getvalue().endswith("Cancelled.\n")
+    assert deletes(fake_server) == []
