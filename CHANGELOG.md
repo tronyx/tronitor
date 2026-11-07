@@ -6,6 +6,10 @@ The project doesn't use version numbers. Each entry is one merge into `master`, 
 
 ## Unreleased
 
+Nothing yet.
+
+## 2026-11-07 · [#71](https://github.com/tronyx/tronitor/pull/71)
+
 ### Project
 
 - GitHub combines the coverage of the tests on Linux, macOS and Windows, including the tests that run the script as a separate program, shows the report on the run's summary page, and keeps each branch's total for the coverage badge in the README. See [Coverage](docs/testing.md#-coverage).
