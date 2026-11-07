@@ -1,0 +1,66 @@
+name: Sync the wiki
+
+# Copies docs/ to the repository's wiki whenever a release changes it, so the
+# wiki documents the released script, like --help and the issue forms do.
+# docs/ is the source: the wiki is replaced on every sync, and a footer on
+# each page says so. Only link targets change on the way (see
+# .github/scripts/docs_to_wiki.py, tested in tests/test_docs.py): links
+# between pages lose their .md, docs/README.md becomes the wiki's Home page,
+# and links out of docs/ point at master's files on GitHub.
+#
+# No third-party action: just the checkout, Python and git, since this job
+# can write to the repository.
+#
+# The wiki has to exist before the first run: turn on Wikis in the
+# repository's settings, with editing restricted to collaborators, and save
+# one page in the Wiki tab, which creates the wiki's git repository. The
+# first sync replaces that page.
+on:
+  push:
+    branches: [master]
+    paths:
+      - docs/**
+      - .github/scripts/docs_to_wiki.py
+      - .github/workflows/sync-wiki.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One sync at a time, so two releases close together can't push over each other.
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Copy docs/ to the wiki
+    # A manual run starts on the default branch, develop, unless master is
+    # picked; develop's docs can describe what isn't released yet.
+    if: github.repository == 'tronyx/tronitor' && github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    permissions:
+      # The token pushes to the wiki, which needs write access to contents.
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Clone the wiki
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: git clone -q --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" "$RUNNER_TEMP/wiki"
+      - name: Copy docs/ into it
+        run: python3 .github/scripts/docs_to_wiki.py docs "$RUNNER_TEMP/wiki" "https://github.com/$GITHUB_REPOSITORY" master
+      - name: Push the changes, if there are any
+        working-directory: ${{ runner.temp }}/wiki
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The wiki is already up to date."
+            exit 0
+          fi
+          git diff --cached --stat
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "Sync from docs/ at ${GITHUB_SHA::7}"
+          git push -q
