@@ -1,7 +1,7 @@
 # ⏸️ tronitor
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/tronyx/tronitor/tests.yml?branch=master&label=tests)](https://github.com/tronyx/tronitor/actions/workflows/tests.yml?query=branch%3Amaster)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](docs/installation.md#-requirements)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](docs/installation.md#-requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
 tronitor pauses and unpauses your [Healthchecks](https://healthchecks.io) and [UptimeRobot](https://uptimerobot.com) monitors from the command line. Pause them before a backup or an update, and unpause them when it is done, so that nobody gets an alert for a planned outage. Run it by hand, or from cron on a schedule. So you get your own maintenance windows, also on a free plan.
@@ -14,11 +14,11 @@ tronitor pauses and unpauses your [Healthchecks](https://healthchecks.io) and [U
 - ⏰ It is made for cron. It never waits for an answer without a terminal, it reports each failure on stderr, and its exit codes tell a script what happened.
 - 🛡️ It asks before it deletes or resets monitors. Unless you pass `--yes`, it changes nothing when a name matches no monitor, and never when a name matches more than one.
 - 🧰 It also lists monitors, shows their records, creates and deletes monitors, and lists alert contacts. `--json` gives the data to other programs.
-- 🧩 It is one file. It needs Python 3.11 or newer and nothing else, and it works on Linux, macOS and Windows.
+- 🧩 It is one file. It needs Python 3.11 or newer and nothing else, or Python 3.10 with the `tomli` package, and it works on Linux, macOS and Windows.
 
 ## 🚀 Quick start
 
-You need Python 3.11 or newer.
+You need Python 3.11 or newer, or Python 3.10 with the `tomli` package (see [Requirements](docs/installation.md#-requirements)).
 
 1. Copy `tronitor.py` and `tronitor.example.toml` to a folder, or clone the repository:
 

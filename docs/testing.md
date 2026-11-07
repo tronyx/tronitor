@@ -63,7 +63,7 @@ GitHub runs the tests on each push and each pull request, and once a week on the
 
 | System | Python |
 | --- | --- |
-| Linux | 3.11 (the oldest version that tronitor supports) and 3.14 |
+| Linux | 3.10 (the oldest version that tronitor supports, with the `tomli` package) and 3.14 |
 | macOS | 3.14 |
 | Windows | 3.14 |
 | Linux | 3.15, the next release, while it is a pre-release. This job can fail without failing the run, as an early warning |

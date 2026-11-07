@@ -6,7 +6,9 @@
 
 tronitor needs [Python](https://www.python.org) 3.11 or newer, and nothing else. It uses only the standard library (the modules that come with Python), so you do not install any packages. It does not need curl or jq, which the old Bash version needed.
 
-It works on Linux, macOS and Windows. GitHub tests it on Linux with Python 3.11 and the newest Python release, and on macOS and Windows with the newest release. See [How it is tested](testing.md#-what-github-runs).
+It also runs on Python 3.10, with one package: `tomli`, which reads the config file. Python 3.11 and newer have this reader built in, as `tomllib`. Ubuntu 22.04 comes with Python 3.10. On Debian and Ubuntu, install the package with `sudo apt install python3-tomli`; elsewhere, run `python3 -m pip install --user tomli`. Python 3.9 and older do not work.
+
+It works on Linux, macOS and Windows. GitHub tests it on Linux with Python 3.10 and the newest Python release, and on macOS and Windows with the newest release. See [How it is tested](testing.md#-what-github-runs).
 
 To check your Python version, run this command:
 
@@ -15,6 +17,8 @@ python3 --version
 ```
 
 On Windows, type `py` instead of `python3`.
+
+If the Python is too old, or it is 3.10 without `tomli`, tronitor stops at once and says so, for example `Python 3.10 or newer is needed, but /usr/bin/python3 is Python 3.9.2`. [Troubleshooting](troubleshooting.md#-python-version) tells you what to do then.
 
 ## 📥 Getting the script
 

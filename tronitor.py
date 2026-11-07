@@ -17,7 +17,6 @@ import re
 import sys
 import tempfile
 import time
-import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -25,6 +24,25 @@ from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Any, TextIO
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import tomli as tomllib
+    except ImportError:
+        """tomllib arrived in Python 3.11 and tomli is its copy for 3.10, so stop with one line, not a traceback."""
+        _python = sys.executable or "python3"
+        _version = ".".join(str(part) for part in sys.version_info[:3])
+        if sys.version_info[:2] == (3, 10):
+            print(
+                f"tronitor: {_python} is Python {_version} without the tomli package; install tomli "
+                "(sudo apt install python3-tomli, or python3 -m pip install --user tomli) or use Python 3.11 or newer",
+                file=sys.stderr,
+            )
+        else:
+            print(f"tronitor: Python 3.10 or newer is needed, but {_python} is Python {_version}", file=sys.stderr)
+        sys.exit(2)
 
 __version__ = "2026-11-06"
 

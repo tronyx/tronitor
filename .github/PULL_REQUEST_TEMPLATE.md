@@ -9,7 +9,7 @@
 - [ ] I've added a line about my change under **Unreleased** in `CHANGELOG.md`.
 - [ ] I've tested my change and added or updated tests for it.
 - [ ] `python -m ruff check .` and `python -m mypy` pass.
-- [ ] My change works on Python 3.11 and doesn't add a required package.
+- [ ] My change works on Python 3.10 and doesn't add a required package.
 - [ ] I'm willing to help maintain this change if problems come up later.
 - [ ] I'm giving this submission freely and claim no ownership of it.
 
