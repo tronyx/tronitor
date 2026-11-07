@@ -1,0 +1,10 @@
+{
+  "friendlyName": "Example",
+  "url": "https://example.com",
+  "type": "KEYWORD",
+  "interval": 300,
+  "timeout": 30,
+  "keywordType": "ALERT_NOT_EXISTS",
+  "keywordCaseType": "CaseInsensitive",
+  "keywordValue": "Example Domain"
+}

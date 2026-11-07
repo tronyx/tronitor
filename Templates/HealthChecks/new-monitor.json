@@ -1,8 +1,0 @@
-{
-      "api_key": "${travisHCApiKey}",
-      "name": "GoogleHttp",
-      "tags": "prod www",
-      "timeout": 3600,
-      "grace": 60,
-      "tz": "America/New_York"
-}

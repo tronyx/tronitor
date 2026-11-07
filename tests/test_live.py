@@ -19,15 +19,18 @@ Run them with, for example:
     export TRONITOR_LIVE_HEALTHCHECKS_API_KEY=...
     python -m pytest tests/test_live.py -v
 
-The UptimeRobot create body is built inline because the examples directory does not exist yet.
+The UptimeRobot round trip creates its monitor from examples/uptimerobot-http-monitor.json, with the test name in
+place of its friendlyName, so a live run also tests the example file.
 """
 
+import json
 import os
 import secrets
 import sys
 import time
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager, suppress
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -39,6 +42,7 @@ HC_KEY = os.environ.get("TRONITOR_LIVE_HEALTHCHECKS_API_KEY", "")
 UR_KEY = os.environ.get("TRONITOR_LIVE_UPTIMEROBOT_API_KEY", "")
 
 TEST_PREFIX = "tronitor-test-"
+UR_HTTP_EXAMPLE = Path(__file__).resolve().parent.parent / "examples" / "uptimerobot-http-monitor.json"
 UR_SPACING = 60.0
 
 CREATED: list[tuple[tronitor.Provider, tronitor.Monitor]] = []
@@ -94,7 +98,7 @@ def _clean_up(provider: tronitor.Provider) -> None:
 
 
 def _sweep_healthchecks(provider: tronitor.Provider) -> None:
-    """Delete stale tronitor-test-* checks left by earlier runs; Healthchecks has no rate limit."""
+    """Delete stale tronitor-test-* checks left by earlier runs; Healthchecks allows about 100 requests a minute."""
     try:
         monitors = provider.list_monitors()
     except tronitor.ProviderError:
@@ -197,13 +201,8 @@ def test_hc_alert_contacts_is_a_list(hc_live: tronitor.HealthchecksProvider) -> 
 def test_ur_round_trip(ur_live: tronitor.UptimeRobotProvider) -> None:
     """Create an HTTP monitor, pause it, start it, reset it, read it and delete it."""
     name = make_name()
-    body: dict[str, Any] = {
-        "friendlyName": name,
-        "url": "https://example.com",
-        "type": "HTTP",
-        "interval": 300,
-        "timeout": 30,
-    }
+    body: dict[str, Any] = json.loads(UR_HTTP_EXAMPLE.read_text(encoding="utf-8"))
+    body["friendlyName"] = name
     with skip_on_rate_limit():
         monitor_id = create_test_monitor(ur_live, body).id
 
