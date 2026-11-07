@@ -36,6 +36,7 @@ tronitor is rewritten in Python. The commands are mostly the same, but some chan
 - `--verbose` shows each API request on stderr.
 - `--provider` is another name for `-m` and `--monitor`.
 - `--version` shows the date of the release.
+- `tronitor.py` starts with a `#!/usr/bin/env python3` line and is executable, so on Linux and macOS `./tronitor.py` works without `python3` in front, and a symbolic link on your PATH lets you type `tronitor`. See [Running it](docs/installation.md#%EF%B8%8F-running-it).
 - `--migrate PATH` writes `tronitor.toml` from the settings at the top of an old `tronitor.sh`, and says what it carried over and what it dropped. It needs no `-m`. See [Upgrading from the Bash script](docs/usage.md#-upgrading-from-the-bash-script).
 - Environment variables for the keys, the addresses and the lock folder: `TRONITOR_HEALTHCHECKS_URL`, `TRONITOR_HEALTHCHECKS_API_KEY`, `TRONITOR_UPTIMEROBOT_API_KEY`, `TRONITOR_WEBHOOK_URL` and `TRONITOR_LOCK_DIR`.
 - On an `HTTP 429` (too many requests) from UptimeRobot, tronitor waits for the time that UptimeRobot asks for, up to 60 seconds, and retries once. So `-p all` works on a free account of any size, but it takes about a minute for every ten monitors. See [Rate limits](docs/providers.md#-rate-limits).
