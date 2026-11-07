@@ -428,6 +428,13 @@ def test_http_verbose_uses_the_label_and_strips_the_query(fake_server: FakeServe
     assert lines == ["POST webhook", f"GET {fake_server.url}/list"]
 
 
+def test_http_allowed_2xx_non_json_body_returns_none(fake_server: FakeServer) -> None:
+    """A listed status never raises for a non-JSON body."""
+    fake_server.add("POST", "/hook", 200, "ok")
+    response = tronitor.Http().request("POST", fake_server.url + "/hook", json_body={}, allow_statuses=(200,))
+    assert response == tronitor.HttpResponse(200, None)
+
+
 def test_http_empty_error_body_uses_the_reason_phrase(fake_server: FakeServer) -> None:
     """An error with no body is described by the standard reason phrase."""
     fake_server.add("GET", "/x", 500)
@@ -977,9 +984,9 @@ def test_find_shows_paused_only_and_does_not_prompt_without_tty(
 
 
 def test_find_with_nothing_paused(hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
-    """No paused check gives the 'none paused' line, for -f, -n and -w alike."""
+    """No paused check gives the "none paused" line, for -f and -n alike."""
     serve_checks(fake_server, hc_fixture_checks()[:1])
-    for flag in ("-f", "-n", "-w"):
+    for flag in ("-f", "-n"):
         assert tronitor.main(["-m", "hc", flag]) == 0
         assert capsys.readouterr().out == "No Healthchecks monitors are paused.\n"
 
@@ -1035,15 +1042,20 @@ def test_find_prompt_no_changes_nothing(
 
 
 def test_find_n_and_w_never_prompt_on_a_terminal(
-    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+    hc_env: Path,
+    hc_config_file_with_webhook: Path,
+    fake_server: FakeServer,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """-n and -w do not prompt even on a terminal."""
+    """-n and -w do not prompt even on a terminal; -w posts only to the webhook."""
     serve_checks(fake_server)
+    fake_server.add("POST", "/hook", 204)
     make_tty(monkeypatch, "y\n")
     for flag in ("-n", "-w"):
         assert tronitor.main(["-m", "hc", flag]) == 0
         assert "Unpause" not in capsys.readouterr().out
-    assert posts(fake_server) == []
+    assert posts(fake_server) == ["/hook"]
 
 
 def test_pause_all_creates_lock_and_posts_each(
@@ -1844,3 +1856,231 @@ def test_config_rejects_unknown_uptimerobot_key_but_accepts_base_url(tmp_path: P
         tronitor.load_config(path, {}, [])
     path = write_toml(tmp_path, '[uptimerobot]\napi_key = "k"\nbase_url = "http://x.test"\n')
     assert tronitor.load_config(path, {}, []).uptimerobot == tronitor.UptimeRobotConfig("k", "http://x.test")
+
+
+PAUSED_MONITORS = [tronitor.Monitor("id-1", "Plex", "paused", {}), tronitor.Monitor("id-2", "Sonarr", "paused", {})]
+
+
+def test_discord_payload_lists_paused_monitors() -> None:
+    """Discord gets one embed with a field per paused monitor."""
+    payload = tronitor.build_webhook_payload("UptimeRobot", PAUSED_MONITORS, "ID", "discord", False)
+    assert payload == {
+        "embeds": [
+            {
+                "title": "There are currently paused UptimeRobot monitors:",
+                "color": 3381759,
+                "fields": [
+                    {"name": "Plex", "value": "ID: id-1"},
+                    {"name": "Sonarr", "value": "ID: id-2"},
+                ],
+            }
+        ]
+    }
+
+
+def test_discord_payload_notify_all_when_none_paused() -> None:
+    """With nothing paused and notify_all, Discord gets the all-running embed."""
+    assert tronitor.build_webhook_payload("Healthchecks", [], "UUID", "discord", True) == {
+        "embeds": [{"title": "All Healthchecks monitors are currently running.", "color": 10092339}]
+    }
+
+
+def test_no_payload_when_none_paused_and_not_notify_all() -> None:
+    """Nothing paused and no notify_all means there is nothing to send, in either format."""
+    assert tronitor.build_webhook_payload("Healthchecks", [], "UUID", "discord", False) is None
+    assert tronitor.build_webhook_payload("Healthchecks", [], "UUID", "slack", False) is None
+
+
+def test_slack_payload_text() -> None:
+    """Slack gets one text message with a bullet per paused monitor, or the all-running line."""
+    assert tronitor.build_webhook_payload("UptimeRobot", PAUSED_MONITORS, "ID", "slack", False) == {
+        "text": "There are currently paused UptimeRobot monitors:\n• Plex (ID id-1)\n• Sonarr (ID id-2)"
+    }
+    assert tronitor.build_webhook_payload("UptimeRobot", [], "ID", "slack", True) == {
+        "text": "All UptimeRobot monitors are currently running."
+    }
+
+
+def test_payload_names_have_control_characters_replaced() -> None:
+    """A control character in a monitor name is replaced in both formats."""
+    monitors = [tronitor.Monitor("id-1", "Bad\x1b[2Jname", "paused", {})]
+    discord = tronitor.build_webhook_payload("X", monitors, "ID", "discord", False)
+    slack = tronitor.build_webhook_payload("X", monitors, "ID", "slack", False)
+    assert discord is not None and discord["embeds"][0]["fields"][0]["name"] == "Bad?[2Jname"
+    assert slack is not None and "Bad?[2Jname (ID id-1)" in slack["text"]
+
+
+def test_discord_payload_caps_fields_at_25() -> None:
+    """More than 25 paused monitors give 24 fields and a last field that counts the rest."""
+    monitors = [tronitor.Monitor(f"id-{n}", f"M{n}", "paused", {}) for n in range(30)]
+    payload = tronitor.build_webhook_payload("X", monitors, "ID", "discord", False)
+    assert payload is not None
+    fields = payload["embeds"][0]["fields"]
+    assert len(fields) == 25
+    assert fields[23] == {"name": "M23", "value": "ID: id-23"}
+    assert fields[24] == {"name": "...", "value": "and 6 more"}
+    exactly_25 = tronitor.build_webhook_payload("X", monitors[:25], "ID", "discord", False)
+    assert exactly_25 is not None and len(exactly_25["embeds"][0]["fields"]) == 25
+    assert exactly_25["embeds"][0]["fields"][24]["name"] == "M24"
+
+
+def test_send_notification_posts_and_returns_true(fake_server: FakeServer) -> None:
+    """The payload is POSTed as JSON to the webhook URL and True is returned."""
+    fake_server.add("POST", "/hook", 204)
+    config = tronitor.NotifyConfig(fake_server.url + "/hook", "discord", False)
+    assert tronitor.send_notification(tronitor.Http(), config, "UptimeRobot", PAUSED_MONITORS, "ID") is True
+    expected = tronitor.build_webhook_payload("UptimeRobot", PAUSED_MONITORS, "ID", "discord", False)
+    assert [r.body for r in fake_server.requests_for("POST", "/hook")] == [expected]
+
+
+def test_send_notification_accepts_slacks_plain_ok(fake_server: FakeServer) -> None:
+    """Slack answers 200 with the plain text ok, which counts as success."""
+    fake_server.add("POST", "/hook", 200, "ok")
+    config = tronitor.NotifyConfig(fake_server.url + "/hook", "slack", False)
+    assert tronitor.send_notification(tronitor.Http(), config, "UptimeRobot", PAUSED_MONITORS, "ID") is True
+
+
+def test_send_notification_returns_false_when_nothing_to_send(fake_server: FakeServer) -> None:
+    """No payload means no request and False."""
+    config = tronitor.NotifyConfig(fake_server.url + "/hook", "discord", False)
+    assert tronitor.send_notification(tronitor.Http(), config, "UptimeRobot", [], "ID") is False
+    assert fake_server.requests == []
+
+
+def test_send_notification_without_a_url_is_a_config_error() -> None:
+    """An empty webhook URL is a ConfigError that says how to set it."""
+    message = r"no webhook URL: set \[notify\] webhook_url or TRONITOR_WEBHOOK_URL"
+    with pytest.raises(tronitor.ConfigError, match=message):
+        tronitor.send_notification(tronitor.Http(), tronitor.NotifyConfig(), "X", PAUSED_MONITORS, "ID")
+
+
+def test_webhook_via_cli_w(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """-w lists the paused checks, posts them to the webhook and says so."""
+    serve_checks(fake_server)
+    fake_server.add("POST", "/hook", 204)
+    assert tronitor.main(["-m", "hc", "-w"]) == 0
+    out, err = capsys.readouterr()
+    assert out.splitlines()[-1] == "Notification sent."
+    assert err == ""
+    [request] = fake_server.requests_for("POST", "/hook")
+    assert request.body["embeds"][0]["fields"] == [{"name": "Database Backup", "value": f"UUID: {HC_UUID_DATABASE}"}]
+
+
+def test_webhook_via_cli_slack_format(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """format = slack posts the text form and accepts Slack's plain ok."""
+    with hc_config_file_with_webhook.open("a", encoding="utf-8") as handle:
+        handle.write('format = "slack"\n')
+    serve_checks(fake_server)
+    fake_server.add("POST", "/hook", 200, "ok")
+    assert tronitor.main(["-m", "hc", "-w"]) == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "Notification sent."
+    [request] = fake_server.requests_for("POST", "/hook")
+    assert request.body == {
+        "text": f"There are currently paused Healthchecks monitors:\n• Database Backup (UUID {HC_UUID_DATABASE})"
+    }
+
+
+def test_webhook_nothing_paused_sends_nothing(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With nothing paused and notify_all off, -w prints Nothing to notify. and posts nothing."""
+    serve_checks(fake_server, hc_fixture_checks()[:1])
+    assert tronitor.main(["-m", "hc", "-w"]) == 0
+    assert capsys.readouterr().out.splitlines() == ["No Healthchecks monitors are paused.", "Nothing to notify."]
+    assert fake_server.requests_for("POST", "/hook") == []
+
+
+def test_webhook_notify_all_sends_all_running(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With notify_all on and nothing paused, -w posts the all-running message."""
+    with hc_config_file_with_webhook.open("a", encoding="utf-8") as handle:
+        handle.write("notify_all = true\n")
+    serve_checks(fake_server, hc_fixture_checks()[:1])
+    fake_server.add("POST", "/hook", 204)
+    assert tronitor.main(["-m", "hc", "-w"]) == 0
+    assert capsys.readouterr().out.splitlines()[-1] == "Notification sent."
+    [request] = fake_server.requests_for("POST", "/hook")
+    assert request.body["embeds"][0]["title"] == "All Healthchecks monitors are currently running."
+
+
+def test_webhook_missing_url_is_exit_2(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """-w without a webhook URL is a usage error that says how to set one."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-w"]) == 2
+    assert capsys.readouterr().err == "tronitor: no webhook URL: set [notify] webhook_url or TRONITOR_WEBHOOK_URL\n"
+
+
+def test_webhook_failure_is_exit_1(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A webhook that answers 500 is reported as a webhook error with exit 1."""
+    serve_checks(fake_server)
+    fake_server.add("POST", "/hook", 500, "boom")
+    assert tronitor.main(["-m", "hc", "-w"]) == 1
+    assert capsys.readouterr().err == "tronitor: webhook: HTTP 500: boom\n"
+
+
+def test_webhook_failure_message_has_no_url(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The failure message never contains the webhook URL or its path."""
+    serve_checks(fake_server)
+    fake_server.add("POST", "/hook", 500)
+    assert tronitor.main(["-m", "hc", "-w"]) == 1
+    err = capsys.readouterr().err
+    assert "tronitor: webhook: HTTP 500" in err
+    assert "/hook" not in err and fake_server.url not in err
+
+
+def test_webhook_verbose_logs_a_label_not_the_url(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--verbose names the webhook request by a label, never by its URL."""
+    serve_checks(fake_server)
+    fake_server.add("POST", "/hook", 204)
+    assert tronitor.main(["-m", "hc", "-w", "--verbose"]) == 0
+    err = capsys.readouterr().err
+    assert "POST webhook" in err
+    assert "/hook" not in err
+
+
+def test_discord_payload_handles_empty_and_long_names() -> None:
+    """Empty names become (unnamed); names are cut to 256 characters and values to 1024."""
+    monitors = [tronitor.Monitor("i" * 2000, "", "paused", {}), tronitor.Monitor("id-2", "n" * 300, "paused", {})]
+    payload = tronitor.build_webhook_payload("X", monitors, "ID", "discord", False)
+    assert payload is not None
+    first, second = payload["embeds"][0]["fields"]
+    assert first["name"] == "(unnamed)" and len(first["value"]) == 1024
+    assert second["name"] == "n" * 256
+
+
+def test_webhook_malformed_url_is_not_echoed(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A malformed webhook URL is reported without its text."""
+    text = hc_config_file_with_webhook.read_text(encoding="utf-8")
+    hc_config_file_with_webhook.write_text(text.replace(f'"{fake_server.url}/hook"', '"http://[::1"'), encoding="utf-8")
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "-w"]) == 1
+    err = capsys.readouterr().err
+    assert "tronitor: webhook: unsupported URL for webhook" in err
+    assert "[::1" not in err
+
+
+def test_find_json_with_webhook_keeps_stdout_pure(
+    hc_env: Path, hc_config_file_with_webhook: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """With --json, the notification line goes to stderr so stdout stays valid JSON."""
+    serve_checks(fake_server)
+    fake_server.add("POST", "/hook", 204)
+    assert tronitor.main(["-m", "hc", "-w", "--json"]) == 0
+    out, err = capsys.readouterr()
+    assert json.loads(out) == [hc_fixture_checks()[1]]
+    assert "Notification sent." in err

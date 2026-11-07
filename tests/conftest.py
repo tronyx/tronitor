@@ -77,6 +77,17 @@ def hc_config_file(tmp_path: Path, fake_server: FakeServer) -> Path:
     return path
 
 
+@pytest.fixture
+def hc_config_file_with_webhook(hc_config_file: Path, fake_server: FakeServer) -> Path:
+    """Extend the Healthchecks config with a [notify] webhook on the fake server (route /hook).
+
+    The [notify] table comes last, so a test can append more keys, such as format = "slack".
+    """
+    with hc_config_file.open("a", encoding="utf-8") as handle:
+        handle.write(f'\n[notify]\nwebhook_url = "{fake_server.url}/hook"\n')
+    return hc_config_file
+
+
 def _ur_monitor(monitor_id: int, name: str, status: str) -> dict[str, Any]:
     """Return one canned UptimeRobot monitor."""
     return {

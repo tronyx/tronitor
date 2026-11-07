@@ -307,8 +307,9 @@ class Http:
             scheme = urllib.parse.urlsplit(url).scheme.lower()
         except ValueError:
             scheme = ""
+        unsupported = f"unsupported URL for {log_label}" if log_label is not None else f"unsupported URL: {url}"
         if scheme not in ("http", "https"):
-            raise ProviderError(f"unsupported URL: {url}")
+            raise ProviderError(unsupported)
         all_headers = {"Accept": "application/json", "User-Agent": f"tronitor/{__version__}", **(headers or {})}
         data = None
         if json_body is not None:
@@ -317,7 +318,7 @@ class Http:
         try:
             req = urllib.request.Request(url, data=data, method=method, headers=all_headers)
         except ValueError:
-            raise ProviderError(f"unsupported URL: {url}") from None
+            raise ProviderError(unsupported) from None
         if self.verbose:
             self._log(f"{method} {log_label if log_label is not None else url.split('?', 1)[0]}")
         status, text = self._send(req)
@@ -328,7 +329,7 @@ class Http:
         try:
             return HttpResponse(status, json.loads(text))
         except json.JSONDecodeError:
-            if 200 <= status < 300:
+            if 200 <= status < 300 and status not in allow_statuses:
                 raise ProviderError(f"HTTP {status}: response is not JSON", status) from None
             return HttpResponse(status, None)
 
@@ -822,6 +823,61 @@ def confirm(
     return answer.strip().lower() in ("y", "yes")
 
 
+"""Notifications: the Discord or Slack message about paused monitors."""
+
+DISCORD_MAX_FIELDS = 25
+DISCORD_NAME_LIMIT = 256
+DISCORD_VALUE_LIMIT = 1024
+DISCORD_PAUSED_COLOR = 3381759
+DISCORD_RUNNING_COLOR = 10092339
+
+
+def build_webhook_payload(
+    label: str, paused: Sequence[Monitor], id_kind: str, fmt: str, notify_all: bool
+) -> dict[str, Any] | None:
+    """Return the JSON body for the webhook, or None when nothing is paused and notify_all is off.
+
+    fmt is "discord" (one embed, one field per monitor, at most 25 fields) or "slack" (one text message).
+    """
+    if not paused and not notify_all:
+        return None
+    if fmt == "slack":
+        if not paused:
+            return {"text": f"All {label} monitors are currently running."}
+        lines = [f"• {plain_text(m.name)} ({id_kind} {plain_text(m.id)})" for m in paused]
+        return {"text": "\n".join([f"There are currently paused {label} monitors:", *lines])}
+    if not paused:
+        return {"embeds": [{"title": f"All {label} monitors are currently running.", "color": DISCORD_RUNNING_COLOR}]}
+    fields = [
+        {
+            "name": plain_text(m.name)[:DISCORD_NAME_LIMIT] or "(unnamed)",
+            "value": f"{id_kind}: {plain_text(m.id)}"[:DISCORD_VALUE_LIMIT],
+        }
+        for m in paused
+    ]
+    if len(fields) > DISCORD_MAX_FIELDS:
+        hidden = len(fields) - (DISCORD_MAX_FIELDS - 1)
+        fields = [*fields[: DISCORD_MAX_FIELDS - 1], {"name": "...", "value": f"and {hidden} more"}]
+    title = f"There are currently paused {label} monitors:"
+    return {"embeds": [{"title": title, "color": DISCORD_PAUSED_COLOR, "fields": fields}]}
+
+
+def send_notification(http: Http, config: NotifyConfig, label: str, paused: Sequence[Monitor], id_kind: str) -> bool:
+    """Post the paused monitors to the webhook; return False when there was nothing to send, else True.
+
+    A missing webhook URL raises ConfigError. An allowed status counts as success whatever its body: Discord sends
+    204 with no body and Slack sends 200 with the plain text "ok". The log label keeps the URL, which holds a
+    secret token, out of --verbose output and error messages.
+    """
+    if not config.webhook_url:
+        raise ConfigError("no webhook URL: set [notify] webhook_url or TRONITOR_WEBHOOK_URL")
+    payload = build_webhook_payload(label, paused, id_kind, config.format, config.notify_all)
+    if payload is None:
+        return False
+    http.request("POST", config.webhook_url, json_body=payload, allow_statuses=(200, 201, 204), log_label="webhook")
+    return True
+
+
 """Command line: options, actions and exit codes."""
 
 DOCS_URL = "https://github.com/tronyx/tronitor/blob/master/docs/usage.md"
@@ -959,6 +1015,7 @@ class Context:
 
     provider: Provider
     config: Config
+    http: Http
     out: TextIO
     err: TextIO
     color: bool
@@ -1123,8 +1180,15 @@ def show_monitors(ctx: Context, monitors: Sequence[Monitor], header: str, empty:
         ctx.say(empty)
 
 
-def send_notification(ctx: Context, paused: Sequence[Monitor]) -> int:
-    """Post the paused monitors to the webhook; webhooks are not built yet, so this does nothing."""
+def notify_webhook(ctx: Context, paused: Sequence[Monitor]) -> int:
+    """Post the paused monitors to the webhook and say so; a webhook failure exits 1 without the provider label."""
+    try:
+        sent = send_notification(ctx.http, ctx.config.notify, ctx.provider.label, paused, ctx.provider.id_kind)
+    except ProviderError as exc:
+        print_error(ctx.err, f"webhook: {exc.message}")
+        return EXIT_ERROR
+    message = "Notification sent." if sent else "Nothing to notify."
+    print(message, file=ctx.err if ctx.json_output else ctx.out)
     return EXIT_OK
 
 
@@ -1144,7 +1208,7 @@ def action_find(ctx: Context, args: argparse.Namespace) -> int:
     paused = [m for m in monitors if m.status == PAUSED]
     show_monitors(ctx, paused, f"The following {label} monitors are paused:", f"No {label} monitors are paused.")
     if args.webhook:
-        return send_notification(ctx, paused)
+        return notify_webhook(ctx, paused)
     if args.find and paused and ctx.interactive and not ctx.json_output and ctx.ask("Unpause them?", assume_yes=False):
         return unpause_monitors(ctx, paused, listed=monitors).exit_code(incomplete=False)
     return EXIT_OK
@@ -1327,6 +1391,7 @@ def make_context(
     return Context(
         provider=provider,
         config=config,
+        http=http,
         out=stdout,
         err=stderr,
         color=use_color(stdout, env, args.no_color),
