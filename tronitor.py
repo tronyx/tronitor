@@ -361,6 +361,8 @@ class Http:
 """Providers: one class per monitoring service, each turning its records into Monitor objects."""
 
 PAUSED = "paused"
+UR_STATUS = {"UP": "up", "DOWN": "down", "PAUSED": "paused", "STARTED": "pending", "LOOKS_DOWN": "seems down"}
+UR_MAX_PAGES = 100
 UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
 
@@ -504,6 +506,87 @@ class HealthchecksProvider(Provider):
     def is_id(text: str) -> bool:
         """Return True if text is a UUID."""
         return bool(UUID_RE.match(text))
+
+
+class UptimeRobotProvider(Provider):
+    """UptimeRobot API v3."""
+
+    label = "UptimeRobot"
+    id_kind = "ID"
+    supports_lock_files = False
+    supports_reset = True
+
+    def __init__(self, http: Http, config: UptimeRobotConfig) -> None:
+        self._http = http
+        self._base = config.base_url
+        self._headers = {"Authorization": f"Bearer {config.api_key}"}
+
+    def list_monitors(self) -> list[Monitor]:
+        """Return every monitor, following the pagination links."""
+        monitors: list[Monitor] = []
+        url = f"{self._base}/monitors?limit=200"
+        for _ in range(UR_MAX_PAGES):
+            body = _expect_dict(self._http.request("GET", url, headers=self._headers).json, self.label)
+            for item in _expect_list(body.get("data"), self.label):
+                monitors.append(self._monitor(_expect_dict(item, self.label)))
+            link = body.get("nextLink")
+            if not isinstance(link, str) or not link:
+                return monitors
+            if link.startswith(("http://", "https://")):
+                if link != self._base and not link.startswith(self._base + "/"):
+                    raise ProviderError(f"{self.label} returned a pagination link on another host")
+                url = link
+            else:
+                url = f"{self._base}/monitors?limit=200&cursor={urllib.parse.quote(link, safe='')}"
+        raise ProviderError(f"{self.label} returned more than {UR_MAX_PAGES} pages of monitors")
+
+    def _monitor(self, item: dict[str, Any]) -> Monitor:
+        """Turn one monitor record into a Monitor; a record without an id, name or status is unexpected."""
+        if item.get("id") is None or item.get("friendlyName") is None or item.get("status") is None:
+            raise ProviderError(f"unexpected response from {self.label}")
+        raw_status = str(item["status"])
+        status = UR_STATUS.get(raw_status.upper(), raw_status.lower())
+        return Monitor(id=str(item["id"]), name=str(item["friendlyName"]), status=status, raw=item)
+
+    def pause(self, monitor: Monitor) -> None:
+        """Pause a monitor; pausing one that is already paused succeeds."""
+        self._http.request("POST", f"{self._base}/monitors/{monitor.id}/pause", headers=self._headers, json_body={})
+
+    def unpause(self, monitor: Monitor) -> None:
+        """Start a monitor again."""
+        self._http.request("POST", f"{self._base}/monitors/{monitor.id}/start", headers=self._headers, json_body={})
+
+    def reset(self, monitor: Monitor) -> None:
+        """Reset a monitor's statistics."""
+        self._http.request("POST", f"{self._base}/monitors/{monitor.id}/reset", headers=self._headers, json_body={})
+
+    def delete(self, monitor: Monitor) -> None:
+        """Delete a monitor."""
+        self._http.request("DELETE", f"{self._base}/monitors/{monitor.id}", headers=self._headers)
+
+    def info(self, monitor: Monitor) -> dict[str, Any]:
+        """Return the full record of a monitor."""
+        response = self._http.request("GET", f"{self._base}/monitors/{monitor.id}", headers=self._headers)
+        return _expect_dict(response.json, self.label)
+
+    def stats(self) -> dict[str, Any]:
+        """Return the account record, which holds the monitor count and limit."""
+        return _expect_dict(self._http.request("GET", f"{self._base}/user/me", headers=self._headers).json, self.label)
+
+    def alert_contacts(self) -> list[dict[str, Any]]:
+        """Return the account's alert contacts."""
+        response = self._http.request("GET", f"{self._base}/user/alert-contacts", headers=self._headers)
+        return [_expect_dict(contact, self.label) for contact in _expect_list(response.json, self.label)]
+
+    def create(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create a monitor and return it."""
+        response = self._http.request("POST", f"{self._base}/monitors", headers=self._headers, json_body=payload)
+        return _expect_dict(response.json, self.label)
+
+    @staticmethod
+    def is_id(text: str) -> bool:
+        """Return True if text is a numeric monitor ID."""
+        return text.isascii() and text.isdigit()
 
 
 """Selection: which monitors an action applies to."""
@@ -855,7 +938,11 @@ def make_provider(name: str, config: Config, http: Http) -> Provider:
             )
         return HealthchecksProvider(http, config.healthchecks)
     if name == "uptimerobot":
-        raise ConfigError("UptimeRobot is not available yet")
+        if config.uptimerobot is None:
+            raise ConfigError(
+                "no UptimeRobot API key: set [uptimerobot] api_key in the config or TRONITOR_UPTIMEROBOT_API_KEY"
+            )
+        return UptimeRobotProvider(http, config.uptimerobot)
     raise ConfigError(f"unknown provider '{name}'")
 
 

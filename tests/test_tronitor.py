@@ -11,7 +11,14 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from conftest import HC_UUID_DATABASE, HC_UUID_FILESYSTEM, hc_fixture_checks, serve_checks
+from conftest import (
+    HC_UUID_DATABASE,
+    HC_UUID_FILESYSTEM,
+    hc_fixture_checks,
+    serve_checks,
+    serve_monitors,
+    ur_fixture_monitors,
+)
 from fake_server import FakeServer
 
 import tronitor
@@ -1476,12 +1483,6 @@ def test_unknown_provider_is_exit_2(hc_env: Path, capsys: pytest.CaptureFixture[
     )
 
 
-def test_uptimerobot_is_not_available_yet(hc_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    """UptimeRobot is recognised but not built yet."""
-    assert tronitor.main(["--provider", "UR", "-l"]) == 2
-    assert capsys.readouterr().err == "tronitor: UptimeRobot is not available yet\n"
-
-
 def test_resolve_provider_name() -> None:
     """Short and long names, in any case, map to the long name."""
     assert tronitor.resolve_provider_name("hc") == "healthchecks"
@@ -1602,3 +1603,244 @@ def test_prompt_at_end_of_input_means_no(hc_env: Path, fake_server: FakeServer) 
     assert code == 0
     assert out.getvalue().endswith("Cancelled.\n")
     assert deletes(fake_server) == []
+
+
+@pytest.fixture
+def ur_env(ur_config_file: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Point TRONITOR_CONFIG at the UptimeRobot config, set NO_COLOR and clear other TRONITOR_ variables."""
+    for name in list(os.environ):
+        if name.startswith("TRONITOR_"):
+            monkeypatch.delenv(name)
+    monkeypatch.setenv("TRONITOR_CONFIG", str(ur_config_file))
+    monkeypatch.setenv("NO_COLOR", "1")
+    return ur_config_file
+
+
+def test_ur_list_maps_fields_and_statuses(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """list_monitors maps id, friendlyName and status, and sends the bearer token."""
+    serve_monitors(fake_server)
+    monitors = ur_provider.list_monitors()
+    assert [(m.id, m.name, m.status) for m in monitors] == [
+        ("1001", "Plex", "up"),
+        ("1002", "Sonarr", "paused"),
+        ("1003", "Radarr", "seems down"),
+    ]
+    assert monitors[0].raw == ur_fixture_monitors()[0]
+    assert fake_server.requests[0].headers["Authorization"] == "Bearer ur-test-key"
+    assert fake_server.requests[0].query == {"limit": ["200"]}
+
+
+def test_ur_unknown_status_is_lowercased(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """An unmapped status is shown in lower case."""
+    serve_monitors(fake_server, [{"id": 1, "friendlyName": "X", "status": "WEIRD"}])
+    assert ur_provider.list_monitors()[0].status == "weird"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        ["nope"],
+        {"nextLink": None},
+        {"nextLink": None, "data": [1]},
+        {"nextLink": None, "data": [{"friendlyName": "X", "status": "UP"}]},
+        {"nextLink": None, "data": [{"id": 1, "status": "UP"}]},
+        {"nextLink": None, "data": [{"id": 1, "friendlyName": "X"}]},
+    ],
+)
+def test_ur_list_rejects_bad_shapes(
+    ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer, body: object
+) -> None:
+    """A list response of the wrong shape, or a monitor without id, name or status, is a ProviderError."""
+    fake_server.add("GET", "/monitors", 200, body)
+    with pytest.raises(tronitor.ProviderError, match="unexpected response from UptimeRobot"):
+        ur_provider.list_monitors()
+
+
+def test_ur_list_follows_next_link_url(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """A nextLink that is a URL is requested as given."""
+    monitors = ur_fixture_monitors()
+    link = fake_server.url + "/monitors?cursor=2"
+    fake_server.add("GET", "/monitors", 200, {"nextLink": link, "data": monitors[:2]}, once=True)
+    fake_server.add("GET", "/monitors", 200, {"nextLink": None, "data": monitors[2:]})
+    assert [m.id for m in ur_provider.list_monitors()] == ["1001", "1002", "1003"]
+    gets = fake_server.requests_for("GET", "/monitors")
+    assert len(gets) == 2
+    assert gets[1].query == {"cursor": ["2"]}
+
+
+def test_ur_list_follows_next_link_cursor_value(
+    ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer
+) -> None:
+    """A nextLink that is a bare cursor is sent as the cursor query parameter."""
+    monitors = ur_fixture_monitors()
+    fake_server.add("GET", "/monitors", 200, {"nextLink": "2", "data": monitors[:1]}, once=True)
+    fake_server.add("GET", "/monitors", 200, {"nextLink": "", "data": monitors[1:]})
+    assert [m.id for m in ur_provider.list_monitors()] == ["1001", "1002", "1003"]
+    gets = fake_server.requests_for("GET", "/monitors")
+    assert [g.query for g in gets] == [{"limit": ["200"]}, {"limit": ["200"], "cursor": ["2"]}]
+
+
+def test_ur_list_stops_after_100_pages(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """A nextLink that never ends is cut off with a ProviderError."""
+    fake_server.add("GET", "/monitors", 200, {"nextLink": "2", "data": []})
+    with pytest.raises(tronitor.ProviderError, match="UptimeRobot returned more than 100 pages of monitors"):
+        ur_provider.list_monitors()
+    assert len(fake_server.requests_for("GET", "/monitors")) == 100
+
+
+def test_ur_pause_start_reset_delete_paths_and_bodies(
+    ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer
+) -> None:
+    """pause, unpause, reset and delete use the documented paths, methods and JSON bodies."""
+    monitor = tronitor.Monitor("1001", "Plex", "up", {})
+    fake_server.add("POST", "/monitors/1001/pause", 201, ur_fixture_monitors()[0])
+    fake_server.add("POST", "/monitors/1001/start", 201, ur_fixture_monitors()[0])
+    fake_server.add("POST", "/monitors/1001/reset", 201)
+    fake_server.add("DELETE", "/monitors/1001", 200)
+    ur_provider.pause(monitor)
+    ur_provider.unpause(monitor)
+    ur_provider.reset(monitor)
+    ur_provider.delete(monitor)
+    assert [(r.method, r.path) for r in fake_server.requests] == [
+        ("POST", "/monitors/1001/pause"),
+        ("POST", "/monitors/1001/start"),
+        ("POST", "/monitors/1001/reset"),
+        ("DELETE", "/monitors/1001"),
+    ]
+    for request in fake_server.requests[:3]:
+        assert request.body == {}
+        assert request.headers["Content-Type"] == "application/json"
+        assert request.headers["Authorization"] == "Bearer ur-test-key"
+
+
+def test_ur_info_stats_alerts_create(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """info, stats, alert_contacts and create hit the right paths and return the records."""
+    monitor = tronitor.Monitor("1001", "Plex", "up", {})
+    record = ur_fixture_monitors()[0]
+    me = {"email": "a@example.com", "monitorsCount": 3, "monitorLimit": 50}
+    contacts = [{"id": 7, "friendlyName": "Me", "type": "EMAIL", "value": "a@example.com", "status": "ACTIVE"}]
+    payload = {"friendlyName": "New", "url": "https://new.example.com", "type": "HTTP", "interval": 300, "timeout": 30}
+    fake_server.add("GET", "/monitors/1001", 200, record)
+    fake_server.add("GET", "/user/me", 200, me)
+    fake_server.add("GET", "/user/alert-contacts", 200, contacts)
+    fake_server.add("POST", "/monitors", 201, record)
+    assert ur_provider.info(monitor) == record
+    assert ur_provider.stats() == me
+    assert ur_provider.alert_contacts() == contacts
+    assert ur_provider.create(payload) == record
+    assert fake_server.requests_for("POST", "/monitors")[0].body == payload
+
+
+def test_ur_unexpected_shapes_are_provider_errors(
+    ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer
+) -> None:
+    """Every response shape is guarded."""
+    monitor = tronitor.Monitor("1001", "Plex", "up", {})
+    fake_server.add("GET", "/monitors/1001", 200, [])
+    fake_server.add("GET", "/user/me", 200, [])
+    fake_server.add("GET", "/user/alert-contacts", 200, [1])
+    fake_server.add("POST", "/monitors", 201)
+    for call in (
+        lambda: ur_provider.info(monitor),
+        ur_provider.stats,
+        ur_provider.alert_contacts,
+        lambda: ur_provider.create({}),
+    ):
+        with pytest.raises(tronitor.ProviderError, match="unexpected response from UptimeRobot"):
+            call()
+
+
+def test_ur_alert_contacts_must_be_a_list(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """An alert-contacts response that is an object, not a list, is a ProviderError."""
+    fake_server.add("GET", "/user/alert-contacts", 200, {"a": 1})
+    with pytest.raises(tronitor.ProviderError, match="unexpected response from UptimeRobot"):
+        ur_provider.alert_contacts()
+
+
+def test_ur_list_rejects_a_next_link_on_another_host(
+    ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer
+) -> None:
+    """A full-URL nextLink on another host is refused so the API key is never sent there."""
+    fake_server.add("GET", "/monitors", 200, {"nextLink": "https://evil.example/monitors", "data": []})
+    with pytest.raises(tronitor.ProviderError, match="UptimeRobot returned a pagination link on another host"):
+        ur_provider.list_monitors()
+    assert len(fake_server.requests) == 1
+
+
+def test_ur_list_rejects_a_look_alike_host(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """A link that merely starts with the base URL text, such as a longer host name, is refused."""
+    fake_server.add("GET", "/monitors", 200, {"nextLink": fake_server.url + ".evil.example/monitors", "data": []})
+    with pytest.raises(tronitor.ProviderError, match="another host"):
+        ur_provider.list_monitors()
+
+
+def test_ur_list_encodes_the_cursor(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
+    """A bare cursor is percent-encoded, so it arrives as one query value."""
+    fake_server.add("GET", "/monitors", 200, {"nextLink": "a b&c", "data": []}, once=True)
+    fake_server.add("GET", "/monitors", 200, {"nextLink": None, "data": []})
+    ur_provider.list_monitors()
+    assert fake_server.requests_for("GET", "/monitors")[1].query == {"limit": ["200"], "cursor": ["a b&c"]}
+
+
+def test_ur_class_attributes_and_is_id() -> None:
+    """The provider describes itself and recognises numeric IDs."""
+    provider = tronitor.UptimeRobotProvider
+    assert (provider.label, provider.id_kind) == ("UptimeRobot", "ID")
+    assert provider.supports_reset is True and provider.supports_lock_files is False
+    assert provider.is_id("1001") and not provider.is_id("Plex") and not provider.is_id("")
+    assert not provider.is_id("٣")
+
+
+def test_ur_reset_via_cli_with_yes(ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """-r with --yes resets the named monitor."""
+    serve_monitors(fake_server)
+    fake_server.add("POST", "/monitors/1001/reset", 201)
+    assert tronitor.main(["-m", "ur", "-r", "Plex", "--yes"]) == 0
+    assert capsys.readouterr().out == "Resetting Plex... done\n"
+    assert len(fake_server.requests_for("POST", "/monitors/1001/reset")) == 1
+
+
+def test_ur_stats_via_cli(ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """-s prints the account record as JSON."""
+    fake_server.add("GET", "/user/me", 200, {"email": "a@example.com", "monitorsCount": 3})
+    assert tronitor.main(["-m", "ur", "-s"]) == 0
+    assert json.loads(capsys.readouterr().out) == {"email": "a@example.com", "monitorsCount": 3}
+
+
+def test_ur_pause_has_no_lock_files(ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]) -> None:
+    """Pausing an UptimeRobot monitor creates no lock directory."""
+    serve_monitors(fake_server)
+    fake_server.add("POST", "/monitors/1001/pause", 201, ur_fixture_monitors()[0])
+    assert tronitor.main(["-m", "ur", "-p", "Plex"]) == 0
+    assert len(fake_server.requests_for("POST", "/monitors/1001/pause")) == 1
+    assert not (ur_env.parent / "locks").exists()
+    assert "lock" not in capsys.readouterr().out.lower()
+
+
+def test_ur_unpause_skips_running_monitors(
+    ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Unpausing a monitor that is not paused sends nothing."""
+    serve_monitors(fake_server)
+    fake_server.add("POST", "/monitors/1002/start", 201, ur_fixture_monitors()[1])
+    assert tronitor.main(["-m", "ur", "-u", "Plex,Sonarr"]) == 0
+    assert "Plex is already running" in capsys.readouterr().out
+    assert fake_server.requests_for("POST", "/monitors/1001/start") == []
+    assert len(fake_server.requests_for("POST", "/monitors/1002/start")) == 1
+
+
+def test_missing_uptimerobot_key_is_exit_2(hc_env: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """A config without UptimeRobot settings is a usage error that says how to fix it."""
+    assert tronitor.main(["--provider", "UR", "-l"]) == 2
+    assert capsys.readouterr().err == (
+        "tronitor: no UptimeRobot API key: set [uptimerobot] api_key in the config or TRONITOR_UPTIMEROBOT_API_KEY\n"
+    )
+
+
+def test_config_rejects_unknown_uptimerobot_key_but_accepts_base_url(tmp_path: Path) -> None:
+    """An unknown [uptimerobot] key is an error; base_url is accepted."""
+    path = write_toml(tmp_path, '[uptimerobot]\napi_key = "k"\nbase_url = "http://x.test"\nbogus = 1\n')
+    with pytest.raises(tronitor.ConfigError, match=r"unknown key 'uptimerobot.bogus'"):
+        tronitor.load_config(path, {}, [])
+    path = write_toml(tmp_path, '[uptimerobot]\napi_key = "k"\nbase_url = "http://x.test"\n')
+    assert tronitor.load_config(path, {}, []).uptimerobot == tronitor.UptimeRobotConfig("k", "http://x.test")

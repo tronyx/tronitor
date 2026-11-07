@@ -3,7 +3,15 @@
 import json
 from pathlib import Path
 
-from conftest import HC_UUID_DATABASE, HC_UUID_FILESYSTEM, RunCli, hc_fixture_checks, run_tronitor, serve_checks
+from conftest import (
+    HC_UUID_DATABASE,
+    HC_UUID_FILESYSTEM,
+    RunCli,
+    hc_fixture_checks,
+    run_tronitor,
+    serve_checks,
+    serve_monitors,
+)
 from fake_server import FakeServer
 
 import tronitor
@@ -160,3 +168,15 @@ def test_cli_two_actions_are_a_usage_error() -> None:
     result = run("-m", "hc", "-l", "-f")
     assert result.returncode == 2
     assert "not allowed with" in result.stderr
+
+
+def test_cli_ur_list(fake_server: FakeServer, ur_config_file: Path, run_cli_ur: RunCli) -> None:
+    """-m ur -l prints one row per UptimeRobot monitor."""
+    serve_monitors(fake_server)
+    result = run_cli_ur("-m", "ur", "-l")
+    assert result.returncode == 0, result.stderr
+    assert "The following UptimeRobot monitors were found:" in result.stdout
+    assert "Plex    ID: 1001  Status: Up" in result.stdout
+    assert "Sonarr  ID: 1002  Status: Paused" in result.stdout
+    assert "Radarr  ID: 1003  Status: Seems down" in result.stdout
+    assert "ur-test-key" not in result.stdout + result.stderr
