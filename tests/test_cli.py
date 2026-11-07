@@ -1,6 +1,8 @@
 """Tests that run tronitor.py as a subprocess."""
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 from conftest import (
@@ -25,6 +27,28 @@ def test_version_prints_the_date_and_exits_0() -> None:
     result = run("--version")
     assert result.returncode == 0
     assert result.stdout.strip() == f"tronitor {tronitor.__version__}"
+
+
+def test_old_python_stops_with_one_line() -> None:
+    """On a Python older than 3.11, the script stops with one line on stderr and exit 2, not a traceback.
+
+    Such a Python has no tomllib. The subprocess makes tomllib unimportable and fakes the version
+    before it runs the script, as the import of tomllib is what fails there.
+    """
+    code = "; ".join(
+        [
+            "import runpy, sys",
+            "sys.modules['tomllib'] = None",
+            "sys.version_info = (3, 10, 12, 'final', 0)",
+            f"runpy.run_path({str(Path(tronitor.__file__))!r}, run_name='__main__')",
+        ]
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], check=False, capture_output=True, text=True, encoding="utf-8"
+    )
+    assert result.returncode == 2
+    assert result.stderr == f"tronitor: Python 3.11 or newer is needed, but {sys.executable} is Python 3.10.12" + "\n"
+    assert result.stdout == ""
 
 
 def test_no_arguments_prints_usage_and_exits_2() -> None:

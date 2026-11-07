@@ -16,6 +16,8 @@ python3 --version
 
 On Windows, type `py` instead of `python3`.
 
+If the Python is too old, tronitor stops at once and says so, for example `Python 3.11 or newer is needed, but /usr/bin/python3 is Python 3.10.12`. [Troubleshooting](troubleshooting.md#-python-version) tells you what to do then.
+
 ## 📥 Getting the script
 
 tronitor is one file, `tronitor.py`. You also need the example config file, `tronitor.example.toml`, as a starting point for your own settings. Copy the two files to any folder. For example, download them from the [repository](https://github.com/tronyx/tronitor) on GitHub.

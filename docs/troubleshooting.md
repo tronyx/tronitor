@@ -6,6 +6,21 @@ Each error that tronitor prints goes to stderr and starts with `tronitor:`, apar
 
 To see each request that tronitor sends, add `--verbose` to the command. [Exit codes](usage.md#-exit-codes) explains the number that tronitor gives back. If your problem is not here, [open a bug report](https://github.com/tronyx/tronitor/issues/new?template=bug_report.yml).
 
+## 🐍 Python version
+
+### `Python 3.11 or newer is needed, but /usr/bin/python3 is Python 3.10.12`
+
+The Python that runs the script is too old. tronitor needs Python 3.11 or newer (see [Requirements](installation.md#-requirements)). The message names the Python that was used and its version, and the exit code is `2`. This often happens on a server whose system Python is older, for example Ubuntu 22.04 (Python 3.10) or Debian 11 (Python 3.9).
+
+Install a newer Python, and run the script with it by name, for example `python3.11 tronitor.py -m hc -l`. Use the same Python in your crontab lines. If you made a symbolic link so that you can type `tronitor`, point it at a two-line script instead, which runs the right Python:
+
+```bash
+#!/bin/sh
+exec python3.11 /opt/tronitor/tronitor.py "$@"
+```
+
+An older copy of tronitor stopped on such a Python with a traceback that ended in `ModuleNotFoundError: No module named 'tomllib'`. That is the same problem.
+
 ## 🤔 My paused Healthchecks check came back by itself
 
 A paused Healthchecks check becomes active again when it next receives a ping. A ping is the signal that a job sends to Healthchecks to say that it ran. So if a job pings the check every few minutes, the pause ends at the next ping. Healthchecks works this way on purpose, and tronitor cannot change it.

@@ -17,7 +17,6 @@ import re
 import sys
 import tempfile
 import time
-import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -25,6 +24,15 @@ from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Any, TextIO
+
+try:
+    import tomllib
+except ImportError:
+    """tomllib arrived in Python 3.11, so an older Python stops here with one line instead of a traceback."""
+    _version = ".".join(str(part) for part in sys.version_info[:3])
+    _python = sys.executable or "python3"
+    print(f"tronitor: Python 3.11 or newer is needed, but {_python} is Python {_version}", file=sys.stderr)
+    sys.exit(2)
 
 __version__ = "2026-11-06"
 
