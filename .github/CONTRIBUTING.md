@@ -68,7 +68,7 @@ Found a security vulnerability? Please don't open an issue: see the [security po
 - **One file, standard library only.** People install this by copying a single script, so keep it that way: no new modules, and no new required packages.
 - **Python 3.11 and newer.** GitHub tests on 3.11, the newest release, and the next release's pre-release, which may fail without failing the run (a heads-up, not a blocker). Avoid syntax newer than 3.11, such as reusing the same quote inside an f-string (3.12+).
 - **Linux, macOS and Windows.** Use `pathlib` for paths, and don't run other programs: the script talks to the providers over HTTP with the standard library, so it works the same everywhere.
-- **Docstrings, not comments.** Explain code in the docstring of the function or class it belongs to. Each section of the file starts with a docstring that says what it holds, above its module-level settings. Don't add `#` comments.
+- **Docstrings, not comments.** Explain code in the docstring of the function or class it belongs to. Each section of the file starts with a docstring that says what it holds, above its module-level settings. Don't add `#` comments. The one exception is a marker for a checker, such as `# nosec B108` for CodeFactor's Bandit scan, with the reason in the docstring next to it.
 - **Keep docstrings short and plain.** Say what something does and, where it isn't obvious, why.
 - **Lines up to 120 characters, spaced as PEP 8 asks** (spaces around operators, and the like). `ruff` checks both.
 - **Type hints on every function.** `mypy` checks them in strict mode, so they stay accurate and complete. If it objects to something, fix the code rather than silencing it: a `# type: ignore` is a comment, which the rule above rules out.

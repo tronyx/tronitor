@@ -210,7 +210,7 @@ def test_search_paths_on_posix_and_windows(monkeypatch: pytest.MonkeyPatch) -> N
 def test_default_lock_dir_is_tmp_on_posix_and_temp_on_windows(monkeypatch: pytest.MonkeyPatch) -> None:
     """The default lock directory is /tmp on POSIX and TEMP on Windows."""
     monkeypatch.setattr(sys, "platform", "linux")
-    assert tronitor.default_lock_dir() == Path("/tmp")
+    assert tronitor.default_lock_dir() == Path("/tmp")  # nosec B108
     monkeypatch.setattr(sys, "platform", "win32")
     monkeypatch.setenv("TEMP", "/win/temp")
     assert tronitor.default_lock_dir() == Path("/win/temp")

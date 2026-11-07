@@ -87,9 +87,13 @@ class Config:
 
 
 def default_lock_dir() -> Path:
-    """Return the default lock directory: /tmp, or the temp directory on Windows."""
+    """Return the default lock directory: /tmp, or the temp directory on Windows.
+
+    /tmp is deliberate: it is where the HealthChecks-Linux pinging script reads the lock files, and the security
+    policy states what sharing that folder means. The nosec marker tells Bandit (via CodeFactor) so.
+    """
     if sys.platform != "win32":
-        return Path("/tmp")
+        return Path("/tmp")  # nosec B108
     temp = os.environ.get("TEMP")
     return Path(temp) if temp else Path(tempfile.gettempdir())
 
