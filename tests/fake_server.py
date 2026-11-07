@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import TracebackType
@@ -36,6 +37,7 @@ class _Response:
     body: object | str | None
     headers: dict[str, str]
     once: bool
+    delay: float = 0.0
     used: bool = False
 
 
@@ -85,7 +87,12 @@ def _make_handler(routes: _Routes) -> type[BaseHTTPRequestHandler]:
             if response is None:
                 self._send(404, {"error": "no route"}, {})
             else:
-                self._send(response.status, response.body, response.headers)
+                if response.delay:
+                    time.sleep(response.delay)
+                try:
+                    self._send(response.status, response.body, response.headers)
+                except OSError:
+                    """The client gave up waiting (a timeout test), so there is nobody to answer."""
 
         def _send(self, status: int, body: object | str | None, headers: dict[str, str]) -> None:
             """Write a response."""
@@ -139,9 +146,13 @@ class FakeServer:
         *,
         headers: dict[str, str] | None = None,
         once: bool = False,
+        delay: float = 0.0,
     ) -> None:
-        """Script a response; once responses are used in order, then the next one for the route applies."""
-        response = _Response(status, body, headers or {}, once)
+        """Script a response; once responses are used in order, then the next one for the route applies.
+
+        delay is how many seconds the server waits before it answers, for tests of a timeout.
+        """
+        response = _Response(status, body, headers or {}, once, delay)
         with self._routes.lock:
             self._routes.responses.setdefault((method, path), []).append(response)
 

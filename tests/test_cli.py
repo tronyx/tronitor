@@ -1,7 +1,6 @@
 """Tests that run tronitor.py as a subprocess."""
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -12,10 +11,12 @@ from conftest import (
     HC_UUID_FILESYSTEM,
     RunCli,
     bash_fixture,
+    coverage_startup_code,
     hc_fixture_checks,
     run_tronitor,
     serve_checks,
     serve_monitors,
+    subprocess_env,
 )
 from fake_server import FakeServer
 
@@ -43,6 +44,7 @@ def run_without_tomllib(
     script = str(Path(tronitor.__file__))
     code = "; ".join(
         [
+            *coverage_startup_code(),
             "import collections, runpy, sys",
             *(["import tomli"] if tomli else []),
             *(f"sys.modules[{name!r}] = None" for name in hidden),
@@ -52,9 +54,13 @@ def run_without_tomllib(
             f"runpy.run_path({script!r}, run_name='__main__')",
         ]
     )
-    env = {"PATH": os.environ.get("PATH", ""), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")}
     return subprocess.run(
-        [sys.executable, "-c", code], check=False, capture_output=True, text=True, encoding="utf-8", env=env
+        [sys.executable, "-c", code],
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env=subprocess_env(),
     )
 
 

@@ -1,6 +1,7 @@
 # ⏸️ tronitor
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/tronyx/tronitor/tests.yml?branch=master&label=tests)](https://github.com/tronyx/tronitor/actions/workflows/tests.yml?query=branch%3Amaster)
+[![Coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftronyx%2Ftronitor%2Fbadges%2Fcoverage-master.json&label=coverage)](docs/testing.md#-coverage)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](docs/installation.md#-requirements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 

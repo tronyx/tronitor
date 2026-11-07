@@ -1,5 +1,6 @@
 """Unit tests for the tronitor module."""
 
+import http.client
 import io
 import json
 import os
@@ -2822,3 +2823,116 @@ def test_render_config_escapes_del(tmp_path: Path) -> None:
     path.write_text(text, encoding="utf-8")
     config = tronitor.load_config(path, {}, [])
     assert config.healthchecks is not None and config.healthchecks.api_key == "a\x7fb"
+
+
+"""Error paths that nothing exercised before the coverage follow-up."""
+
+
+def test_unknown_top_level_key_without_a_table_gets_no_hint(tmp_path: Path) -> None:
+    """An unknown key that no table has is reported without a did-you-mean hint."""
+    path = tmp_path / "tronitor.toml"
+    path.write_text("bogus = 1", encoding="utf-8")
+    with pytest.raises(tronitor.ConfigError) as e:
+        tronitor.load_config(path, {}, [])
+    assert str(e.value) == f"{path}: unknown key 'bogus'"
+
+
+def test_lock_dir_with_a_tilde_but_no_home_folder_is_not_absolute(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When the home folder is unknown, a lock_dir that starts with ~ stays as it is and is refused as relative."""
+
+    def no_home(self: Path) -> Path:
+        raise RuntimeError("Could not determine home directory.")
+
+    monkeypatch.setattr(Path, "expanduser", no_home)
+    path = tmp_path / "tronitor.toml"
+    path.write_text("""[general]
+lock_dir = "~/locks"
+""", encoding="utf-8")
+    with pytest.raises(tronitor.ConfigError, match="must be an absolute path"):
+        tronitor.load_config(path, {}, [])
+
+
+def test_http_error_with_a_json_object_without_a_message_shows_the_body(fake_server: FakeServer) -> None:
+    """A JSON error body without a message, error or detail field is shown as it is."""
+    fake_server.add("GET", "/x", 400, {"code": 7})
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/x")
+    assert str(e.value) == 'HTTP 400: {"code": 7}'
+
+
+def test_http_rejects_an_invalid_ipv6_url() -> None:
+    """A URL that urllib cannot even build a request for is an unsupported URL, not a traceback."""
+    with pytest.raises(tronitor.ProviderError, match="unsupported URL"):
+        tronitor.Http().request("GET", "http://[::1/")
+
+
+def test_http_times_out_waiting_for_the_response(fake_server: FakeServer) -> None:
+    """A server that accepts the connection but answers too slowly is reported as timed out."""
+    fake_server.add("GET", "/slow", 200, {}, delay=0.5)
+    with pytest.raises(tronitor.ProviderError, match="timed out"):
+        tronitor.Http(timeout=0.1).request("GET", fake_server.url + "/slow")
+
+
+def test_http_times_out_connecting(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A connection that times out before the request is sent is reported as timed out too."""
+
+    def slow_connect(self: http.client.HTTPConnection) -> None:
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(http.client.HTTPConnection, "connect", slow_connect)
+    with pytest.raises(tronitor.ProviderError, match="timed out"):
+        tronitor.Http(timeout=0.1).request("GET", "http://127.0.0.1:9/x")
+
+
+def test_prepare_reports_a_lock_dir_that_cannot_be_created(tmp_path: Path) -> None:
+    """A lock folder under a path that is a file cannot be created, and prepare says so."""
+    (tmp_path / "file").write_text("x", encoding="utf-8")
+    with pytest.raises(tronitor.LockError, match="cannot create"):
+        tronitor.LockFiles(tmp_path / "file" / "locks").prepare()
+
+
+def test_unpause_all_on_an_empty_uptimerobot_account(
+    ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """-u all with no monitors, on a provider without lock files, has nothing to do and nothing to remove."""
+    serve_monitors(fake_server, [])
+    assert tronitor.main(["-m", "ur", "-u", "all"]) == 0
+    assert "No monitors" in capsys.readouterr().out
+
+
+def test_create_with_a_file_that_is_not_utf8_is_reported(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    """A payload file that is not UTF-8 is reported as unreadable, with exit code 2."""
+    path = tmp_path / "bad.json"
+    path.write_bytes(bytes([255, 254, 0, 65]))
+    assert tronitor.main(["-m", "hc", "-c", str(path)]) == 2
+    assert capsys.readouterr().err.startswith(f"tronitor: {path}: cannot read the file: ")
+
+
+def test_main_works_when_stdout_is_not_a_file(
+    hc_env: Path, fake_server: FakeServer, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When another program embeds main() with its own stream as stdout, the UTF-8 setup skips that stream."""
+    serve_checks(fake_server)
+    out = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", out)
+    assert tronitor.main(["-m", "hc", "-l"]) == 0
+    assert "Filesystem Backup" in out.getvalue()
+
+
+def test_migrate_when_no_temporary_file_can_be_made(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """When the temporary file itself cannot be created, the error says so and nothing is left behind."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key")
+
+    def no_temp(**kwargs: object) -> tuple[int, str]:
+        raise OSError(13, "Permission denied")
+
+    monkeypatch.setattr(tronitor.tempfile, "mkstemp", no_temp)
+    assert tronitor.main(["--migrate", str(script)]) == 2
+    assert capsys.readouterr().err.strip() == f"tronitor: cannot write {tmp_path / 'tronitor.toml'}: Permission denied"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["tronitor.sh"]

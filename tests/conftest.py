@@ -15,6 +15,42 @@ import tronitor
 HC_UUID_FILESYSTEM = "31365bce-8da9-4729-8ff3-aaa71d56b712"
 HC_UUID_DATABASE = "4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41"
 SCRIPT = Path(__file__).resolve().parent.parent / "tronitor.py"
+COVERAGERC = SCRIPT.parent / ".coveragerc"
+
+
+def measuring_coverage() -> bool:
+    """Return True when coverage runs the test process, which marks it with COVERAGE_RUN.
+
+    Then the tests that run the script as a separate program measure that program too, so the lines
+    that only they reach count. Coverage writes one data file per process (parallel = True in
+    .coveragerc), and "coverage combine" merges them.
+    """
+    return os.environ.get("COVERAGE_RUN") == "true"
+
+
+def subprocess_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """Return the environment for a subprocess: PATH and SYSTEMROOT, the coverage settings when measuring, and extra."""
+    env = {"PATH": os.environ.get("PATH", ""), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")}
+    if measuring_coverage():
+        env["COVERAGE_PROCESS_START"] = str(COVERAGERC)
+        if "COVERAGE_FILE" in os.environ:
+            env["COVERAGE_FILE"] = os.environ["COVERAGE_FILE"]
+    env.update(extra or {})
+    return env
+
+
+def script_command(*args: str) -> list[str]:
+    """Return the command that runs tronitor.py with args, through coverage when the test process is measured."""
+    if measuring_coverage():
+        return [sys.executable, "-m", "coverage", "run", f"--rcfile={COVERAGERC}", str(SCRIPT), *args]
+    return [sys.executable, str(SCRIPT), *args]
+
+
+def coverage_startup_code() -> list[str]:
+    """Return the statements a "python -c" subprocess runs first to measure itself, or none when not measuring."""
+    if measuring_coverage():
+        return ["import coverage", "coverage.process_startup()"]
+    return []
 
 
 @pytest.fixture
@@ -199,16 +235,14 @@ def bash_fixture(tmp_path: Path, **values: str) -> Path:
 def run_tronitor(*args: str, env: dict[str, str] | None = None, stdin: str = "") -> subprocess.CompletedProcess[str]:
     """Run tronitor.py with args and return the result with text output.
 
-    The environment holds only PATH and SYSTEMROOT, plus whatever env adds.
+    The environment holds only PATH and SYSTEMROOT, plus whatever env adds (see subprocess_env).
     """
-    full_env = {"PATH": os.environ.get("PATH", ""), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")}
-    full_env.update(env or {})
     return subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
+        script_command(*args),
         capture_output=True,
         text=True,
         encoding="utf-8",
-        env=full_env,
+        env=subprocess_env(env),
         input=stdin,
         check=False,
     )

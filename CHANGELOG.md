@@ -8,6 +8,13 @@ The project doesn't use version numbers. Each entry is one merge into `master`, 
 
 Nothing yet.
 
+## 2026-11-07 · [#71](https://github.com/tronyx/tronitor/pull/71)
+
+### Project
+
+- GitHub combines the coverage of the tests on Linux, macOS and Windows, including the tests that run the script as a separate program, shows the report on the run's summary page, and keeps each branch's total for the coverage badge in the README. See [Coverage](docs/testing.md#-coverage).
+- Tests for the error paths that nothing exercised before: a connection that times out, an unreadable file, a lock folder that cannot be created, and more. The methods every provider must implement are now abstract, so a provider that leaves one out cannot be created at all. The tests cover 99% of the script.
+
 ## 2026-11-07 · [#70](https://github.com/tronyx/tronitor/pull/70)
 
 tronitor is rewritten in Python. The commands are mostly the same, but some changes break existing setups. Read the lines marked **Breaking** before you update.
