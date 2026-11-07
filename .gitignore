@@ -1,0 +1,26 @@
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+.coverage*
+htmlcov/
+.venv/
+venv/
+env/
+*.bak
+
+# Local configuration and its backups
+tronitor.toml
+*.toml.bak
+
+# Editors
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

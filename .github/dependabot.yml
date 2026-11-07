@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # The actions in .github/workflows, so CI doesn't break when GitHub retires
+  # an old major version. Third-party actions are pinned to a commit with the
+  # version in a comment (see tests.yml); Dependabot moves both to each new
+  # release. It can't update the docker:// actionlint image tests.yml runs,
+  # so that one is updated by hand.
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Only the pinned checkers in requirements-dev.txt. Everything else there
+  # is a minimum version (>=), which new releases already satisfy. A new ruff
+  # or mypy can bring new rules, so if the checks fail on this pull request,
+  # fix what they found in the same pull request before merging it.
+  - package-ecosystem: pip
+    directory: /
+    target-branch: develop
+    schedule:
+      interval: monthly
+    allow:
+      - dependency-name: ruff
+      - dependency-name: mypy
+    groups:
+      checkers:
+        patterns: ["ruff", "mypy"]

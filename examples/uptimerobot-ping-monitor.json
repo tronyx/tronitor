@@ -1,0 +1,7 @@
+{
+  "friendlyName": "Example",
+  "url": "example.com",
+  "type": "PING",
+  "interval": 300,
+  "timeout": 30
+}

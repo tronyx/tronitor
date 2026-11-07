@@ -1,468 +1,125 @@
-# Tronitor
+# ⏸️ tronitor
 
-[![CodeFactor](https://www.codefactor.io/repository/github/tronyx/tronitor/badge)](https://www.codefactor.io/repository/github/tronyx/tronitor) [![Travis (.com) branch](https://img.shields.io/travis/rust-lang/rust/master.svg?logo=travis)](https://app.travis-ci.com/tronyx/tronitor) [![made-with-bash](https://img.shields.io/badge/Made%20with-Bash-1f425f.svg)](https://www.gnu.org/software/bash/) [![GitHub](https://img.shields.io/github/license/mashape/apistatus.svg)](https://github.com/tronyx/tronitor/blob/develop/LICENSE.md) [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/tronyx/tronitor.svg)](http://isitmaintained.com/project/tronyx/tronitor "Average time to resolve an issue") [![Percentage of issues still open](http://isitmaintained.com/badge/open/tronyx/tronitor.svg)](http://isitmaintained.com/project/tronyx/tronitor "Percentage of issues still open")
+[![Tests](https://img.shields.io/github/actions/workflow/status/tronyx/tronitor/tests.yml?branch=master&label=tests)](https://github.com/tronyx/tronitor/actions/workflows/tests.yml?query=branch%3Amaster)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](docs/installation.md#-requirements)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE.md)
 
-A bash script to work with [UptimeRobot](https://uptimerobot.com), [StatusCake](https://www.statuscake.com), [HealthChecks.io](https://healthchecks.io), and [Upptime](https://upptime.js.org/) monitors via their respective APIs. It checks to make sure that the API key/token, username for StatusCake, and your GitHub username and the name of your Upptime repository on GitHub, that you provided are valid before performing any requested operations.
+tronitor pauses and unpauses your [Healthchecks](https://healthchecks.io) and [UptimeRobot](https://uptimerobot.com) monitors from the command line. Pause them before a backup or an update, and unpause them when it is done, so that nobody gets an alert for a planned outage. Run it by hand, or from cron on a schedule. So you get your own maintenance windows, also on a free plan.
 
-## Contributors
+## ✨ Features
 
-[![GitHub contributors](https://img.shields.io/github/contributors/tronyx/tronitor.svg)](https://github.com/tronyx/tronitor/graphs/contributors/)
+- ⏸️ It pauses and unpauses monitors by name, by ID, or all at once.
+- 🔍 It finds the paused monitors, and can post them to a Discord or Slack channel, so that a forgotten pause does not go unseen.
+- 🔒 For Healthchecks, it writes lock files that the [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) pinging script reads, so that a paused check stays paused.
+- ⏰ It is made for cron. It never waits for an answer without a terminal, it reports each failure on stderr, and its exit codes tell a script what happened.
+- 🛡️ It asks before it deletes or resets monitors. Unless you pass `--yes`, it changes nothing when a name matches no monitor, and never when a name matches more than one.
+- 🧰 It also lists monitors, shows their records, creates and deletes monitors, and lists alert contacts. `--json` gives the data to other programs.
+- 🧩 It is one file. It needs Python 3.11 or newer and nothing else, or Python 3.10 with the `tomli` package, and it works on Linux, macOS and Windows.
 
-Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and help with getting some things to work, and to [1activegeek](https://github.com/1activegeek) for asking me to create this for him in the first place, albeit MUCH less complicated than what it's become.
+## 🚀 Quick start
 
-Feel free to check out their work and buy them a beer too!
+You need Python 3.11 or newer, or Python 3.10 with the `tomli` package (see [Requirements](docs/installation.md#-requirements)).
 
-## Application Healthchecks
+1. Copy `tronitor.py` and `tronitor.example.toml` to a folder, or clone the repository:
 
-This script partners up with my [Application Healthchecks](https://github.com/tronyx/HealthChecks-Linux) script that provides checks for a lot of popular HTPC applications, IE: Plex, Sonarr, Radarr, etc. that work with HealthChecks.io. Tronitor would allow you to pause and unpause the checks manually or on a schedule, via a cronjob, for planned maintenance, etc. This essentially allows you to create your own maintenance windows without having to pay for a premium account with either of the providers.
+   ```bash
+   git clone -b master https://github.com/tronyx/tronitor.git
+   cd tronitor
+   ```
 
-## Package Requirements/Recommendations
+2. Make your config file. On Linux and macOS, also make it readable only by you, because it holds your keys:
 
-### cURL
+   ```bash
+   cp tronitor.example.toml tronitor.toml
+   chmod 600 tronitor.toml
+   ```
 
-The `cURL` command is required for the script to function as it's used to submit API calls to the providers. If it is not installed before you execute the script most, if not all, operations will fail. Because of this, the script does check whether or not `cURL` is installed and, if not, it will inform you as such and then exit.
+   Upgrading from `tronitor.sh`? `python3 tronitor.py --migrate tronitor.sh` writes `tronitor.toml` from its settings; see [Upgrading](docs/usage.md#-upgrading-from-the-bash-script).
 
-### JQ
+3. Open `tronitor.toml` and fill in your API key: a read-write project API key for Healthchecks, or the Main API key for UptimeRobot. [Configuration](docs/configuration.md#-api-keys) tells you where to find them.
 
-The `jq` command is required for the script to function as it is used to more easily extract data from JSON files created by the script when gathering information for the monitoring providers and the corresponding checks/tests.
+4. List your monitors, then pause and unpause all of them:
 
-It is also used by the script to automatically format the JSON output into a human-readable and colorized output. There is a variable at the beginning of the script to set the use of the `jq` command (strictly for displaying the output of the script) to true or false. I've personally encountered some issues with it when using the script within a cronjob and not using `jq` to format the output resolves them. It is set to `true` by default.
+   ```bash
+   python3 tronitor.py -m hc -l
+   python3 tronitor.py -m hc -p all
+   python3 tronitor.py -m hc -u all
+   ```
 
-```bash
-# Set JQ to false to disable its use for displaying output.
-# This works better for using the script with cronjobs, etc.
-jq='true'
+For UptimeRobot, type `-m ur` instead of `-m hc`. On Windows, type `py` instead of `python3`. [Installation](docs/installation.md) has the details.
+
+## ⚙️ Common options
+
+| Option | What it does |
+| --- | --- |
+| `-m PROVIDER` | The provider: `healthchecks` (`hc`) or `uptimerobot` (`ur`). Every command needs it, except `--migrate` |
+| `-l` | List every monitor and its status |
+| `-f` | List the paused monitors. On a terminal, offer to unpause them |
+| `-n` | List the paused monitors, and never ask |
+| `-w` | List the paused monitors and post them to the Discord or Slack webhook |
+| `-p TARGETS` | Pause monitors: `all`, or names and IDs separated by commas, such as `-p "Filesystem Backup,Database Backup"` |
+| `-u TARGETS` | Unpause monitors, in the same way |
+| `--yes` | Delete or reset without asking. Also act on the monitors that were found when some were not |
+| `--json` | Print the provider's records as JSON instead of a table |
+
+A name must match the whole monitor name, but capital letters do not matter. [Usage](docs/usage.md#-all-options) describes all the options. The `--help` option also lists them.
+
+## ⏰ From cron
+
+To pause every Healthchecks check during a nightly backup, add lines like these to your crontab (`crontab -e`). `/opt/tronitor` is an example (use your own path):
+
+```text
+# Pause at 01:55, before the 02:00 backup
+55 1 * * * /usr/bin/python3 /opt/tronitor/tronitor.py -m hc -p all > /dev/null
+# Unpause at 04:00, when the backup is done
+0 4 * * * /usr/bin/python3 /opt/tronitor/tronitor.py -m hc -u all > /dev/null
+# At 08:00, post any paused checks to the webhook
+0 8 * * * /usr/bin/python3 /opt/tronitor/tronitor.py -m hc -w > /dev/null
 ```
 
-#### Installing JQ on Ubuntu Server 18.04:
+`> /dev/null` discards the normal output, but errors still reach you through cron's mail, when your system sends it. A paused Healthchecks check becomes active again at its next ping, so point HealthChecks-Linux at tronitor's lock folder. [Running from cron](docs/cron.md) tells you how.
 
-```bash
-tronyx@suladan:~$ sudo apt install jq
-Reading package lists... Done
-Building dependency tree
-Reading state information... Done
-The following NEW packages will be installed:
-  jq
-0 upgraded, 1 newly installed, 0 to remove and 7 not upgraded.
-Need to get 45.6 kB of archives.
-After this operation, 90.1 kB of additional disk space will be used.
-Get:1 http://archive.ubuntu.com/ubuntu bionic/universe amd64 jq amd64 1.5+dfsg-2 [45.6 kB]
-Fetched 45.6 kB in 0s (123 kB/s)
-Selecting previously unselected package jq.
-(Reading database ... 107503 files and directories currently installed.)
-Preparing to unpack .../jq_1.5+dfsg-2_amd64.deb ...
-Unpacking jq (1.5+dfsg-2) ...
-Setting up jq (1.5+dfsg-2) ...
-Processing triggers for man-db (2.8.3-2) ...
-```
+## 📖 Documentation
 
-#### Sample output using JQ:
+| Page | Contents |
+| --- | --- |
+| [📦 Installation](docs/installation.md) | Requirements, how to get the script, how to run it, and how to update it |
+| [🔑 Configuration](docs/configuration.md) | The config file and where tronitor looks for it, every setting, the environment variables, and the API keys |
+| [🚀 Usage](docs/usage.md) | How to name monitors, all the options, what each action prints, sample output, and exit codes |
+| [⏰ Running from cron](docs/cron.md) | Maintenance windows, the Healthchecks lock files and HealthChecks-Linux, crontab lines, and what happens when something fails |
+| [🔌 Providers](docs/providers.md) | Healthchecks and UptimeRobot: what each one supports, API keys, statuses, rate limits, and new monitors. How to add a provider, and the providers that were removed |
+| [🩺 Troubleshooting](docs/troubleshooting.md) | What each message means, and what to do |
+| [🧪 How it is tested](docs/testing.md) | The tests, and the tests that GitHub runs on each change |
 
-![JQ True](/Images/jq_sample.png)
+## 🔌 Providers
 
-#### Sample output without JQ:
+tronitor works with [Healthchecks](https://healthchecks.io), on healthchecks.io or on a server that you host yourself, and with [UptimeRobot](https://uptimerobot.com). Both use version 3 of their APIs.
 
-![JQ False](/Images/no_jq_sample.png)
+The Bash version of tronitor also worked with two other providers, which the Python version dropped:
 
-## Setting it up
+- **StatusCake:** StatusCake shut down the API that tronitor used in October 2022, and nobody filed an issue about it in the four years since.
+- **Upptime:** tronitor paused Upptime by turning off its GitHub workflow, a niche feature that the rewrite did not carry over.
 
-The best method to get the script working is to use `git` to clone the repository onto your preferred machine:
+[Uptime Kuma](https://github.com/louislam/uptime-kuma) has no API to pause and resume monitors yet. tronitor will add it when it does. [Providers](docs/providers.md) has the details.
 
-```bash
-tronyx@suladan:~$ git clone https://github.com/tronyx/tronitor.git
-Cloning into 'tronitor'...
-remote: Enumerating objects: 108, done.
-remote: Counting objects: 100% (108/108), done.
-remote: Compressing objects: 100% (75/75), done.
-remote: Total 262 (delta 60), reused 76 (delta 32), pack-reused 154
-Receiving objects: 100% (262/262), 161.85 KiB | 6.74 MiB/s, done.
-Resolving deltas: 100% (143/143), done.
-```
+## 🧪 How it is tested
 
-:warning: **NOTE:** You CAN get away with just grabbing a copy of the `tronitor.sh` script itself, but the monitor creation functionality will not work as it depends on the included template files in the repository.
+Each change goes through tests on Linux, macOS and Windows. On Linux, the tests use both the oldest and the newest Python version that tronitor supports. The tests run the script against a fake server that answers like Healthchecks and UptimeRobot, so they need no account. Live tests against real accounts are also available, and the docs tests check every link in these pages. For more information, see [How it is tested](docs/testing.md).
 
-The script stores the API keys/token, username for StatusCake, and, for Upptime, your GitHub username, PAT (Personal Access Token), and the name of your Upptime reposistory, for up to all four providers so that you do not need multiple copies of the script to work with each of the different providers.
+## 🤝 Contributing
 
-If you do not know how to create a PAT for your GitHub account, you can checkout their documentation on it [HERE](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token).
+You can send bug reports, ideas, and pull requests. The [contributing guide](.github/CONTRIBUTING.md) tells you how. Do not open an issue to report a security vulnerability, because issues are public. Use the procedure in the [security policy](.github/SECURITY.md) instead. The [changelog](CHANGELOG.md) lists the changes in each release.
 
-The first time that you run the script for a specific monitor it will alert you that the API key/token, etc. are missing and prompt you to input them:
+## 🙏 Thanks
 
-### UptimeRobot
-![UptimeRobot User Data Prompt](/Images/ur_user_data.png)
+Big thanks to [nemchik](https://github.com/GhostWriters/DockSTARTer/commits?author=nemchik) for all the ideas and the help with getting things to work in the original Bash script, and to [1activegeek](https://github.com/1activegeek) for asking me to create it for him in the first place. Feel free to check out their work and buy them a beer too!
 
-### StatusCake
-![StatusCake User Data Prompt](/Images/sc_user_data.png)
+## 🤖 A note on how this was built
 
-### Healthchecks.io
-![Healthchecks User Data Prompt](/Images/hc_user_data.png)
+This version of tronitor was largely written with [Claude](https://claude.ai), Anthropic's AI coding assistant. I described what I needed, directed the design, and asked for changes across many iterations rather than writing most of the code by hand. It is tested against mocked APIs (a fake server that answers like Healthchecks and UptimeRobot) and against my own Healthchecks instance. The UptimeRobot side is tested against the mocked API only, until I run the live tests against a real account.
 
-:warning: **NOTE:** If you are running your own, self-hosted version of the Healthchecks.io application, you will need to modify the `healthchecksDomain` variable on `line 24` of the  `tronitor.sh` script with the domain name that you're hosting the application with.
+I'd rather say that plainly than let it pass as fully hand-written. There's a lot of AI-generated code floating around that hasn't been reviewed or tested and ends up breaking people's setups, and I don't want this to be mistaken for that. If something looks off, please [open an issue](https://github.com/tronyx/tronitor/issues).
 
-### Upptime
-![Upptime/GitHub User Data Prompt](/Images/up_user_data.png)
+## 📄 License
 
-You can also simply open the script with your favorite text editor and add your provider's API key, if you're using StatusCake, your account username, and, if you're using Upptime, the repository owner (organization or user), your GitHub username, PAT (Personal Access Token), and the name of your Upptime reposistory.
-
-After entering the information, the script will check whether or not it is valid and then add it to the script for you.
-
-If you use the alert option, be sure to also enter in your Discord/Slack webhook URL. If you forget this as well, the script will also prompt you to enter it:
-
-![Webhook URL Prompt](/Images/webhook_url.png)
-
-## Usage
-
-![Script Usage](/Images/usage.png)
-
-The `-m/--monitor` option accepts both full and shorthand versions of the provider's name:
-
-```bash
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -l
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -l
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m statuscake -l
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m sc -l
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m healthchecks -l
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m hc -l
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m upptime -l
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m up -l
-```
-
-## Examples
-### Get account statistics
-
-Display basic statistics for your account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -s
-Here are the basic statistics for your UptimeRobot account:
-
-{
- "stat": "ok",
- "account": {
-   "email": "me@domain.com",
-   "monitor_limit": 50,
-   "monitor_interval": 5,
-   "up_monitors": 14,
-   "down_monitors": 0,
-   "paused_monitors": 0
- }
-}
-```
-
-### List all monitors
-
-Display all monitors associated with your account and their current statuses:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh --monitor ur -l
-The following UptimeRobot monitors were found in your UptimeRobot account:
-
-Plex (ID: 779783111) - Status: Up
-Radarr (ID: 780859973) - Status: Down
-Sonarr (ID: 780859962) - Status: Paused
-Tautulli (ID: 780859975) - Status: Seems down
-```
-
-### Find currently paused monitors
-
-Find and display all monitors in your account that are currently paused and then prompt you as to whether or not you would like to unpause them:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -f
-The following StatusCake monitors are currently paused:
-
-Plex (ID: 779783111)
-Radarr (ID: 780859973)
-Sonarr (ID: 780859962)
-Tautulli (ID: 780859975)
-
-Would you like to unpause the paused monitors? ([Y]es or [N]o):
-```
-
-You can also use the `-n` option to display the same list, but not display a prompt to unpause the paused monitors.
-
-### Discord alert for paused monitors
-
-Using the `-w` option will check for any paused monitors and, if there are any, send an alert to the specified Discord/Slack webhook like below:
-
-![Discord/Slack Notification](/Images/webhook_paused.png)
-
-If you set the `notifyAll` option to `true`, Tronitor will send a notification even if there are no paused monitors:
-
-![Discord/Slack Notification](/Images/webhook_notifyAll.png)
-
-### Info
-
-Display all information for a single monitor:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -i 'plex'
-{
-  "stat": "ok",
-  "pagination": {
-    "offset": 0,
-    "limit": 50,
-    "total": 1
-  },
-  "monitors": [
-    {
-      "id": 779783111,
-      "friendly_name": "Plex",
-      "url": "https://plex.tv",
-      "type": 1,
-      "sub_type": "",
-      "keyword_type": null,
-      "keyword_value": "",
-      "http_username": "",
-      "http_password": "",
-      "port": "",
-      "interval": 300,
-      "status": 2,
-      "create_datetime": 1513815865
-    }
-  ]
-}
-```
-
-### Get alert contacts
-
-Displays a list of all of the alert contacts configured for the account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -a
-The following alert contacts have been found for your UptimeRobot account:
-
-{
-  "stat": "ok",
-  "offset": 0,
-  "limit": 50,
-  "total": 2,
-  "alert_contacts": [
-    {
-      "id": "0526944",
-      "friendly_name": "E-Mail",
-      "type": 2,
-      "status": 2,
-      "value": "me@domain.com"
-    },
-    {
-      "id": "2611518",
-      "friendly_name": "Discord",
-      "type": 11,
-      "status": 2,
-      "value": "https://discordapp.com/api/webhooks/123456789/qwerty-qwerty-qwerty/slack"
-    }
-  ]
-}
-```
-
-This can be helpful when creating a new monitor as you can use the `id` field of the alert contact to specify the alert contact that you want to be notified when an event occurs with the new monitor that you're creating.
-
-### Pause all monitors
-
-Pause all monitors in your account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m uptimerobot -p all
-Pausing Plex:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 779783111
-  }
-}
-
-Pausing Radarr:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859973
-  }
-}
-
-Pausing Sonarr:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859962
-  }
-}
-
-Pausing Tautulli:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859975
-  }
-}
-```
-
-:warning: **NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/healthchecks.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
-
-
-### Pause specific monitors
-
-Pause specific monitors in your account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh --monitor ur -p 'Plex',780859973
-Pausing Plex:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 779783111
-  }
-}
-
-Pausing Radarr:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859973
-  }
-}
-```
-
-:warning: **NOTE:** Healthchecks.io works with cronjobs so, unless you disable your cronjobs for the HC.io monitors, or work with the created lock file, all paused monitors will become active again the next time they receive a ping. Tronitor creates a lock file, `/tmp/tronitor/MONITOR-UUID.lock`, so that you can modify your existing HC.io script to check for the lock file and not send pings if it is present.
-
-### Unpause all currently paused monitors
-
-Unpause all monitors in your account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -u all
-Unpausing Plex:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 779783111
-  }
-}
-
-Unpausing Radarr:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859973
-  }
-}
-
-Unpausing Sonarr:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859962
-  }
-}
-
-Unpausing Tautulli:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859975
-  }
-}
-```
-
-### Unpause specific monitors
-
-Unpause specific monitors that are currently paused in your account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -u 'Plex',780859973
-Unpausing Plex:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 779783111
-  }
-}
-
-Unpausing Radarr:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 780859973
-  }
-}
-```
-
-### Create a new monitor
-
-Monitors can be created using this option.
-
-:warning: **NOTE:** StatusCake's API is dumb and WILL let you create more tests than you're supposed to have with the limit for your account and it can cause some very odd behavior with the monitors.
-
-Modify the settings of the corresponding monitor type template file in the corresponding `Templates` directory for your provider, IE: creating a new HTTP(s) monitor for UptimeRobot would require you to modify the `Templates/UptimeRobot/new-http-monitor.json` file. The full API documentation for the two providers can be found [HERE (UR)](https://uptimerobot.com/api), [HERE (SC)](https://www.statuscake.com/api/index.md), and [HERE (HC)](https://healthchecks.io/docs/api/) for information on monitor types and any required values and what they're for.
-
-The following example is for creating a new HTTP(s) monitor for Google:
-
-```json
-tronyx@suladan:~/tronitor$ cat Templates/UptimeRobot/new-http-monitor.json
-{
-      "api_key": "",
-      "friendly_name": "Google",
-      "url": "https://google.com",
-      "type": 1,
-      "http_username": "",
-      "http_password": "",
-      "interval": 300,
-      "alert_contacts": "",
-      "ignore_ssl_errors": "false",
-      "format": "json"
-}
-```
-
-The `api_key` field is filled in automatically by the script, but you can still add it yourself if you'd like to. The `alert_contacts` field can be filled in with the `id` field from your preferred alert contact which you can retrieve using the `-a/--alerts` option with the script.
-
-Then just execute the script to create the monitor:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh --monitor uptimerobot -c http
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 781067574,
-    "status": 1
-  }
-}
-```
-
-### Resetting monitors
-
-Reset (deleting all stats and response time data) all or specific monitors in your account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -r google
-
-***WARNING*** This will reset ALL data for the specified monitors!!!
-Are you sure you wish to continue? ([Y]es or [N]o):
-y
-
-Resetting Google:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 781067574
-  }
-}
-```
-
-### Deleting monitors
-
-Delete all, or a specific, monitor from your account:
-
-```json
-tronyx@suladan:~/tronitor$ ./tronitor.sh -m ur -d plex
-
-***WARNING*** This will delete the specified monitor from your account!!!
-Are you sure you wish to continue? ([Y]es or [N]o):
-y
-
-Deleting Plex:
-{
-  "stat": "ok",
-  "monitor": {
-    "id": 781067560
-  }
-}
-```
+The license is MIT. See [LICENSE.md](LICENSE.md).

@@ -1,0 +1,7 @@
+{
+  "friendlyName": "Example",
+  "url": "https://example.com",
+  "type": "HTTP",
+  "interval": 300,
+  "timeout": 30
+}

@@ -1,0 +1,94 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  # Weekly, so a new Python release, or a change on GitHub's runners, that
+  # breaks the script shows up even without a push. The tests talk to a fake
+  # server, so a change in the Healthchecks or UptimeRobot API only shows up
+  # in the live tests (tests/test_live.py), which need real accounts and are
+  # skipped here. GitHub only runs this on the default branch, develop, from
+  # its copy of this file, and pauses it after 60 days without repository
+  # activity.
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# Every job can only read the repository.
+#
+# Actions from anyone but GitHub are pinned to a commit, not a tag, since a
+# tag can be moved to other code. The comment after each pin is its version,
+# which Dependabot reads and updates along with the commit.
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}${{ matrix.experimental && ' (pre-release, may fail)' || '' }}
+    runs-on: ${{ matrix.os }}
+    # The pre-release job may fail without failing the run.
+    continue-on-error: ${{ matrix.experimental == true }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.10", "3.14"]
+        # Windows decodes subprocess output differently and keeps its lock
+        # files in its own temp folder, and macOS has its own file system
+        # (APFS) and temp folder layout, so run the tests on both.
+        include:
+          - os: windows-latest
+            python-version: "3.14"
+          - os: macos-latest
+            python-version: "3.14"
+          # The next Python's pre-release, so a change in it that breaks the
+          # script or the tests shows up before it's released. Once 3.15 is
+          # out, make it the newest release above and move this to 3.16.
+          - os: ubuntu-latest
+            python-version: "3.15"
+            experimental: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          # Only matters for a version with no release yet, like 3.15 above.
+          allow-prereleases: true
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      # Coverage is for information only: a lower number never fails the job.
+      - run: python -m coverage run -m pytest
+      - run: python -m coverage report
+
+  # Lint (ruff) and type checks (mypy), set up in pyproject.toml. mypy runs
+  # twice: the script takes different paths on Linux and on Windows.
+  # Then lints the workflows and the Markdown files.
+  lint:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m ruff check .
+      - run: python -m mypy --platform linux
+      - run: python -m mypy --platform win32
+      # The workflows, including shellcheck on their scripts. Pinned, so a new
+      # release with new checks can't suddenly fail the job, and to its digest,
+      # since an image tag can be moved too. Dependabot doesn't update images
+      # used this way, so update the tag and digest by hand.
+      - name: Lint the workflows
+        uses: docker://rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+        with:
+          args: -color
+      # The README, the pages in docs/, the changelog and everything in
+      # .github, with the settings in .markdownlint.json.
+      - name: Lint the Markdown files
+        uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
+        with:
+          globs: "**/*.md"

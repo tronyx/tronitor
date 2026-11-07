@@ -1,0 +1,8 @@
+{
+  "friendlyName": "Example",
+  "url": "example.com",
+  "type": "PORT",
+  "interval": 300,
+  "timeout": 30,
+  "port": 443
+}

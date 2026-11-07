@@ -1,0 +1,106 @@
+# 📦 Installation
+
+[← All documentation](README.md)
+
+## 📋 Requirements
+
+tronitor needs [Python](https://www.python.org) 3.11 or newer, and nothing else. It uses only the standard library (the modules that come with Python), so you do not install any packages. It does not need curl or jq, which the old Bash version needed.
+
+It also runs on Python 3.10, with one package: `tomli`, which reads the config file. Python 3.11 and newer have this reader built in, as `tomllib`. Ubuntu 22.04 comes with Python 3.10. On Debian and Ubuntu, install the package with `sudo apt install python3-tomli`; elsewhere, run `python3 -m pip install --user tomli`. Python 3.9 and older do not work.
+
+It works on Linux, macOS and Windows. GitHub tests it on Linux with Python 3.10 and the newest Python release, and on macOS and Windows with the newest release. See [How it is tested](testing.md#-what-github-runs).
+
+To check your Python version, run this command:
+
+```bash
+python3 --version
+```
+
+On Windows, type `py` instead of `python3`.
+
+If the Python is too old, or it is 3.10 without `tomli`, tronitor stops at once and says so, for example `Python 3.10 or newer is needed, but /usr/bin/python3 is Python 3.9.2`. [Troubleshooting](troubleshooting.md#-python-version) tells you what to do then.
+
+## 📥 Getting the script
+
+tronitor is one file, `tronitor.py`. You also need the example config file, `tronitor.example.toml`, as a starting point for your own settings. Copy the two files to any folder. For example, download them from the [repository](https://github.com/tronyx/tronitor) on GitHub.
+
+You can also clone the whole repository with git. `-b master` gets the `master` branch, which has the latest release. The `develop` branch holds changes that are not released yet:
+
+```bash
+git clone -b master https://github.com/tronyx/tronitor.git
+```
+
+The repository also has an `examples` folder. It holds sample files for new monitors (see [Creating a monitor](usage.md#-creating-a-monitor)). You need these only if you create monitors with tronitor.
+
+## 🔑 Setting it up
+
+1. Make a copy of `tronitor.example.toml` with the name `tronitor.toml`, in the same folder as `tronitor.py`:
+
+   ```bash
+   cp tronitor.example.toml tronitor.toml
+   ```
+
+2. Open `tronitor.toml` in a text editor and fill in the API key of your provider. For Healthchecks, this is a read-write project API key. For UptimeRobot, it is the Main API key. [Configuration](configuration.md#-api-keys) tells you where to find each key.
+
+3. Make the file readable only by you, because it holds your keys. On Linux and macOS, run this command:
+
+   ```bash
+   chmod 600 tronitor.toml
+   ```
+
+4. List your monitors, to make sure that the key works:
+
+   ```bash
+   python3 tronitor.py -m hc -l
+   ```
+
+   For UptimeRobot, type `-m ur` instead of `-m hc`.
+
+You can also keep the config file in your user config folder, or give the settings as environment variables. [Configuration](configuration.md) tells you how.
+
+## 🚚 Upgrading
+
+Coming from the Bash script, `tronitor.sh`? tronitor can write `tronitor.toml` for you, from the settings at the top of the script. Then you skip steps 1 to 3 above. Copy `tronitor.py` to the folder of `tronitor.sh`, and run this command there:
+
+```bash
+python3 tronitor.py --migrate tronitor.sh
+```
+
+Then go on with step 4. [Upgrading from the Bash script](usage.md#-upgrading-from-the-bash-script) tells you what tronitor copies, what it drops, and what changed for the lock files.
+
+## ▶️ Running it
+
+Run the script with Python:
+
+```bash
+python3 tronitor.py -m hc -l
+```
+
+On Linux and macOS, you can also run the script directly, without `python3` in front. The first line of `tronitor.py` tells the system to start it with the `python3` on your PATH. The script must be executable. A `git clone` makes it executable; after a download, run `chmod +x tronitor.py` once. Then run it like this:
+
+```bash
+./tronitor.py -m hc -l
+```
+
+The examples in `--help` and in these pages write `tronitor` instead of `python3 tronitor.py`, because it is shorter. To type `tronitor` yourself from any folder, put a symbolic link (a pointer to the file) in a folder on your PATH, for example:
+
+```bash
+sudo ln -s /opt/tronitor/tronitor.py /usr/local/bin/tronitor
+```
+
+tronitor still finds `tronitor.toml` next to the real `tronitor.py`, not next to the link. In cron, give the full path of the script, or of Python and the script. See [Running from cron](cron.md#-crontab-lines).
+
+On Windows, the `py` launcher reads the same first line, so `tronitor.py -m hc -l` works there too when `.py` files are associated with it.
+
+## 🔄 Updating it
+
+Only the newest version is supported. To update, download `tronitor.py` again, or run `git pull` in the cloned folder, on the `master` branch. Your `tronitor.toml` stays as it is: git ignores it, so a `git pull` never changes it or adds it to the repository.
+
+To see which version you have, run this command. The version is the date of the release:
+
+```bash
+python3 tronitor.py --version
+```
+
+> [!NOTE]
+> Coming from the Bash script, `tronitor.sh`? The settings moved from the top of the script to `tronitor.toml`, and the lock files moved from `~/tronitor/` to `/tmp`. Names now match whole monitor names only. The [changelog](../CHANGELOG.md) lists every change.

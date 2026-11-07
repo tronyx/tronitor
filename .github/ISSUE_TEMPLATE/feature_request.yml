@@ -1,0 +1,49 @@
+name: 💡 Feature request
+description: An idea for something the script could do, or do better.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! If you'd like to build it yourself, please agree on the approach here before writing code, so your time isn't wasted. See the [contributing guide](https://github.com/tronyx/tronitor/blob/develop/.github/CONTRIBUTING.md).
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you start
+      options:
+        - label: I've searched the existing issues and this hasn't been suggested yet.
+          required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like to do?
+      description: Describe the feature, and what it would look like when you run the script.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      description: The problem it solves, or the situation where you'd use it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything you've tried instead?
+      description: Workarounds or other tools you've used, if any.
+
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Would you like to build it?
+      options:
+        - "No, just suggesting it"
+        - "Yes, with a pull request"
+        - "Maybe, with some help"
+    validations:
+      required: true
