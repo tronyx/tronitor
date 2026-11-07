@@ -15,6 +15,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import tomllib
 import urllib.error
 import urllib.parse
@@ -22,7 +23,7 @@ import urllib.request
 from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TextIO
+from typing import IO, Any, TextIO
 
 __version__ = "2026-11-06"
 
@@ -153,10 +154,16 @@ def _table_hint(key: str) -> str:
 
 
 def _url(value: str, prefix: str, subject: str) -> str:
-    """Strip value, require an http or https scheme, and drop trailing slashes."""
+    """Strip value, require an http or https scheme, and drop trailing slashes.
+
+    A space or a control character inside the address is refused; the message does not show the address, because a
+    webhook address holds a secret token.
+    """
     value = value.strip()
     if not value.startswith(("http://", "https://")):
         raise ConfigError(f"{prefix}: {subject}must start with http:// or https://")
+    if re.search(r"[\s\x00-\x1f\x7f-\x9f]", value):
+        raise ConfigError(f"{prefix}: {subject}contains a space or a control character")
     return value.rstrip("/")
 
 
@@ -206,11 +213,32 @@ def _notify(doc: Mapping[str, Any], env: Mapping[str, str], source: str) -> Noti
     return NotifyConfig(webhook, fmt, bool(doc.get("notify", {}).get("notify_all", False)))
 
 
+def _expand_home(path: Path) -> Path:
+    """Return path with a leading ~ replaced by the home folder; without a known home folder, path is unchanged."""
+    try:
+        return path.expanduser()
+    except RuntimeError:
+        return path
+
+
+def _lock_dir(value: str, prefix: str, subject: str) -> Path:
+    r"""Return the lock folder value as a Path with ~ expanded; a relative path raises ConfigError.
+
+    A relative path would depend on the working folder, which differs under cron. "Absolute" here means that the path
+    starts at the top of a drive or of the file system, such as /tmp or C:\Temp.
+    """
+    path = _expand_home(Path(value))
+    if not path.root:
+        raise ConfigError(f"{prefix}: {subject}must be an absolute path")
+    return path
+
+
 def _find_config_file(path: Path | None, env: Mapping[str, str], search_paths: Sequence[Path]) -> Path | None:
-    """Return the config file to read, or None when there is none."""
+    """Return the config file to read, or None when there is none; a leading ~ in the path is expanded."""
     if path is None and _env_value(env, "TRONITOR_CONFIG"):
         path = Path(_env_value(env, "TRONITOR_CONFIG"))
     if path is not None:
+        path = _expand_home(path)
         if not path.is_file():
             raise ConfigError(f"{path}: config file does not exist")
         return path
@@ -223,9 +251,9 @@ def load_config(path: Path | None, env: Mapping[str, str], search_paths: Sequenc
     source = str(found) if found else "configuration"
     doc = _read_toml(found) if found else {}
     _check_known_keys(doc, source)
-    lock_dir = _resolve(doc, env, "TRONITOR_LOCK_DIR", "general", "lock_dir", source)[0]
+    lock_dir, prefix, subject = _resolve(doc, env, "TRONITOR_LOCK_DIR", "general", "lock_dir", source)
     return Config(
-        lock_dir=Path(lock_dir) if lock_dir else default_lock_dir(),
+        lock_dir=_lock_dir(lock_dir, prefix, subject) if lock_dir else default_lock_dir(),
         healthchecks=_healthchecks(doc, env, source),
         uptimerobot=_uptimerobot(doc, env, source),
         notify=_notify(doc, env, source),
@@ -235,6 +263,7 @@ def load_config(path: Path | None, env: Mapping[str, str], search_paths: Sequenc
 """HTTP: the one place that talks to the network."""
 
 ERROR_TEXT_LIMIT = 200
+RETRY_AFTER_MAX = 60
 
 
 class ProviderError(Exception):
@@ -278,15 +307,62 @@ def _error_detail(text: str, status: int) -> str:
     return _collapse(text) or http.client.responses.get(status, "error")
 
 
+def _url_host(url: str) -> str:
+    """Return the host (and port) of url, without a user name or password; '' when there is none or url is bad."""
+    try:
+        return urllib.parse.urlsplit(url).netloc.rpartition("@")[2]
+    except ValueError:
+        return ""
+
+
+def retry_after_seconds(value: str | None) -> int:
+    """Return how many seconds to wait for a Retry-After header value: 1 to RETRY_AFTER_MAX.
+
+    A missing value, or one that is not a whole number of seconds (such as a date), gives RETRY_AFTER_MAX.
+    """
+    try:
+        seconds = int((value or "").strip())
+    except ValueError:
+        return RETRY_AFTER_MAX
+    return max(1, min(RETRY_AFTER_MAX, seconds))
+
+
+class _NoRedirects(urllib.request.HTTPRedirectHandler):
+    """Refuse every redirect, so a 3xx answer reaches the normal error path as "HTTP 301: ...".
+
+    Following a redirect would send the API key to the new address, which may be another host, and would turn a
+    POST into a GET.
+    """
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: http.client.HTTPMessage,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        """Return None: no new request is made."""
+        return None
+
+
 class Http:
     """Send HTTP requests and turn every network or API failure into a ProviderError."""
 
     def __init__(
-        self, *, timeout: float = 30.0, verbose: bool = False, log: Callable[[str], None] | None = None
+        self,
+        *,
+        timeout: float = 30.0,
+        verbose: bool = False,
+        log: Callable[[str], None] | None = None,
+        sleep: Callable[[float], None] = time.sleep,
     ) -> None:
         self.timeout = timeout
         self.verbose = verbose
         self._log = log or (lambda line: print(line, file=sys.stderr))
+        self._sleep = sleep
+        self._opener = urllib.request.build_opener(_NoRedirects())
 
     def request(
         self,
@@ -297,17 +373,25 @@ class Http:
         json_body: object | None = None,
         allow_statuses: Collection[int] = (),
         log_label: str | None = None,
+        retry_on_429: bool = False,
     ) -> HttpResponse:
         """Send a request and return the response; a status that is not 2xx or allowed raises ProviderError.
 
         With verbose, the log line shows the method and log_label, or the URL without its query when there is no
         label (a label hides a URL that carries a secret).
+
+        With retry_on_429, a 429 answer (too many requests) waits for the seconds in its Retry-After header and sends
+        the request once more; see retry_after_seconds. A second 429 raises ProviderError as usual.
         """
         try:
             scheme = urllib.parse.urlsplit(url).scheme.lower()
         except ValueError:
             scheme = ""
-        unsupported = f"unsupported URL for {log_label}" if log_label is not None else f"unsupported URL: {url}"
+        if log_label is not None:
+            unsupported = f"unsupported URL for {log_label}"
+        else:
+            host = _url_host(url)
+            unsupported = f"unsupported URL: {host}" if host else "unsupported URL"
         if scheme not in ("http", "https"):
             raise ProviderError(unsupported)
         all_headers = {"Accept": "application/json", "User-Agent": f"tronitor/{__version__}", **(headers or {})}
@@ -319,9 +403,15 @@ class Http:
             req = urllib.request.Request(url, data=data, method=method, headers=all_headers)
         except ValueError:
             raise ProviderError(unsupported) from None
-        if self.verbose:
-            self._log(f"{method} {log_label if log_label is not None else url.split('?', 1)[0]}")
-        status, text = self._send(req)
+        request_line = f"{method} {log_label if log_label is not None else url.split('?', 1)[0]}"
+        self._verbose_log(request_line)
+        status, text, retry_after = self._send(req, log_label)
+        if retry_on_429 and status == 429:
+            seconds = retry_after_seconds(retry_after)
+            self._verbose_log(f"waiting {seconds} s for the {log_label or self._host(req)} rate limit")
+            self._sleep(seconds)
+            self._verbose_log(request_line)
+            status, text, _ = self._send(req, log_label)
         if not 200 <= status < 300 and status not in allow_statuses:
             raise ProviderError(f"HTTP {status}: {_error_detail(text, status)}", status)
         if not text:
@@ -333,15 +423,29 @@ class Http:
                 raise ProviderError(f"HTTP {status}: response is not JSON", status) from None
             return HttpResponse(status, None)
 
-    def _send(self, req: urllib.request.Request) -> tuple[int, str]:
-        """Send req and return (status, body text); network failures raise ProviderError."""
+    def _verbose_log(self, line: str) -> None:
+        """Log line when verbose is on."""
+        if self.verbose:
+            self._log(line)
+
+    def _send(self, req: urllib.request.Request, log_label: str | None) -> tuple[int, str, str | None]:
+        """Send req and return (status, body text, Retry-After header or None); network failures raise ProviderError.
+
+        A URL that http.client refuses, for example one with a space or a newline, is reported by log_label, or by
+        its host when there is no label: http.client's own message would show the whole URL.
+        """
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
-                return int(response.status), response.read().decode("utf-8", errors="replace")
+            with self._opener.open(req, timeout=self.timeout) as response:
+                text = response.read().decode("utf-8", errors="replace")
+                return int(response.status), text, response.headers.get("Retry-After")
+        except http.client.InvalidURL:
+            if log_label is not None:
+                raise ProviderError(f"unsupported URL for {log_label}") from None
+            raise ProviderError(f"unsupported URL: {self._host(req)}") from None
         except urllib.error.HTTPError as exc:
             with exc:
                 try:
-                    return exc.code, exc.read().decode("utf-8", errors="replace")
+                    return exc.code, exc.read().decode("utf-8", errors="replace"), exc.headers.get("Retry-After")
                 except (OSError, http.client.HTTPException):
                     raise ProviderError(f"HTTP {exc.code}: could not read the response body", exc.code) from None
         except TimeoutError:
@@ -355,8 +459,8 @@ class Http:
 
     @staticmethod
     def _host(req: urllib.request.Request) -> str:
-        """Return the host (and port) of a request's URL."""
-        return urllib.parse.urlsplit(req.full_url).netloc
+        """Return the host (and port) of a request's URL, without a user name or password."""
+        return _url_host(req.full_url)
 
 
 """Providers: one class per monitoring service, each turning its records into Monitor objects."""
@@ -371,7 +475,7 @@ UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 class Monitor:
     """One monitor: its ID, name, status and the provider's raw record.
 
-    The status is one of "up", "down", "paused", "grace", "new", "pending" or "seems down".
+    The status is one of "up", "down", "paused", "grace", "new", "started", "pending" or "seems down".
     """
 
     id: str
@@ -398,6 +502,20 @@ def _expect_list(value: object, label: str) -> list[Any]:
     return value
 
 
+def unknown_statuses(monitors: Iterable[Monitor]) -> list[tuple[str, str]]:
+    """Return (raw status, shown status) once for each UptimeRobot status that UR_STATUS does not know.
+
+    Use it for UptimeRobot monitors only: the raw status is the "status" field of the provider's record, and a
+    Healthchecks status such as "grace" is not in UR_STATUS either.
+    """
+    found: dict[str, str] = {}
+    for monitor in monitors:
+        raw = monitor.raw.get("status")
+        if raw is not None and str(raw).upper() not in UR_STATUS:
+            found.setdefault(str(raw), monitor.status)
+    return list(found.items())
+
+
 class Provider:
     """The interface every monitoring service implements."""
 
@@ -405,6 +523,12 @@ class Provider:
     id_kind = ""
     supports_lock_files = False
     supports_reset = False
+    unpause_only_paused = True
+    """True: -u sends an unpause only for monitors whose listed status is paused, and says the others run.
+
+    False: -u sends an unpause for every selected monitor, for a provider whose list can show an old status and
+    where unpausing a running monitor is harmless.
+    """
 
     def list_monitors(self) -> list[Monitor]:
         """Return every monitor in the account."""
@@ -461,13 +585,19 @@ class HealthchecksProvider(Provider):
         self._headers = {"X-Api-Key": config.api_key}
 
     def list_monitors(self) -> list[Monitor]:
-        """Return every check; a read-only API key (checks without a uuid) raises ProviderError."""
+        """Return every check; a read-only API key (checks without a uuid) raises ProviderError.
+
+        A name or status that is not a string, or a uuid that is not a UUID, is an unexpected response. The uuid
+        becomes the name of a lock file, so this keeps a hostile server from naming a file in another folder.
+        """
         body = _expect_dict(self._http.request("GET", f"{self._api}/checks/", headers=self._headers).json, self.label)
         checks = [_expect_dict(check, self.label) for check in _expect_list(body.get("checks"), self.label)]
-        if any(c.get("name") is None or c.get("status") is None for c in checks):
+        if any(not isinstance(c.get("name"), str) or not isinstance(c.get("status"), str) for c in checks):
             raise ProviderError(f"unexpected response from {self.label}")
         if any("uuid" not in check for check in checks):
             raise ProviderError("the Healthchecks API key is read-only; tronitor needs a read-write key")
+        if any(not isinstance(c["uuid"], str) or not self.is_id(c["uuid"]) for c in checks):
+            raise ProviderError(f"unexpected response from {self.label}")
         return [Monitor(id=c["uuid"], name=c["name"], status=c["status"], raw=c) for c in checks]
 
     def pause(self, monitor: Monitor) -> None:
@@ -505,8 +635,8 @@ class HealthchecksProvider(Provider):
 
     @staticmethod
     def is_id(text: str) -> bool:
-        """Return True if text is a UUID."""
-        return bool(UUID_RE.match(text))
+        """Return True if text is a UUID, with nothing before or after it (not even a newline)."""
+        return bool(UUID_RE.fullmatch(text))
 
 
 class UptimeRobotProvider(Provider):
@@ -516,18 +646,28 @@ class UptimeRobotProvider(Provider):
     id_kind = "ID"
     supports_lock_files = False
     supports_reset = True
+    unpause_only_paused = False
+    """UptimeRobot serves GET /monitors from a cache that can show an old status for about two minutes after a
+    pause, and starting a running monitor is harmless, so -u starts every selected monitor."""
 
     def __init__(self, http: Http, config: UptimeRobotConfig) -> None:
         self._http = http
         self._base = config.base_url
         self._headers = {"Authorization": f"Bearer {config.api_key}"}
 
+    def _request(self, method: str, url: str, *, json_body: object | None = None) -> HttpResponse:
+        """Send one request with the API key; after a 429 it waits and retries once (see Http.request).
+
+        The free plan allows only 10 requests a minute, so waiting is what lets -p all finish on a large account.
+        """
+        return self._http.request(method, url, headers=self._headers, json_body=json_body, retry_on_429=True)
+
     def list_monitors(self) -> list[Monitor]:
         """Return every monitor, following the pagination links."""
         monitors: list[Monitor] = []
         url = f"{self._base}/monitors?limit=200"
         for _ in range(UR_MAX_PAGES):
-            body = _expect_dict(self._http.request("GET", url, headers=self._headers).json, self.label)
+            body = _expect_dict(self._request("GET", url).json, self.label)
             for item in _expect_list(body.get("data"), self.label):
                 monitors.append(self._monitor(_expect_dict(item, self.label)))
             link = body.get("nextLink")
@@ -542,8 +682,14 @@ class UptimeRobotProvider(Provider):
         raise ProviderError(f"{self.label} returned more than {UR_MAX_PAGES} pages of monitors")
 
     def _monitor(self, item: dict[str, Any]) -> Monitor:
-        """Turn one monitor record into a Monitor; a record without an id, name or status is unexpected."""
-        if item.get("id") is None or item.get("friendlyName") is None or item.get("status") is None:
+        """Turn one monitor record into a Monitor.
+
+        A record without an id, name or status is unexpected, and so is one where they are not a string or a number,
+        such as a list or an object. The id must be a plain number (see is_id), because it goes into request paths.
+        """
+        if not all(isinstance(item.get(key), (str, int, float)) for key in ("id", "friendlyName", "status")):
+            raise ProviderError(f"unexpected response from {self.label}")
+        if not self.is_id(str(item["id"])):
             raise ProviderError(f"unexpected response from {self.label}")
         raw_status = str(item["status"])
         status = UR_STATUS.get(raw_status.upper(), raw_status.lower())
@@ -551,37 +697,37 @@ class UptimeRobotProvider(Provider):
 
     def pause(self, monitor: Monitor) -> None:
         """Pause a monitor; pausing one that is already paused succeeds."""
-        self._http.request("POST", f"{self._base}/monitors/{monitor.id}/pause", headers=self._headers, json_body={})
+        self._request("POST", f"{self._base}/monitors/{monitor.id}/pause", json_body={})
 
     def unpause(self, monitor: Monitor) -> None:
         """Start a monitor again."""
-        self._http.request("POST", f"{self._base}/monitors/{monitor.id}/start", headers=self._headers, json_body={})
+        self._request("POST", f"{self._base}/monitors/{monitor.id}/start", json_body={})
 
     def reset(self, monitor: Monitor) -> None:
         """Reset a monitor's statistics."""
-        self._http.request("POST", f"{self._base}/monitors/{monitor.id}/reset", headers=self._headers, json_body={})
+        self._request("POST", f"{self._base}/monitors/{monitor.id}/reset", json_body={})
 
     def delete(self, monitor: Monitor) -> None:
         """Delete a monitor."""
-        self._http.request("DELETE", f"{self._base}/monitors/{monitor.id}", headers=self._headers)
+        self._request("DELETE", f"{self._base}/monitors/{monitor.id}")
 
     def info(self, monitor: Monitor) -> dict[str, Any]:
         """Return the full record of a monitor."""
-        response = self._http.request("GET", f"{self._base}/monitors/{monitor.id}", headers=self._headers)
+        response = self._request("GET", f"{self._base}/monitors/{monitor.id}")
         return _expect_dict(response.json, self.label)
 
     def stats(self) -> dict[str, Any]:
         """Return the account record, which holds the monitor count and limit."""
-        return _expect_dict(self._http.request("GET", f"{self._base}/user/me", headers=self._headers).json, self.label)
+        return _expect_dict(self._request("GET", f"{self._base}/user/me").json, self.label)
 
     def alert_contacts(self) -> list[dict[str, Any]]:
         """Return the account's alert contacts."""
-        response = self._http.request("GET", f"{self._base}/user/alert-contacts", headers=self._headers)
+        response = self._request("GET", f"{self._base}/user/alert-contacts")
         return [_expect_dict(contact, self.label) for contact in _expect_list(response.json, self.label)]
 
     def create(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Create a monitor and return it."""
-        response = self._http.request("POST", f"{self._base}/monitors", headers=self._headers, json_body=payload)
+        response = self._request("POST", f"{self._base}/monitors", json_body=payload)
         return _expect_dict(response.json, self.label)
 
     @staticmethod
@@ -671,21 +817,31 @@ class LockFiles:
         self.lock_dir = lock_dir
 
     def path_for(self, monitor_id: str) -> Path:
-        """Return the path of the lock file for one monitor."""
+        """Return the path of the lock file for one monitor.
+
+        An ID that could name a file outside the lock folder raises LockError: an empty one, or one with a slash, a
+        backslash, "..", a colon (a Windows drive) or a NUL character.
+        """
+        if not monitor_id or any(part in monitor_id for part in ("/", "\\", "..", ":", "\0")):
+            raise LockError(f"refusing to use {monitor_id!r} as a lock file name")
         return self.lock_dir / f"{monitor_id}.lock"
 
     def prepare(self) -> None:
-        """Create the lock directory if needed and check that files can be written to it."""
+        """Create the lock directory if needed and check that files can be written to it.
+
+        The test file gets a new random name from tempfile.mkstemp, so another user cannot place a file or a link
+        under the name in advance.
+        """
         if self.lock_dir.exists() and not self.lock_dir.is_dir():
             raise LockError(f"{self.lock_dir} is not a directory")
         try:
             self.lock_dir.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
             raise LockError(f"cannot create {self.lock_dir}: {exc.strerror or exc}") from exc
-        probe = self.lock_dir / f".tronitor-write-test-{os.getpid()}"
         try:
-            probe.touch()
-            probe.unlink(missing_ok=True)
+            descriptor, probe = tempfile.mkstemp(prefix=".tronitor-write-test-", dir=self.lock_dir)
+            os.close(descriptor)
+            os.unlink(probe)
         except OSError as exc:
             raise LockError(f"cannot write to {self.lock_dir}: {exc.strerror or exc}") from exc
 
@@ -751,6 +907,7 @@ STATUS_COLORS: dict[str, str] = {
     "grace": "\x1b[38;5;202m",
     "seems down": "\x1b[38;5;202m",
     "new": "\x1b[35m",
+    "started": "\x1b[35m",
     "pending": "\x1b[35m",
 }
 
@@ -788,7 +945,7 @@ def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool)
     width = max(len(name) for name in names)
     lines = []
     for monitor, name in zip(monitors, names, strict=True):
-        status_text = monitor.status.capitalize()
+        status_text = plain_text(monitor.status).capitalize()
         code = STATUS_COLORS.get(monitor.status)
         if color and code:
             status_text = f"{code}{status_text}{RESET}"
@@ -797,8 +954,14 @@ def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool)
 
 
 def format_json(data: object) -> str:
-    """Return data as indented JSON with sorted keys."""
-    return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+    r"""Return data as indented JSON with sorted keys.
+
+    Characters outside ASCII stay as they are, except DEL and the C1 control characters (U+007F to U+009F): they
+    become \u escapes, so the JSON stays valid and cannot give commands to the terminal. json.dumps already escapes
+    the other control characters.
+    """
+    text = json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+    return re.sub(r"[\x7f-\x9f]", lambda match: f"\\u{ord(match.group()):04x}", text)
 
 
 def confirm(
@@ -1149,13 +1312,19 @@ def remove_locks(ctx: Context, lock_files: LockFiles, ids: Sequence[str], *, eve
 def unpause_monitors(ctx: Context, targets: Sequence[Monitor], *, listed: Sequence[Monitor] | None) -> Outcome:
     """Unpause the paused monitors among targets, then remove lock files.
 
+    When the provider's unpause_only_paused is False (UptimeRobot), every target is unpaused, whatever its listed
+    status, and no "is already running" line is printed.
+
     With listed (every monitor, for "all" and the --find prompt), healthchecks.lock goes with the lock file of each
     listed monitor; without it, only the targets' lock files go. A monitor whose unpause failed keeps its lock file.
     """
-    for monitor in targets:
-        if monitor.status != PAUSED:
-            ctx.say(f"{plain_text(monitor.name)} is already running")
-    outcome = act_on_each(ctx, "Unpausing", [m for m in targets if m.status == PAUSED], ctx.provider.unpause)
+    chosen = list(targets)
+    if ctx.provider.unpause_only_paused:
+        for monitor in targets:
+            if monitor.status != PAUSED:
+                ctx.say(f"{plain_text(monitor.name)} is already running")
+        chosen = [m for m in targets if m.status == PAUSED]
+    outcome = act_on_each(ctx, "Unpausing", chosen, ctx.provider.unpause)
     if ctx.lock_files is not None:
         failed = {m.id for m in outcome.failed}
         ids = [m.id for m in (targets if listed is None else listed) if m.id not in failed]
@@ -1192,12 +1361,26 @@ def notify_webhook(ctx: Context, paused: Sequence[Monitor]) -> int:
     return EXIT_OK
 
 
+def warn_unknown_statuses(ctx: Context, monitors: Sequence[Monitor]) -> None:
+    """For UptimeRobot, print one error line for each status that tronitor does not know, and how it is shown.
+
+    Control characters in the status, a line break included, become "?", so each warning stays on one line.
+    """
+    if isinstance(ctx.provider, UptimeRobotProvider):
+        for raw, shown in unknown_statuses(monitors):
+            print_error(
+                ctx.err,
+                f"{ctx.provider.label} returned a status tronitor does not know: '{plain_text(raw)}'; "
+                f"treated as '{plain_text(shown)}'",
+            )
+
+
 def action_list(ctx: Context, args: argparse.Namespace) -> int:
     """List every monitor."""
     label = ctx.provider.label
-    show_monitors(
-        ctx, ctx.provider.list_monitors(), f"The following {label} monitors were found:", "No monitors found."
-    )
+    monitors = ctx.provider.list_monitors()
+    warn_unknown_statuses(ctx, monitors)
+    show_monitors(ctx, monitors, f"The following {label} monitors were found:", "No monitors found.")
     return EXIT_OK
 
 
@@ -1205,6 +1388,7 @@ def action_find(ctx: Context, args: argparse.Namespace) -> int:
     """List the paused monitors; -f on a terminal offers to unpause them, -w posts them to the webhook."""
     label = ctx.provider.label
     monitors = ctx.provider.list_monitors()
+    warn_unknown_statuses(ctx, monitors)
     paused = [m for m in monitors if m.status == PAUSED]
     show_monitors(ctx, paused, f"The following {label} monitors are paused:", f"No {label} monitors are paused.")
     if args.webhook:

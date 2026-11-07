@@ -7,6 +7,7 @@ import re
 import socket
 import sys
 import tempfile
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
@@ -285,6 +286,55 @@ def test_empty_appdata_falls_back_to_dot_config(monkeypatch: pytest.MonkeyPatch)
     assert paths[1] == home / ".config" / "tronitor" / "tronitor.toml"
 
 
+def fake_home(monkeypatch: pytest.MonkeyPatch, home: Path) -> None:
+    """Make home the folder that "~" stands for, on POSIX and on Windows."""
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+
+
+def test_lock_dir_expands_the_home_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A lock_dir that starts with ~, from the file or the environment, is in the home folder."""
+    fake_home(monkeypatch, tmp_path)
+    path = write_toml(tmp_path, '[general]\nlock_dir = "~/tronitor"\n')
+    assert tronitor.load_config(path, {}, []).lock_dir == tmp_path / "tronitor"
+    cfg = tronitor.load_config(path, {"TRONITOR_LOCK_DIR": "~/env-locks"}, [])
+    assert cfg.lock_dir == tmp_path / "env-locks"
+
+
+def test_relative_lock_dir_is_an_error(tmp_path: Path) -> None:
+    """A relative lock_dir would depend on cron's working folder, so it is refused."""
+    path = write_toml(tmp_path, '[general]\nlock_dir = "tronitor/locks"\n')
+    with pytest.raises(tronitor.ConfigError, match=r"general.lock_dir must be an absolute path$") as e:
+        tronitor.load_config(path, {}, [])
+    assert str(e.value).startswith(f"{path}: ")
+    with pytest.raises(tronitor.ConfigError, match=r"^TRONITOR_LOCK_DIR: must be an absolute path$"):
+        tronitor.load_config(None, {"TRONITOR_LOCK_DIR": "locks"}, [])
+
+
+def test_config_path_expands_the_home_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """TRONITOR_CONFIG and --config may start with ~."""
+    fake_home(monkeypatch, tmp_path)
+    write_toml(tmp_path, '[uptimerobot]\napi_key = "k"\n')
+    assert tronitor.load_config(None, {"TRONITOR_CONFIG": "~/tronitor.toml"}, []).uptimerobot is not None
+    assert tronitor.load_config(Path("~/tronitor.toml"), {}, []).uptimerobot is not None
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["https://hooks.example.com/api/webhooks/1/SECRET TOKEN", "https://hooks.example.com/SECRET\x7fTOKEN"],
+    ids=["space", "control character"],
+)
+def test_url_with_a_space_or_control_character_is_an_error(tmp_path: Path, url: str) -> None:
+    """An address with a space or a control character inside is refused, and the message does not show it."""
+    path = write_toml(tmp_path, f"[notify]\nwebhook_url = {json.dumps(url)}\n")
+    with pytest.raises(tronitor.ConfigError, match=r"notify.webhook_url contains a space or a control character$") as e:
+        tronitor.load_config(path, {}, [])
+    assert "SECRET" not in str(e.value)
+    with pytest.raises(tronitor.ConfigError, match=r"^TRONITOR_WEBHOOK_URL: contains a space") as e:
+        tronitor.load_config(None, {"TRONITOR_WEBHOOK_URL": url}, [])
+    assert "SECRET" not in str(e.value)
+
+
 def test_http_get_json(fake_server: FakeServer) -> None:
     """A GET returns the status and decoded JSON, and sends the key and Accept headers."""
     fake_server.add("GET", "/ping", 200, {"ok": True})
@@ -409,12 +459,120 @@ def test_http_truncated_success_body_is_a_provider_error(fake_server: FakeServer
         tronitor.Http().request("GET", fake_server.url + "/x")
 
 
-@pytest.mark.parametrize("url", ["file:///etc/passwd", "ftp://x", "not a url", "http://[::1"])
-def test_http_rejects_non_http_urls(url: str) -> None:
-    """A URL that is not http or https raises ProviderError before any request is made."""
-    with pytest.raises(tronitor.ProviderError, match="unsupported URL") as e:
+@pytest.mark.parametrize(
+    ("url", "message"),
+    [
+        ("file:///etc/passwd", "unsupported URL"),
+        ("ftp://user:secret@x/SECRET", "unsupported URL: x"),
+        ("not a url", "unsupported URL"),
+        ("http://[::1", "unsupported URL"),
+    ],
+)
+def test_http_rejects_non_http_urls(url: str, message: str) -> None:
+    """A URL that is not http or https raises ProviderError before any request is made.
+
+    The message names only the host, without a user name or password, or nothing when there is no host.
+    """
+    with pytest.raises(tronitor.ProviderError) as e:
         tronitor.Http().request("GET", url)
+    assert str(e.value) == message
     assert e.value.status is None
+
+
+def test_http_invalid_url_with_a_label_is_not_echoed(fake_server: FakeServer) -> None:
+    """A URL that http.client refuses, such as one with a raw newline, is reported by its label only."""
+    url = fake_server.url + "/api/webhooks/1/SECRET\nTOKEN"
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("POST", url, json_body={}, log_label="webhook")
+    assert str(e.value) == "unsupported URL for webhook"
+    assert fake_server.requests == []
+
+
+def test_http_invalid_url_without_a_label_names_only_the_host(fake_server: FakeServer) -> None:
+    """Without a label, the message names the host and port, not the path."""
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request("GET", fake_server.url + "/a b/SECRET")
+    assert str(e.value) == f"unsupported URL: {fake_server.url.removeprefix('http://')}"
+
+
+def test_http_host_leaves_out_user_info() -> None:
+    """The host in a message never includes a user name or password from the URL."""
+    req = urllib.request.Request("http://user:secret@example.com:8080/x")
+    assert tronitor.Http._host(req) == "example.com:8080"
+
+
+@pytest.mark.parametrize(("method", "status"), [("GET", 301), ("POST", 302)])
+def test_http_does_not_follow_redirects(fake_server: FakeServer, method: str, status: int) -> None:
+    """A redirect is an error, so the headers never go to another address and a POST never becomes a GET."""
+    fake_server.add(method, "/old", status, headers={"Location": fake_server.url + "/new"})
+    fake_server.add("GET", "/new", 200, {})
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http().request(method, fake_server.url + "/old", headers={"X-Api-Key": "k"})
+    assert e.value.status == status and str(e.value).startswith(f"HTTP {status}: ")
+    assert [r.path for r in fake_server.requests] == ["/old"]
+
+
+@pytest.mark.parametrize(
+    ("headers", "expected"),
+    [({"Retry-After": "2"}, 2), ({}, 60), ({"Retry-After": "300"}, 60), ({"Retry-After": "0"}, 1)],
+    ids=["as asked", "missing", "capped at 60", "at least 1"],
+)
+def test_http_retries_once_after_a_429(fake_server: FakeServer, headers: dict[str, str], expected: int) -> None:
+    """With retry_on_429, a 429 waits for Retry-After (1 to 60 seconds, 60 by default) and sends the request again."""
+    fake_server.add("POST", "/x", 429, {"message": "slow down"}, headers=headers, once=True)
+    fake_server.add("POST", "/x", 200, {"ok": True})
+    sleeps: list[float] = []
+    r = tronitor.Http(sleep=sleeps.append).request("POST", fake_server.url + "/x", json_body={}, retry_on_429=True)
+    assert r == tronitor.HttpResponse(200, {"ok": True})
+    assert sleeps == [expected]
+    assert [req.body for req in fake_server.requests_for("POST", "/x")] == [{}, {}]
+
+
+def test_http_retry_after_that_is_not_a_number_waits_60(fake_server: FakeServer) -> None:
+    """A Retry-After that is not a whole number of seconds, such as a date, gives the 60-second default."""
+    fake_server.add("GET", "/x", 429, headers={"Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT"}, once=True)
+    fake_server.add("GET", "/x", 200, {})
+    sleeps: list[float] = []
+    tronitor.Http(sleep=sleeps.append).request("GET", fake_server.url + "/x", retry_on_429=True)
+    assert sleeps == [60]
+
+
+def test_http_second_429_is_an_error(fake_server: FakeServer) -> None:
+    """A second 429 for the same request raises the usual ProviderError, after one wait."""
+    fake_server.add("GET", "/x", 429, {"message": "slow down"}, headers={"Retry-After": "1"})
+    sleeps: list[float] = []
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http(sleep=sleeps.append).request("GET", fake_server.url + "/x", retry_on_429=True)
+    assert e.value.status == 429 and str(e.value) == "HTTP 429: slow down"
+    assert sleeps == [1]
+    assert len(fake_server.requests) == 2
+
+
+def test_http_does_not_retry_a_429_by_default(fake_server: FakeServer) -> None:
+    """Without retry_on_429, a 429 is an error at once."""
+    fake_server.add("GET", "/x", 429, {"message": "slow down"}, headers={"Retry-After": "1"}, once=True)
+    fake_server.add("GET", "/x", 200, {})
+    sleeps: list[float] = []
+    with pytest.raises(tronitor.ProviderError) as e:
+        tronitor.Http(sleep=sleeps.append).request("GET", fake_server.url + "/x")
+    assert e.value.status == 429
+    assert sleeps == [] and len(fake_server.requests) == 1
+
+
+def test_http_verbose_logs_the_wait(fake_server: FakeServer) -> None:
+    """With verbose, the wait is logged by the label, or by the host when there is none, and each request too."""
+    fake_server.add("GET", "/x", 429, headers={"Retry-After": "3"}, once=True)
+    fake_server.add("GET", "/x", 200, {})
+    lines: list[str] = []
+    http = tronitor.Http(verbose=True, log=lines.append, sleep=lambda seconds: None)
+    http.request("GET", fake_server.url + "/x", retry_on_429=True)
+    host = fake_server.url.removeprefix("http://")
+    assert lines == [f"GET {fake_server.url}/x", f"waiting 3 s for the {host} rate limit", f"GET {fake_server.url}/x"]
+    fake_server.add("POST", "/hook", 429, headers={"Retry-After": "3"}, once=True)
+    fake_server.add("POST", "/hook", 204)
+    lines.clear()
+    http.request("POST", fake_server.url + "/hook", json_body={}, log_label="webhook", retry_on_429=True)
+    assert lines == ["POST webhook", "waiting 3 s for the webhook rate limit", "POST webhook"]
 
 
 def test_http_verbose_uses_the_label_and_strips_the_query(fake_server: FakeServer) -> None:
@@ -612,6 +770,31 @@ def test_hc_unexpected_response_shape_is_a_provider_error(
         hc_provider.list_monitors()
 
 
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"uuid": "/etc/passwd"},
+        {"uuid": "../x"},
+        {"uuid": 31365},
+        {"uuid": HC_UUID_FILESYSTEM + "\n"},
+        {"name": 5},
+        {"name": ["Filesystem Backup"]},
+        {"status": {"up": True}},
+    ],
+    ids=["absolute path", "parent folder", "number", "trailing newline", "number name", "list name", "dict status"],
+)
+def test_hc_check_with_a_bad_uuid_name_or_status_is_unexpected(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer, change: dict[str, object]
+) -> None:
+    """A uuid that is not a UUID string, or a name or status that is not a string, is refused.
+
+    The uuid becomes a lock file name, so a hostile server must not be able to point it at another folder.
+    """
+    serve_checks(fake_server, [hc_fixture_checks()[0], {**hc_fixture_checks()[1], **change}])
+    with pytest.raises(tronitor.ProviderError, match=r"^unexpected response from Healthchecks$"):
+        hc_provider.list_monitors()
+
+
 def test_hc_info_with_empty_body_is_a_provider_error(
     hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
 ) -> None:
@@ -791,6 +974,26 @@ def test_unlock_all_handles_a_duplicate_id(tmp_path: Path) -> None:
     assert tronitor.LockFiles(tmp_path).unlock_all(["a", "a"]) == [tmp_path / "a.lock"]
 
 
+@pytest.mark.parametrize("monitor_id", ["../x", "..", "/etc/passwd", "a/b", "a\\b", "C:x", "a\x00b", ""])
+def test_path_for_refuses_an_id_that_leaves_the_lock_dir(tmp_path: Path, monitor_id: str) -> None:
+    """An ID that could name a file outside the lock folder is refused, and nothing is created or removed."""
+    locks = tronitor.LockFiles(tmp_path / "locks")
+    (tmp_path / "x.lock").touch()
+    for call in (locks.path_for, locks.lock, locks.unlock, locks.is_locked):
+        with pytest.raises(tronitor.LockError, match=r"^refusing to use .* as a lock file name$"):
+            call(monitor_id)
+    assert (tmp_path / "x.lock").is_file()
+
+
+def test_prepare_does_not_use_a_predictable_probe_name(tmp_path: Path) -> None:
+    """prepare tests the folder with a file of a random name, so a file with the old fixed name is left alone."""
+    old_probe = tmp_path / f".tronitor-write-test-{os.getpid()}"
+    old_probe.write_text("keep", encoding="utf-8")
+    tronitor.LockFiles(tmp_path).prepare()
+    assert [p.name for p in tmp_path.iterdir()] == [old_probe.name]
+    assert old_probe.read_text(encoding="utf-8") == "keep"
+
+
 class FakeTty(io.StringIO):
     """A StringIO that claims to be a terminal."""
 
@@ -895,8 +1098,25 @@ def test_table_strips_control_characters() -> None:
 
 def test_status_colors_cover_every_status() -> None:
     """STATUS_COLORS has exactly the known statuses and each value is an ANSI sequence."""
-    assert set(tronitor.STATUS_COLORS) == {"up", "down", "paused", "grace", "seems down", "new", "pending"}
+    statuses = {"up", "down", "paused", "grace", "seems down", "new", "started", "pending"}
+    assert set(tronitor.STATUS_COLORS) == statuses
     assert all(code.startswith("\x1b[") for code in tronitor.STATUS_COLORS.values())
+    assert tronitor.STATUS_COLORS["started"] == tronitor.STATUS_COLORS["new"]
+
+
+def test_table_strips_control_characters_from_the_status() -> None:
+    """A status from the provider with a control character is shown with "?" in its place."""
+    line = tronitor.format_monitor_table([tronitor.Monitor("i", "n", "up\x1b[2J", {})], "ID", True)
+    assert "\x1b" not in line
+    assert line == "n  ID: i  Status: Up?[2j"
+
+
+def test_format_json_escapes_del_and_c1_control_characters() -> None:
+    """DEL and the C1 control characters are escaped, so the JSON stays valid and cannot control the terminal."""
+    text = tronitor.format_json({"name": "a\x7fb\x9bc\x85d é"})
+    assert text == '{\n  "name": "a\\u007fb\\u009bc\\u0085d é"\n}'
+    assert not re.search(r"[\x00-\x09\x0b-\x1f\x7f-\x9f]", text)
+    assert json.loads(text) == {"name": "a\x7fb\x9bc\x85d é"}
 
 
 """Command line: the actions, run through main() against the fake server."""
@@ -1479,7 +1699,7 @@ def test_missing_api_key_is_exit_2(
 ) -> None:
     """A config without Healthchecks settings is a usage error that says how to fix it."""
     config = tmp_path / "empty.toml"
-    config.write_text("[general]\nlock_dir = 'x'\n", encoding="utf-8")
+    config.write_text(f"[general]\nlock_dir = '{tmp_path / 'locks'}'\n", encoding="utf-8")
     monkeypatch.setenv("TRONITOR_CONFIG", str(config))
     assert tronitor.main(["-m", "hc", "-l"]) == 2
     assert capsys.readouterr().err == (
@@ -1668,6 +1888,43 @@ def test_ur_list_rejects_bad_shapes(
         ur_provider.list_monitors()
 
 
+@pytest.mark.parametrize(
+    "change",
+    [{"friendlyName": {"a": 1}}, {"friendlyName": ["Plex"]}, {"status": ["UP"]}, {"id": {"x": 1}}],
+    ids=["dict name", "list name", "list status", "dict id"],
+)
+def test_ur_monitor_with_a_non_scalar_field_is_unexpected(
+    ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer, change: dict[str, object]
+) -> None:
+    """An id, name or status that is a list or an object, not a string or a number, is a ProviderError."""
+    serve_monitors(fake_server, [{**ur_fixture_monitors()[0], **change}])
+    with pytest.raises(tronitor.ProviderError, match=r"^unexpected response from UptimeRobot$"):
+        ur_provider.list_monitors()
+
+
+@pytest.mark.parametrize("monitor_id", ["abc", "../1001", "1001/x", -1, 1.5, True, "", "١٢"])
+def test_ur_monitor_with_an_id_that_is_not_a_number_is_unexpected(
+    ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer, monitor_id: object
+) -> None:
+    """An id that is not a plain number is refused, so it never reaches a request path."""
+    serve_monitors(fake_server, [{**ur_fixture_monitors()[0], "id": monitor_id}])
+    with pytest.raises(tronitor.ProviderError, match=r"^unexpected response from UptimeRobot$"):
+        ur_provider.list_monitors()
+
+
+def test_unknown_statuses_lists_each_unknown_status_once() -> None:
+    """unknown_statuses gives (raw, shown) for each raw status that UR_STATUS lacks, once, in order."""
+    monitors = [
+        tronitor.Monitor("1", "a", "weird", {"status": "WEIRD"}),
+        tronitor.Monitor("2", "b", "up", {"status": "UP"}),
+        tronitor.Monitor("3", "c", "weird", {"status": "WEIRD"}),
+        tronitor.Monitor("4", "d", "odd", {"status": "Odd"}),
+        tronitor.Monitor("5", "e", "paused", {"status": "paused"}),
+        tronitor.Monitor("6", "f", "up", {}),
+    ]
+    assert tronitor.unknown_statuses(monitors) == [("WEIRD", "weird"), ("Odd", "odd")]
+
+
 def test_ur_list_follows_next_link_url(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
     """A nextLink that is a URL is requested as given."""
     monitors = ur_fixture_monitors()
@@ -1723,6 +1980,72 @@ def test_ur_pause_start_reset_delete_paths_and_bodies(
         assert request.body == {}
         assert request.headers["Content-Type"] == "application/json"
         assert request.headers["Authorization"] == "Bearer ur-test-key"
+
+
+def ur_provider_with_sleeps(fake_server: FakeServer) -> tuple[tronitor.UptimeRobotProvider, list[float]]:
+    """Return an UptimeRobot provider on the fake server whose waits are recorded instead of slept."""
+    sleeps: list[float] = []
+    config = tronitor.UptimeRobotConfig("ur-test-key", fake_server.url)
+    return tronitor.UptimeRobotProvider(tronitor.Http(sleep=sleeps.append), config), sleeps
+
+
+def test_ur_pause_waits_and_retries_after_a_429(fake_server: FakeServer) -> None:
+    """A pause that gets a 429 waits for Retry-After, is sent again, and succeeds."""
+    provider, sleeps = ur_provider_with_sleeps(fake_server)
+    fake_server.add(
+        "POST", "/monitors/1001/pause", 429, {"message": "Too Many Requests"}, once=True, headers={"Retry-After": "7"}
+    )
+    fake_server.add("POST", "/monitors/1001/pause", 201, ur_fixture_monitors()[0])
+    provider.pause(tronitor.Monitor("1001", "Plex", "up", {}))
+    assert sleeps == [7]
+    assert len(fake_server.requests_for("POST", "/monitors/1001/pause")) == 2
+
+
+UR_CALLS: list[tuple[str, str, int, object, Callable[[tronitor.UptimeRobotProvider], object]]] = [
+    ("GET", "/monitors", 200, {"nextLink": None, "data": []}, lambda p: p.list_monitors()),
+    ("POST", "/monitors/1001/pause", 201, {}, lambda p: p.pause(UR_PLEX)),
+    ("POST", "/monitors/1001/start", 201, {}, lambda p: p.unpause(UR_PLEX)),
+    ("POST", "/monitors/1001/reset", 201, None, lambda p: p.reset(UR_PLEX)),
+    ("DELETE", "/monitors/1001", 200, None, lambda p: p.delete(UR_PLEX)),
+    ("GET", "/monitors/1001", 200, {"id": 1001}, lambda p: p.info(UR_PLEX)),
+    ("GET", "/user/me", 200, {"email": "a@example.com"}, lambda p: p.stats()),
+    ("GET", "/user/alert-contacts", 200, [], lambda p: p.alert_contacts()),
+    ("POST", "/monitors", 201, {"id": 1}, lambda p: p.create({})),
+]
+UR_PLEX = tronitor.Monitor("1001", "Plex", "up", {})
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "status", "body", "call"), UR_CALLS, ids=[c[1] + " " + c[0] for c in UR_CALLS]
+)
+def test_every_ur_request_retries_after_a_429(
+    fake_server: FakeServer,
+    method: str,
+    path: str,
+    status: int,
+    body: object,
+    call: Callable[[tronitor.UptimeRobotProvider], object],
+) -> None:
+    """Every UptimeRobot request, not only pause, waits and retries once after a 429."""
+    provider, sleeps = ur_provider_with_sleeps(fake_server)
+    fake_server.add(method, path, 429, headers={"Retry-After": "1"}, once=True)
+    fake_server.add(method, path, status, body)
+    call(provider)
+    assert sleeps == [1]
+    assert len(fake_server.requests_for(method, path)) == 2
+
+
+def test_hc_does_not_retry_a_429(fake_server: FakeServer) -> None:
+    """Healthchecks allows about 100 requests a minute, so a 429 from it is an error at once."""
+    sleeps: list[float] = []
+    config = tronitor.HealthchecksConfig(fake_server.url, "hc-test-key")
+    provider = tronitor.HealthchecksProvider(tronitor.Http(sleep=sleeps.append), config)
+    fake_server.add("POST", DB_PAUSE, 429, headers={"Retry-After": "1"}, once=True)
+    fake_server.add("POST", DB_PAUSE, 200, {})
+    with pytest.raises(tronitor.ProviderError) as e:
+        provider.pause(tronitor.Monitor(HC_UUID_DATABASE, "Database Backup", "paused", {}))
+    assert e.value.status == 429
+    assert sleeps == [] and len(fake_server.requests_for("POST", DB_PAUSE)) == 1
 
 
 def test_ur_info_stats_alerts_create(ur_provider: tronitor.UptimeRobotProvider, fake_server: FakeServer) -> None:
@@ -1799,6 +2122,9 @@ def test_ur_class_attributes_and_is_id() -> None:
     provider = tronitor.UptimeRobotProvider
     assert (provider.label, provider.id_kind) == ("UptimeRobot", "ID")
     assert provider.supports_reset is True and provider.supports_lock_files is False
+    assert provider.unpause_only_paused is False
+    assert tronitor.Provider.unpause_only_paused is True
+    assert tronitor.HealthchecksProvider.unpause_only_paused is True
     assert provider.is_id("1001") and not provider.is_id("Plex") and not provider.is_id("")
     assert not provider.is_id("٣")
 
@@ -1829,16 +2155,72 @@ def test_ur_pause_has_no_lock_files(ur_env: Path, fake_server: FakeServer, capsy
     assert "lock" not in capsys.readouterr().out.lower()
 
 
-def test_ur_unpause_skips_running_monitors(
+def test_ur_unpause_starts_every_selected_monitor(
     ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Unpausing a monitor that is not paused sends nothing."""
+    """UptimeRobot's list can show an old status, so -u starts each selected monitor, whatever the list says."""
     serve_monitors(fake_server)
+    fake_server.add("POST", "/monitors/1001/start", 201, ur_fixture_monitors()[0])
     fake_server.add("POST", "/monitors/1002/start", 201, ur_fixture_monitors()[1])
     assert tronitor.main(["-m", "ur", "-u", "Plex,Sonarr"]) == 0
-    assert "Plex is already running" in capsys.readouterr().out
-    assert fake_server.requests_for("POST", "/monitors/1001/start") == []
+    assert capsys.readouterr().out == "Unpausing Plex (ID 1001)... done\nUnpausing Sonarr (ID 1002)... done\n"
+    assert len(fake_server.requests_for("POST", "/monitors/1001/start")) == 1
     assert len(fake_server.requests_for("POST", "/monitors/1002/start")) == 1
+
+
+def test_ur_unpause_all_starts_every_monitor(
+    ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """-u all on UptimeRobot starts every monitor and prints no "is already running" line."""
+    serve_monitors(fake_server)
+    for monitor_id in (1001, 1002, 1003):
+        fake_server.add("POST", f"/monitors/{monitor_id}/start", 201, {})
+    assert tronitor.main(["-m", "ur", "-u", "all"]) == 0
+    out = capsys.readouterr().out
+    assert "already running" not in out and out.count("... done") == 3
+    assert [r.path for r in fake_server.requests if r.method == "POST"] == [
+        "/monitors/1001/start",
+        "/monitors/1002/start",
+        "/monitors/1003/start",
+    ]
+
+
+UNKNOWN_STATUS_WARNING = "tronitor: UptimeRobot returned a status tronitor does not know: 'WEIRD'; treated as 'weird'\n"
+
+
+@pytest.mark.parametrize("action", ["-l", "-n", "-f"])
+def test_ur_unknown_status_is_reported_once_on_stderr(
+    ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], action: str
+) -> None:
+    """-l, -n and -f name each status that tronitor does not know, once, and still exit 0."""
+    monitors = [*ur_fixture_monitors(), {**ur_fixture_monitors()[0], "id": 1004, "status": "WEIRD"}]
+    serve_monitors(fake_server, [*monitors, {**monitors[3], "id": 1005}])
+    assert tronitor.main(["-m", "ur", action]) == 0
+    assert capsys.readouterr().err == UNKNOWN_STATUS_WARNING
+
+
+def test_ur_unknown_status_with_a_line_break_stays_on_one_line(
+    ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A control character in an unknown status becomes "?", so the warning is one line."""
+    serve_monitors(fake_server, [{**ur_fixture_monitors()[0], "status": "BAD\nLINE\x1b[2J"}])
+    assert tronitor.main(["-m", "ur", "-l"]) == 0
+    err = capsys.readouterr().err
+    assert (
+        err
+        == "tronitor: UptimeRobot returned a status tronitor does not know: 'BAD?LINE?[2J'; treated as 'bad?line?[2j'\n"
+    )
+
+
+def test_hc_statuses_are_never_reported_as_unknown(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The warning is for UptimeRobot only: Healthchecks statuses such as grace are not in its table."""
+    checks = hc_fixture_checks()
+    checks[0]["status"] = "grace"
+    serve_checks(fake_server, checks)
+    assert tronitor.main(["-m", "hc", "-l"]) == 0
+    assert capsys.readouterr().err == ""
 
 
 def test_missing_uptimerobot_key_is_exit_2(hc_env: Path, capsys: pytest.CaptureFixture[str]) -> None:

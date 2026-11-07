@@ -13,7 +13,7 @@ tronitor uses the first of these that it finds, and reads only that one file:
 3. `tronitor.toml` in the same folder as `tronitor.py`.
 4. `tronitor.toml` in your user config folder: `~/.config/tronitor/tronitor.toml` on Linux and macOS, `%APPDATA%\tronitor\tronitor.toml` on Windows.
 
-If `--config` or `TRONITOR_CONFIG` names a file that does not exist, tronitor stops with an error. If it finds no file at all, it uses only the environment variables.
+If `--config` or `TRONITOR_CONFIG` names a file that does not exist, tronitor stops with an error. If it finds no file at all, it uses only the environment variables. A `~` at the start of `--config` or `TRONITOR_CONFIG` stands for your home folder, so `~/tronitor.toml` works in cron too.
 
 ## 📝 The settings
 
@@ -46,6 +46,8 @@ The `[general]` table has one key:
 | Key | What it does | Default |
 | --- | --- | --- |
 | `lock_dir` | The folder for the Healthchecks lock files. tronitor creates the folder if it does not exist. It must be the same folder that the HealthChecks-Linux pinging script reads (see [Lock files](cron.md#-lock-files)) | `/tmp` on Linux and macOS, your `TEMP` folder on Windows |
+
+`lock_dir` must be an absolute path: a path that starts at the top of the file system, such as `/var/lock/tronitor`, or of a drive, such as `C:\Temp`. tronitor refuses a relative path such as `tronitor/locks`, because under cron it would point at another folder. A `~` at the start stands for your home folder, so `~/tronitor` also works. The same rules apply to `TRONITOR_LOCK_DIR`.
 
 ### 💓 Healthchecks
 
@@ -117,6 +119,8 @@ tronitor checks the whole file before it does anything. If something is wrong, i
 - **An unknown key or table**, for example a typing error. The message names the key and suggests the nearest known name: `unknown key 'healthchecks.api_kye' (did you mean 'api_key'?)`. A key outside its table gets the table in the suggestion: `unknown key 'api_key' (did you mean 'healthchecks.api_key'?)`.
 - **A value of the wrong type**, for example `notify_all = "yes"`. The message says `must be true or false` or `must be a string`.
 - **An address without `http://` or `https://`**, in `url`, `base_url` or `webhook_url`.
+- **An address with a space or a control character inside it** (an invisible character, such as a line break). The message does not show the address, because a webhook address holds a secret.
+- **A relative `lock_dir`**, such as `locks`. The message says `must be an absolute path`.
 - **A `format` other than `"discord"` or `"slack"`**.
 - **A TOML syntax error**, such as a missing quote. The message gives the line and column.
 

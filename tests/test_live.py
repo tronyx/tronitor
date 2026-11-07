@@ -9,9 +9,12 @@ Without the variables every test is skipped, and GitHub never runs them. They cr
 "tronitor-test-<8 hex characters>" and, at teardown, delete only monitors whose name starts with "tronitor-test-",
 even when an assertion fails. They never touch any other monitor.
 
-The UptimeRobot free plan allows 10 requests per minute, so each UptimeRobot test makes at most 10 calls and the
-fixture waits until 60 seconds have passed since the previous UptimeRobot test finished. Those tests therefore take
-about two minutes. If the limit is hit anyway (HTTP 429), the test is skipped instead of failed.
+The UptimeRobot free plan allows 10 requests per minute, so each UptimeRobot test makes at most 10 calls when the
+monitor list is up to date, and the fixture waits until 60 seconds have passed since the previous UptimeRobot test
+finished. The round trip asks for the list again every 20 seconds, for up to 2 minutes, while a new or deleted
+monitor has not reached UptimeRobot's cached list yet. Those tests therefore take two minutes or more, and the
+round trip up to about six. On a 429, tronitor itself waits and
+retries once; if the second try is a 429 too, the test is skipped instead of failed.
 
 Run them with, for example:
 
@@ -197,36 +200,60 @@ def test_hc_alert_contacts_is_a_list(hc_live: tronitor.HealthchecksProvider) -> 
     assert all(isinstance(contact, dict) for contact in contacts), "an integration is not a dict"
 
 
+UR_LIST_WAIT = 20.0
+UR_LIST_TIMEOUT = 120.0
+
+
+def find_listed(provider: tronitor.Provider, monitor_id: str, *, present: bool) -> tronitor.Monitor | None:
+    """Return the monitor with this ID from the list, asking every 20 seconds for up to 120 seconds, until it is
+    there (present) or gone (not present).
+
+    UptimeRobot serves the list from a cache for each account. In the live run it showed the old status for about
+    two minutes (stale at 107 seconds, current at 122), so a monitor that was just created or deleted can take that
+    long to appear in the list or leave it. Up to 7 list requests in 2 minutes stay under the free plan's limit,
+    and tronitor's own retry covers a 429 on the way.
+    """
+    deadline = time.monotonic() + UR_LIST_TIMEOUT
+    while True:
+        monitor = find(provider, monitor_id)
+        if (monitor is not None) == present or time.monotonic() + UR_LIST_WAIT > deadline:
+            return monitor
+        time.sleep(UR_LIST_WAIT)
+
+
 @needs_ur
 def test_ur_round_trip(ur_live: tronitor.UptimeRobotProvider) -> None:
-    """Create an HTTP monitor, pause it, start it, reset it, read it and delete it."""
+    """Create an HTTP monitor, pause it, start it, reset it, read it and delete it.
+
+    The status after pause and start is read with info (GET /monitors/{id}), not from the list: UptimeRobot serves
+    the list from a cache that showed the old status for about two minutes after a pause in a live run (still stale
+    at 107 seconds, current at 122), while the monitor's own record changes at once. The list is used only to see
+    that the monitor appears after create and goes after delete. The test makes 9 requests when the list is up to
+    date at once.
+    """
     name = make_name()
     body: dict[str, Any] = json.loads(UR_HTTP_EXAMPLE.read_text(encoding="utf-8"))
     body["friendlyName"] = name
     with skip_on_rate_limit():
         monitor_id = create_test_monitor(ur_live, body).id
 
-        monitor = find(ur_live, monitor_id)
-        assert monitor is not None
+        monitor = find_listed(ur_live, monitor_id, present=True)
+        assert monitor is not None, "the new monitor is not in the list after 2 minutes"
         assert monitor.name == name
         assert monitor.status in tronitor.UR_STATUS.values()
 
         ur_live.pause(monitor)
-        paused = find(ur_live, monitor_id)
-        assert paused is not None
-        assert paused.status == tronitor.PAUSED
+        assert str(ur_live.info(monitor)["status"]).upper() == "PAUSED", "the monitor is not paused"
 
-        ur_live.unpause(paused)
-        running = find(ur_live, monitor_id)
-        assert running is not None
-        assert running.status != tronitor.PAUSED
+        ur_live.unpause(monitor)
+        record = ur_live.info(monitor)
+        assert str(record["id"]) == monitor_id, "info returned another monitor"
+        assert str(record["status"]).upper() != "PAUSED", "the monitor is still paused"
 
-        ur_live.reset(running)
+        ur_live.reset(monitor)
 
-        assert str(ur_live.info(running)["id"]) == monitor_id, "info returned another monitor"
-
-        delete_test_monitor(ur_live, running)
-        assert find(ur_live, monitor_id) is None
+        delete_test_monitor(ur_live, monitor)
+        assert find_listed(ur_live, monitor_id, present=False) is None, "the deleted monitor is still in the list"
 
 
 @needs_ur

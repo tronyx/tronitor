@@ -59,7 +59,7 @@ A paused Healthchecks check becomes active again when it next receives a ping. A
 | `-u <names>` | Removes the lock files of the checks in the list |
 | `-f`, then `y` | Removes `healthchecks.lock`, and the lock file of every check except a check whose unpause failed, as `-u all` does |
 
-The files are in the folder that `lock_dir` sets in `tronitor.toml` (see [Configuration](configuration.md#-general)). The default is `/tmp` on Linux and macOS, and your `TEMP` folder on Windows. tronitor creates the folder if it does not exist. Before it pauses anything, it makes sure that it can write to the folder.
+The files are in the folder that `lock_dir` sets in `tronitor.toml` (see [Configuration](configuration.md#-general)). The default is `/tmp` on Linux and macOS, and your `TEMP` folder on Windows. `lock_dir` must be an absolute path, such as `/tmp/tronitor`, or start with `~` for your home folder. tronitor creates the folder if it does not exist. Before it pauses anything, it makes sure that it can write to the folder.
 
 Some details:
 
@@ -100,7 +100,7 @@ Every user on the computer can write to `/tmp`. So on a computer that other peop
 - **One monitor fails.** tronitor reports it on stderr and continues with the next monitor. The exit code is `3` if other monitors worked, or `1` if none did. See [Exit codes](usage.md#-exit-codes).
 - **The provider cannot be reached, or the API key is wrong.** tronitor first lists the monitors, so it stops before it changes anything, with exit code `1`.
 - **The lock folder cannot be used.** On Healthchecks, `-p` stops before it pauses anything, with exit code `1`.
-- **UptimeRobot's rate limit.** The free plan allows 10 requests a minute. `-p all` sends one request to list the monitors and one for each monitor, so with more than 9 monitors, the later requests fail with `HTTP 429`. tronitor reports each one, and the exit code is `3`. Wait a minute, and pause the monitors that failed by name. After `-u all`, just run it again: it sends requests only for the monitors that are still paused. [Rate limits](providers.md#-rate-limits) has the details. If you have 10 or more UptimeRobot monitors on the free plan, pause them in groups of up to 9, one minute apart, for example with one crontab line for each group.
+- **UptimeRobot's rate limit.** The free plan allows 10 requests a minute. On an `HTTP 429` answer, tronitor waits for the time that UptimeRobot asks for (up to 60 seconds) and retries once. So one crontab line with `-p all` works on a free account of any size, but it takes about a minute for every ten monitors. If the retry gets a `429` too, tronitor reports that monitor, continues with the others, and the exit code is `3`. [Rate limits](providers.md#-rate-limits) has the details.
 
 In each case, the failure goes to stderr, so cron mails it to you even with `> /dev/null`.
 

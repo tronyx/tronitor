@@ -180,3 +180,23 @@ def test_cli_ur_list(fake_server: FakeServer, ur_config_file: Path, run_cli_ur: 
     assert "Sonarr  ID: 1002  Status: Paused" in result.stdout
     assert "Radarr  ID: 1003  Status: Seems down" in result.stdout
     assert "ur-test-key" not in result.stdout + result.stderr
+
+
+def test_cli_unpause_all_resumes_and_removes_the_locks(
+    fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli, tmp_path: Path
+) -> None:
+    """-u all resumes the paused check, removes healthchecks.lock and each check's lock, and exits 0."""
+    serve_checks(fake_server)
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_DATABASE}/resume", 200, {"status": "new"})
+    locks = tmp_path / "locks"
+    locks.mkdir()
+    names = ["healthchecks.lock", f"{HC_UUID_FILESYSTEM}.lock", f"{HC_UUID_DATABASE}.lock", "other.lock"]
+    for name in names:
+        (locks / name).touch()
+    result = run_cli("-m", "hc", "-u", "all")
+    assert result.returncode == 0, result.stderr
+    assert "Filesystem Backup is already running" in result.stdout
+    assert f"Unpausing Database Backup (UUID {HC_UUID_DATABASE})... done" in result.stdout
+    assert [r.path for r in fake_server.requests if r.method == "POST"] == [f"/api/v3/checks/{HC_UUID_DATABASE}/resume"]
+    assert [p.name for p in locks.iterdir()] == ["other.lock"]
+    assert result.stderr == ""

@@ -4,6 +4,7 @@
 
 [general]
 # The folder for the Healthchecks lock files. Leave it out for the default: /tmp on Linux and macOS, your TEMP folder on Windows.
+# Give an absolute path. A ~ at the start stands for your home folder.
 # lock_dir = "/tmp"
 
 [healthchecks]

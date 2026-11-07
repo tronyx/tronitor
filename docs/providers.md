@@ -42,6 +42,23 @@ UptimeRobot tests your websites and servers from outside, at a regular interval.
 - **IDs:** each monitor's number, such as `1002`.
 - **Many monitors:** tronitor reads the list in pages of 200 monitors, and reads up to 100 pages.
 
+### ✅ Confirmed against a live account
+
+On 2026-11-06, tronitor ran against a real UptimeRobot account. These parts worked as the API documentation says:
+
+- **The status values.** Every status that the account sent is one that tronitor knows: `UP`, `DOWN`, `PAUSED`, `STARTED` or `LOOKS_DOWN`. They are shown as in the [status table](#-statuses). If UptimeRobot ever sends another value, `-l`, `-f`, `-n` and `-w` print `UptimeRobot returned a status tronitor does not know: '<value>'; treated as '<value in lowercase>'` on stderr. The exit code does not change.
+- **The answer to `-c`.** It is the new monitor's record, with its `id`.
+- **Pagination.** tronitor follows the `nextLink` field from one page of the list to the next.
+- **Reset.** `-r` sends `POST /v3/monitors/<id>/reset`.
+
+The run used `examples/uptimerobot-http-monitor.json`. The ping, port and keyword example files were not tried. The port monitor may also need a `subType` field.
+
+### 🐢 The monitor list can be out of date
+
+UptimeRobot keeps a copy of each account's list of monitors (a cache) for about two minutes. So `-l`, `-f`, `-n` and `-w` can show the old status of a monitor right after you pause or unpause it. In the live run, the list still showed a paused monitor as running 107 seconds after the pause, and showed it as paused at 122 seconds. `-i` reads the monitor's own record, which shows the current status at once.
+
+The pause or unpause itself works at once. Only the list is late. For this reason, `-u` on UptimeRobot starts every monitor that you select, without checking the status in the list. Starting a monitor that runs already does no harm. `-p` is not affected.
+
 ## 🟢 Statuses
 
 `-l`, `-f`, `-n` and `-w` show a status for each monitor:
@@ -53,24 +70,24 @@ UptimeRobot tests your websites and servers from outside, at a regular interval.
 | paused | Both | The monitor is paused, so the provider sends no alerts |
 | grace | Healthchecks | The check is late: its period has passed, but its grace time (the extra time that Healthchecks waits) has not. It is not down yet |
 | new | Healthchecks | The check has never received a ping. A check that you unpause is also new until its next ping |
+| started | Healthchecks | The job has begun and has not reported its end yet. Healthchecks shows this status after a `/start` signal, until the job's final ping |
 | pending | UptimeRobot | The monitor is new, and UptimeRobot has not checked it yet |
 | seems down | UptimeRobot | UptimeRobot found a failure, and is making sure before it says that the monitor is down |
 
 Any other status is shown without a colour.
 
-`-u` unpauses only the monitors whose status is `paused`. For each other monitor, it prints `<name> is already running`.
+On Healthchecks, `-u` unpauses only the checks whose status is `paused`. For each other check, it prints `<name> is already running`. On UptimeRobot, `-u` starts every monitor that you select, because the list can be out of date (see [The monitor list can be out of date](#-the-monitor-list-can-be-out-of-date)).
 
 ## 🚦 Rate limits
 
 A rate limit is the number of requests that a provider accepts in a period of time. When you send more, the provider answers with `HTTP 429` (too many requests) and does nothing.
 
-- **Healthchecks** accepts about 100 requests a minute. tronitor rarely gets near this.
+- **Healthchecks** accepts about 100 requests a minute. tronitor rarely gets near this, so it does not wait and retry: a `429` from Healthchecks is reported at once.
 - **UptimeRobot** accepts 10 requests a minute on the free plan. Paid plans accept more.
 
-Each action sends one request to list the monitors, and then one request for each monitor that it changes. So on the free UptimeRobot plan, `-p all` with 10 or more monitors reaches the limit. tronitor reports each request that failed on stderr, and the exit code is `3`. Then wait a minute:
+Each action sends one request to list the monitors, and then one request for each monitor that it changes. So on the free UptimeRobot plan, `-p all` with 10 or more monitors reaches the limit.
 
-- After `-u all`, run the same command again. It sends requests only for the monitors that are still paused, so each run gets further.
-- After `-p all`, run `-p` again with only the monitors that failed. Their names are in the error lines. `-p all` would send a request for every monitor again, and reach the limit at the same place.
+On a `429` from UptimeRobot, tronitor waits for the time that UptimeRobot asks for in its answer (the `Retry-After` header), up to 60 seconds, and then sends the same request once more. So `-p all` works on a free account of any size, but it takes about a minute for every ten monitors. With `--verbose`, tronitor prints a `waiting ... s for the ... rate limit` line before each wait. If the second try gets a `429` too, tronitor reports that monitor as failed on stderr, continues with the others, and the exit code is `3`.
 
 ## 🆕 New monitors
 

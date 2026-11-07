@@ -145,7 +145,9 @@ Documentation: https://github.com/tronyx/tronitor/blob/master/docs/usage.md
 Pausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
 ```
 
-`-u` unpauses the monitors in the list that are paused. For each monitor that is not paused, it prints `<name> is already running` and does not send a request. So `-u all` unpauses only what is paused.
+On Healthchecks, `-u` unpauses the checks in the list that are paused. For each check that is not paused, it prints `<name> is already running` and does not send a request. So `-u all` unpauses only what is paused.
+
+On UptimeRobot, `-u` starts every monitor in the list, whatever its status, because UptimeRobot's list can show an old status for about two minutes (see [The monitor list can be out of date](providers.md#-the-monitor-list-can-be-out-of-date)).
 
 If an action fails for one monitor, tronitor reports it and continues with the next one. See [Exit codes](#-exit-codes).
 
@@ -194,7 +196,7 @@ Filesystem Backup  UUID: 31365bce-8da9-4729-8ff3-aaa71d56b712  Status: Up
 Database Backup    UUID: 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41  Status: Paused
 ```
 
-On a terminal, the status has a colour: green for up, red for down, yellow for paused, orange for grace and seems down, and magenta for new and pending. tronitor uses no colour when the output goes to a file or a pipe, when you give `--no-color`, or when the `NO_COLOR` environment variable is set, to any value.
+On a terminal, the status has a colour: green for up, red for down, yellow for paused, orange for grace and seems down, and magenta for new, started and pending. tronitor uses no colour when the output goes to a file or a pipe, when you give `--no-color`, or when the `NO_COLOR` environment variable is set, to any value.
 
 If a monitor's name or ID holds a control character (an invisible character that gives commands to the terminal), tronitor shows a `?` instead.
 
@@ -254,14 +256,16 @@ Unpausing Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41)... done
 </details>
 
 <details>
-<summary>Unpause every UptimeRobot monitor, when only one is paused</summary>
+<summary>Unpause every UptimeRobot monitor</summary>
 
 ```text
 $ tronitor -m ur -u all
-Plex is already running
-Radarr is already running
+Unpausing Plex (ID 1001)... done
 Unpausing Sonarr (ID 1002)... done
+Unpausing Radarr (ID 1003)... done
 ```
+
+On UptimeRobot, `-u all` starts each monitor, also the ones that run already, so it prints a line for each one.
 
 </details>
 

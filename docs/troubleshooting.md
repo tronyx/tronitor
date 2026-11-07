@@ -50,6 +50,14 @@ A value has the wrong type. `notify_all` takes `true` or `false`, without quotes
 
 An address in `url`, `base_url` or `webhook_url` has no `http://` or `https://` at its start. Add it. If the address comes from an environment variable, the message names the variable instead.
 
+### `notify.webhook_url contains a space or a control character`
+
+The address has a space, a line break or another invisible character inside it, often from a copy and paste. Copy the address again. tronitor does not show the address, because a webhook address holds a secret. The same message exists for `url` and `base_url`.
+
+### `general.lock_dir must be an absolute path`
+
+`lock_dir` is a relative path, such as `locks`. Under cron, a relative path points at another folder, so tronitor refuses it. Give the whole path, such as `/var/lock/tronitor`, or start it with `~` for your home folder. If the folder comes from `TRONITOR_LOCK_DIR`, the message names the variable instead.
+
 ### `notify.format must be "discord" or "slack"`
 
 `format` takes only these two values, in quotes and in lowercase.
@@ -88,6 +96,7 @@ The provider did not accept the key. HTTP 401 means "not authorized". Copy the k
 
 The provider answered with an error. The text after the code is the provider's own explanation, when it gives one.
 
+- `HTTP 301` or `HTTP 302`: the server redirects tronitor to another address. tronitor does not follow redirects, so that your key goes only to the address that you set. Use the address that the server redirects to. Usually it is the same address with `https://` instead of `http://`.
 - `HTTP 404` from Healthchecks: often, `url` has a path that it should not have. Give only the main address, such as `https://hc.example.com`, without `/api` or `/api/v3`. It can also mean that the check was deleted after tronitor listed it.
 - `HTTP 5xx` (500 to 599): the provider has a problem. Try again later.
 
@@ -107,6 +116,14 @@ If you need a proxy (a server that forwards your web traffic), set the `HTTPS_PR
 The provider answered, but not with the data that tronitor expected. Usually `url` points at something that is not the Healthchecks API, such as another web page. `HTTP 200: response is not JSON` has the same cause. Check `url`. If it is correct, run the command with `--verbose` and [open a bug report](https://github.com/tronyx/tronitor/issues/new?template=bug_report.yml).
 
 `UptimeRobot returned more than 100 pages of monitors` and `UptimeRobot returned a pagination link on another host` are similar. tronitor stops because it does not trust the answer.
+
+### `UptimeRobot returned a status tronitor does not know: 'WEIRD'; treated as 'weird'`
+
+This is a warning. UptimeRobot sent a status that tronitor does not know, so tronitor shows it in lowercase and without a colour. The command still works, and `-u` still starts each monitor that you select. Please [open a bug report](https://github.com/tronyx/tronitor/issues/new?template=bug_report.yml) with the status in the message. See [Confirmed against a live account](providers.md#-confirmed-against-a-live-account).
+
+### I paused a monitor and `-f` still shows it as running
+
+This happens on UptimeRobot. UptimeRobot keeps a copy of the list of monitors for about two minutes, so `-l`, `-f`, `-n` and `-w` can show the old status. The pause worked: `-i` shows the current status at once. See [The monitor list can be out of date](providers.md#-the-monitor-list-can-be-out-of-date).
 
 ## 🎯 Naming monitors
 
@@ -146,7 +163,9 @@ The same line exists for `Unpausing`, `Deleting` and `Resetting`. The `Deleting`
 
 ### `HTTP 429: ...`
 
-The provider received too many requests in a short time. This usually happens on the free UptimeRobot plan, which allows 10 requests a minute. Wait a minute. Then pause by name the monitors that failed, or run `-u all` again. [Rate limits](providers.md#-rate-limits) explains why.
+The provider received too many requests in a short time. This usually happens on the free UptimeRobot plan, which allows 10 requests a minute.
+
+On a `429` from UptimeRobot, tronitor waits for the time that UptimeRobot asks for (up to 60 seconds) and sends the request once more. So `-p all` works on a free account of any size, but it takes about a minute for every ten monitors. You see this message only when the second try gets a `429` too: then wait a minute, and pause by name the monitors that failed, or run `-u all` again. Healthchecks allows about 100 requests a minute, so tronitor does not retry there. [Rate limits](providers.md#-rate-limits) explains why.
 
 ### `Healthchecks does not support stats`
 
@@ -186,6 +205,10 @@ If the message names a lock file, for example `cannot create /tmp/locks/31365bce
 
 Under `-p all`, tronitor creates `healthchecks.lock` before it pauses anything, and no lock file for each check. If that fails, `cannot create /tmp/locks/healthchecks.lock: ...` is a top-level error, not a line for a check. tronitor pauses nothing, and the exit code is `1`.
 
+### `refusing to use '../x' as a lock file name`
+
+The provider sent a check ID that would name a file outside the lock folder, for example with a `/` or `..` in it. tronitor creates and removes no file for it. A real Healthchecks ID is a UUID, so tronitor refuses such an answer before this point. If you see this message, [open a bug report](https://github.com/tronyx/tronitor/issues/new?template=bug_report.yml).
+
 ### `cannot remove /tmp/healthchecks.lock: ...`
 
 tronitor unpaused the checks, but it cannot delete a lock file. HealthChecks-Linux skips the check while the file exists. Delete the file yourself, and check the permissions of the folder. The exit code is `3`, or `1` if no check needed an unpause.
@@ -207,6 +230,10 @@ Discord or Slack did not accept the message. `HTTP 404` or `HTTP 401` usually me
 ### `webhook: cannot reach discord.com: ...`
 
 tronitor could not connect to the webhook's server. The reasons are the same as for [a provider that cannot be reached](#-api-keys-and-connections): a typing error in the address, no network, a firewall, or a proxy that is needed. The message shows only the server's name, not the whole address. The exit code is `1`.
+
+### `webhook: unsupported URL for webhook`
+
+The webhook address is not one that tronitor can use: its form is wrong, or it has a character that an address cannot hold. Copy the address again from Discord or Slack. tronitor does not show the address, because it holds a secret. The exit code is `1`.
 
 ## ⌨️ Interrupted
 

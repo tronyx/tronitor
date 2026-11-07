@@ -43,9 +43,11 @@ They run only when you set these environment variables:
 
 Without them, pytest skips these tests, and GitHub never runs them. The tests create only monitors with a name that starts with `tronitor-test-`, and at the end they delete only those, also when a test fails. They never touch any other monitor. Still, use test accounts, not the accounts that watch your real servers.
 
-The UptimeRobot free plan allows 10 requests a minute. So each UptimeRobot test sends at most 10 requests, and waits until a minute has passed since the previous UptimeRobot test ended. These tests take about two minutes. If UptimeRobot still answers `HTTP 429`, the test is skipped, not failed.
+The UptimeRobot free plan allows 10 requests a minute. So each UptimeRobot test sends about 10 requests or fewer, and waits until a minute has passed since the previous UptimeRobot test ended. These tests take two minutes or more. On an `HTTP 429`, tronitor itself waits and retries once, before the test sees the error (see [Rate limits](providers.md#-rate-limits)). If the second try gets an `HTTP 429` too, the test is skipped, not failed.
 
-The maintainer ran the Healthchecks live tests against a Healthchecks server that they host themselves, and the tests passed. The UptimeRobot live tests have not run against a real account yet.
+UptimeRobot's list of monitors can be out of date for about two minutes (see [The monitor list can be out of date](providers.md#-the-monitor-list-can-be-out-of-date)). So the round trip reads the status after a pause and after a start from the monitor's own record. It uses the list only to see that a new monitor appears and a deleted one goes, and asks again every 20 seconds, for up to 2 minutes.
+
+The maintainer ran the Healthchecks live tests against a Healthchecks server that they host themselves, and the tests passed. The UptimeRobot live tests ran against a real UptimeRobot account on 2026-11-06. That run found that the list of monitors can be out of date, and the round trip was changed to allow for it.
 
 ### 📝 Docs tests
 
