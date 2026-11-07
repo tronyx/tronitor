@@ -44,7 +44,7 @@ else:
             print(f"tronitor: Python 3.10 or newer is needed, but {_python} is Python {_version}", file=sys.stderr)
         sys.exit(2)
 
-__version__ = "2026-11-06"
+__version__ = "2026-11-07"
 
 EXIT_OK = 0
 EXIT_ERROR = 1

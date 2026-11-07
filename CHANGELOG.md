@@ -6,6 +6,10 @@ The project doesn't use version numbers. Each entry is one merge into `master`, 
 
 ## Unreleased
 
+Nothing yet.
+
+## 2026-11-07 · [#70](https://github.com/tronyx/tronitor/pull/70)
+
 tronitor is rewritten in Python. The commands are mostly the same, but some changes break existing setups. Read the lines marked **Breaking** before you update.
 
 ### Changed
