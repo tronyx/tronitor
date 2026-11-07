@@ -6,6 +6,7 @@ and can post a summary to a Discord or Slack webhook. Credentials come from a TO
 environment variables.
 """
 
+import abc
 import argparse
 import difflib
 import functools
@@ -539,8 +540,11 @@ def unknown_statuses(monitors: Iterable[Monitor]) -> list[tuple[str, str]]:
     return list(found.items())
 
 
-class Provider:
-    """The interface every monitoring service implements."""
+class Provider(abc.ABC):
+    """The interface every monitoring service implements.
+
+    The abstract methods have no body, so a provider that leaves one out cannot be created at all.
+    """
 
     label = ""
     id_kind = ""
@@ -553,33 +557,33 @@ class Provider:
     where unpausing a running monitor is harmless.
     """
 
+    @abc.abstractmethod
     def list_monitors(self) -> list[Monitor]:
         """Return every monitor in the account."""
-        raise NotImplementedError
 
+    @abc.abstractmethod
     def pause(self, monitor: Monitor) -> None:
         """Pause a monitor."""
-        raise NotImplementedError
 
+    @abc.abstractmethod
     def unpause(self, monitor: Monitor) -> None:
         """Unpause a monitor; a monitor that is already running is not an error."""
-        raise NotImplementedError
 
+    @abc.abstractmethod
     def info(self, monitor: Monitor) -> dict[str, Any]:
         """Return the provider's full record for a monitor."""
-        raise NotImplementedError
 
+    @abc.abstractmethod
     def alert_contacts(self) -> list[dict[str, Any]]:
         """Return the account's alert contacts (notification channels)."""
-        raise NotImplementedError
 
+    @abc.abstractmethod
     def create(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Create a monitor from a provider-specific payload and return the new record."""
-        raise NotImplementedError
 
+    @abc.abstractmethod
     def delete(self, monitor: Monitor) -> None:
         """Delete a monitor."""
-        raise NotImplementedError
 
     def stats(self) -> dict[str, Any]:
         """Return account statistics; most providers do not offer them."""
@@ -590,9 +594,9 @@ class Provider:
         raise Unsupported(f"{self.label} does not support reset")
 
     @staticmethod
+    @abc.abstractmethod
     def is_id(text: str) -> bool:
         """Return True if text looks like this provider's monitor ID."""
-        return False
 
 
 class HealthchecksProvider(Provider):
