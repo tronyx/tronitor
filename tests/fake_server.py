@@ -1,12 +1,20 @@
-"""A local fake HTTP server that records requests and answers from scripted responses."""
+"""A local fake HTTP server that records requests and answers from scripted responses.
+
+Self is a 3.11 name, so it is imported for type checkers only: the tests run on 3.10 too.
+"""
+
+from __future__ import annotations
 
 import json
 import threading
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from types import TracebackType
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs, urlsplit
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 @dataclass
