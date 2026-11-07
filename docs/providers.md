@@ -51,7 +51,7 @@ On 2026-11-06, tronitor ran against a real UptimeRobot account. These parts work
 - **Pagination.** tronitor follows the `nextLink` field from one page of the list to the next.
 - **Reset.** `-r` sends `POST /v3/monitors/<id>/reset`.
 
-The run used `examples/uptimerobot-http-monitor.json`. The ping, port and keyword example files were not tried. The port monitor may also need a `subType` field.
+The run used `examples/uptimerobot-http-monitor.json`, and `examples/uptimerobot-port-monitor.json` was tried by hand with `-c` and worked as it is. The ping and keyword example files were not tried.
 
 ### 🐢 The monitor list can be out of date
 
