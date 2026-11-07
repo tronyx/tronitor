@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Pause and unpause Healthchecks and UptimeRobot monitors from the command line or cron.
 
 tronitor lists the monitors in an account, finds the paused ones, pauses and unpauses them by name or ID,

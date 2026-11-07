@@ -72,13 +72,21 @@ Run the script with Python:
 python3 tronitor.py -m hc -l
 ```
 
-The examples in `--help` and in these pages write `tronitor` instead of `python3 tronitor.py`, because it is shorter. To type `tronitor` yourself on Linux or macOS, add an alias (a short name for a longer command) to your shell's startup file, for example `~/.bashrc`:
+On Linux and macOS, you can also run the script directly, without `python3` in front. The first line of `tronitor.py` tells the system to start it with the `python3` on your PATH. The script must be executable. A `git clone` makes it executable; after a download, run `chmod +x tronitor.py` once. Then run it like this:
 
 ```bash
-alias tronitor='python3 /path/to/tronitor.py'
+./tronitor.py -m hc -l
 ```
 
-In cron, an alias does not work. Use the full path of Python and of the script there. See [Running from cron](cron.md#-crontab-lines).
+The examples in `--help` and in these pages write `tronitor` instead of `python3 tronitor.py`, because it is shorter. To type `tronitor` yourself from any folder, put a symbolic link (a pointer to the file) in a folder on your PATH, for example:
+
+```bash
+sudo ln -s /opt/tronitor/tronitor.py /usr/local/bin/tronitor
+```
+
+tronitor still finds `tronitor.toml` next to the real `tronitor.py`, not next to the link. In cron, give the full path of the script, or of Python and the script. See [Running from cron](cron.md#-crontab-lines).
+
+On Windows, the `py` launcher reads the same first line, so `tronitor.py -m hc -l` works there too when `.py` files are associated with it.
 
 ## 🔄 Updating it
 
