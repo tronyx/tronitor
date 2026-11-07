@@ -72,7 +72,19 @@ Another job lints the code (examines it for errors and style problems) with [ruf
 
 ## 📈 Coverage
 
-Coverage shows which lines of the script the tests run. GitHub measures it on each run and shows the result in the job's log. The result is for information only: a lower number never makes a run fail.
+Coverage shows which lines of the script the tests run, and which branches of each `if`. To see it, run the tests with the `coverage` tool, then combine the data files and print the report:
+
+```bash
+python -m coverage run -m pytest
+python -m coverage combine
+python -m coverage report
+```
+
+The combine step is needed because each process writes its own data file. The tests in `tests/test_cli.py` run the script as a separate program, and that program measures itself too when the tests run under coverage, so the lines that only those tests reach count as well.
+
+GitHub does the same on Linux (with Python 3.10 and 3.14), macOS and Windows on each run. Then it combines the four results, because some code of the script runs on only one system or one Python: the file permissions on Linux and macOS, for example, or the `tomli` import on 3.10. GitHub shows the combined report on the summary page of the run. The result is for information only, and it never makes a run fail.
+
+The coverage badge in the [README](../README.md) shows the total for the newest push to `master`. After each push to `master` or `develop`, the workflow writes the branch's total to a small file on the `badges` branch, and the badge reads it from there.
 
 ## 🏠 Running everything locally
 

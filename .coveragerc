@@ -1,0 +1,13 @@
+[run]
+branch = True
+include = tronitor.py
+# The script's path as it is in the repository, the same on every system, so
+# the coverage measured on Linux, macOS and Windows can be combined.
+relative_files = True
+# Each process writes its own data file, with a suffix. The tests that run
+# the script as a separate program measure it too (tests/conftest.py), so
+# "coverage combine" is needed before "coverage report".
+parallel = True
+
+[report]
+show_missing = True

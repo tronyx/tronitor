@@ -14,7 +14,8 @@ on:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
-# Every job can only read the repository.
+# Every job can only read the repository, except coverage-badge, which
+# writes the badges branch.
 #
 # Actions from anyone but GitHub are pinned to a commit, not a tag, since a
 # tag can be moved to other code. The comment after each pin is its version,
@@ -47,6 +48,9 @@ jobs:
           - os: ubuntu-latest
             python-version: "3.15"
             experimental: true
+    env:
+      # Each job's own coverage data file, for the coverage job to combine.
+      COVERAGE_FILE: .coverage.${{ matrix.os }}-${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -58,8 +62,57 @@ jobs:
           cache-dependency-path: requirements*.txt
       - run: pip install -r requirements-dev.txt
       # Coverage is for information only: a lower number never fails the job.
+      # The tests that run the script as a separate program measure it too
+      # (tests/conftest.py), one data file per process, so combine comes first.
       - run: python -m coverage run -m pytest
+      - run: python -m coverage combine
       - run: python -m coverage report
+      # The pre-release is left out, so a run where it fails can't change the
+      # total. The data file's name starts with a dot, which upload-artifact
+      # skips unless told otherwise.
+      - uses: actions/upload-artifact@v7
+        if: ${{ !matrix.experimental }}
+        with:
+          name: coverage-data-${{ matrix.os }}-${{ matrix.python-version }}
+          path: ${{ env.COVERAGE_FILE }}
+          include-hidden-files: true
+          retention-days: 1
+
+  # Combines the coverage the tests measured on Linux (Python 3.10 and 3.14),
+  # macOS and Windows, so code that only runs on one system or one Python
+  # (the file permissions on Linux and macOS, say, or the tomli import on
+  # 3.10) counts where it runs. Puts the report on the run's summary page,
+  # and saves the total for the badge.
+  coverage:
+    name: Combine the coverage
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: coverage-data-*
+          merge-multiple: true
+      - run: python -m coverage combine
+      - run: python -m coverage report
+      - name: Add the coverage report to the run's summary page
+        run: |
+          echo "### Coverage of tronitor.py (tests on Linux, macOS and Windows)" \
+            >> "$GITHUB_STEP_SUMMARY"
+          python -m coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+      - name: Save the coverage total for the badge
+        run: python -m coverage report --format=total > coverage-total.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: coverage-total
+          path: coverage-total.txt
+          retention-days: 1
 
   # Lint (ruff) and type checks (mypy), set up in pyproject.toml. mypy runs
   # twice: the script takes different paths on Linux and on Windows.
@@ -92,3 +145,51 @@ jobs:
         uses: DavidAnson/markdownlint-cli2-action@696eb3f2509270d7b882d2aa68347bc676e7af34 # v25.0.0
         with:
           globs: "**/*.md"
+
+  # Writes the coverage total to coverage-<branch>.json on the badges branch,
+  # which the README's coverage badge reads through shields.io (master's; the
+  # README doesn't show develop's, but it's kept up to date too). Only runs
+  # for pushes to master and develop, once the coverage job has combined the
+  # coverage of the tests.
+  coverage-badge:
+    name: Update the coverage badge
+    needs: coverage
+    if: github.event_name == 'push' && (github.ref_name == 'master' || github.ref_name == 'develop')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-total
+      - name: Commit the badge to the badges branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          total=$(cat coverage-total.txt)
+          if [ "$total" -ge 90 ]; then color=brightgreen
+          elif [ "$total" -ge 75 ]; then color=yellowgreen
+          elif [ "$total" -ge 60 ]; then color=yellow
+          else color=red
+          fi
+          if git fetch --depth=1 origin badges; then
+            git worktree add --detach "$RUNNER_TEMP/badges" FETCH_HEAD
+          else
+            git worktree add --orphan -b badges "$RUNNER_TEMP/badges"
+          fi
+          cd "$RUNNER_TEMP/badges"
+          printf '{"schemaVersion": 1, "label": "coverage: %s", "message": "%s%%", "color": "%s"}\n' \
+            "$BRANCH" "$total" "$color" > "coverage-$BRANCH.json"
+          git add "coverage-$BRANCH.json"
+          if git diff --cached --quiet; then
+            echo "Coverage unchanged at $total%"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -qm "Coverage on $BRANCH: $total%"
+          # A push to the other branch may have updated its badge in the meantime.
+          git push origin HEAD:badges || {
+            git pull -q --rebase origin badges && git push origin HEAD:badges
+          }
