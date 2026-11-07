@@ -2575,7 +2575,7 @@ def test_migrate_notes_the_lock_folder(
     no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """The tempDir of the Bash script, below the header, gives the note about the lock folder."""
-    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key", tempDir="/tmp/tronitor/")
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key", tempDir="/tmp/tronitor/")  # nosec B108
     assert tronitor.main(["--migrate", str(script)]) == 0
     out = capsys.readouterr().out
     assert (
