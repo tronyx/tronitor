@@ -1,1 +1,0 @@
-WebsiteName=GooglePing&WebsiteURL=https://google.com&CheckRate=300&TestType=PING

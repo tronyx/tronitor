@@ -1,0 +1,87 @@
+name: 🐛 Bug report
+description: Something went wrong, or a monitor was handled in a way you didn't expect.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! Many surprises, such as a monitor that isn't found or a Healthchecks check that unpauses itself, are explained in the [Troubleshooting](https://github.com/tronyx/tronitor/blob/master/docs/troubleshooting.md) guide, so please check there first.
+
+        Found a security vulnerability? Please don't report it here; see the [security policy](https://github.com/tronyx/tronitor/security/policy) instead.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you start
+      options:
+        - label: I've searched the existing issues and this hasn't been reported yet.
+          required: true
+        - label: I'm using the latest version, from the `master` branch.
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you expected to happen, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: command-output
+    attributes:
+      label: Command and output
+      description: |
+        The command you ran and everything it printed. Output with `--verbose` is ideal: it shows each request the script sends to the provider. **Remove any API key or webhook URL first**, such as one set in an environment variable on the same line. Feel free to replace your own server's address too.
+      placeholder: |
+        python3 tronitor.py -m hc -p "Filesystem Backup" --verbose
+        ...
+      render: text
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. Ubuntu 24.04, macOS 15, Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: |
+        The output of `python3 --version` and `python3 tronitor.py --version`. On Windows, use `python` in place of `python3`.
+      placeholder: |
+        Python 3.12.3
+        tronitor 2026-11-06
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      description: The monitoring service the command talked to (`-m`).
+      options:
+        - Healthchecks
+        - UptimeRobot
+    validations:
+      required: true
+
+  - type: input
+    id: healthchecks
+    attributes:
+      label: Healthchecks server
+      description: |
+        For Healthchecks only: is it healthchecks.io, or a server you host yourself? If you host it, which release of Healthchecks does it run? Leave this empty for UptimeRobot.
+      placeholder: e.g. healthchecks.io, or self-hosted v3.10
+
+  - type: textarea
+    id: anything-else
+    attributes:
+      label: Anything else?
+      description: Your config file with the keys removed, how cron runs the script, a lock folder you changed, or anything else that might matter.

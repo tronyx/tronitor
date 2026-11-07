@@ -1,0 +1,31 @@
+name: Sync develop
+
+# A release merges develop into master with a merge commit, which only master
+# has, so GitHub would offer to merge master back into develop. This moves
+# develop up to master afterwards: a fast-forward, so no new commit and no
+# file changes. If develop already has commits master doesn't, it can't be
+# fast-forwarded and the run fails, emailing the maintainer to merge master
+# into develop by hand. A push made with this token doesn't start other
+# workflows, so the tests don't run again on develop for the same files.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Fast-forward develop to master
+    if: github.repository == 'tronyx/tronitor'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          master=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/master" -q .object.sha)
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/heads/develop" -f sha="$master" -F force=false \
+            -q '"develop is now at " + .object.sha'

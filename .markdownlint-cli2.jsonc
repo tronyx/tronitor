@@ -1,0 +1,2 @@
+// Skip what .gitignore lists, or the local command would also lint .venv and .pytest_cache.
+{ "gitignore": true }

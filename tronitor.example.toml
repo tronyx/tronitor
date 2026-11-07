@@ -1,0 +1,28 @@
+# Copy this file to tronitor.toml and fill in the keys you need.
+# Environment variables override these values: TRONITOR_HEALTHCHECKS_URL, TRONITOR_HEALTHCHECKS_API_KEY,
+# TRONITOR_UPTIMEROBOT_API_KEY, TRONITOR_WEBHOOK_URL and TRONITOR_LOCK_DIR.
+
+[general]
+# The folder for the Healthchecks lock files. Leave it out for the default: /tmp on Linux and macOS, your TEMP folder on Windows.
+# Give an absolute path. A ~ at the start stands for your home folder.
+# lock_dir = "/tmp"
+
+[healthchecks]
+# The Healthchecks address. Change it only for a self-hosted server.
+url = "https://healthchecks.io"
+# Your Healthchecks API key. Leave it empty to turn Healthchecks off.
+api_key = ""
+
+[uptimerobot]
+# Your UptimeRobot API key. Leave it empty to turn UptimeRobot off.
+api_key = ""
+# Only for testing against a mock server. Leave it out otherwise.
+# base_url = "https://api.uptimerobot.com/v3"
+
+[notify]
+# The Discord or Slack webhook address. Leave it empty to send no notifications.
+webhook_url = ""
+# The message style: "discord" or "slack".
+format = "discord"
+# Also post a notification when no monitors are paused.
+notify_all = false
