@@ -5,6 +5,7 @@ import json
 import os
 import re
 import socket
+import stat
 import sys
 import tempfile
 import urllib.request
@@ -15,6 +16,7 @@ import pytest
 from conftest import (
     HC_UUID_DATABASE,
     HC_UUID_FILESYSTEM,
+    bash_fixture,
     hc_fixture_checks,
     serve_checks,
     serve_monitors,
@@ -2466,3 +2468,357 @@ def test_find_json_with_webhook_keeps_stdout_pure(
     out, err = capsys.readouterr()
     assert json.loads(out) == [hc_fixture_checks()[1]]
     assert "Notification sent." in err
+
+
+POSIX = sys.platform != "win32"
+"""True on Linux and macOS, where --migrate makes tronitor.toml readable only by its owner."""
+WEBHOOK = "https://discord.com/api/webhooks/1/secret-token"
+"""A webhook address for the migration tests; its token must never reach the output."""
+
+
+@pytest.fixture
+def no_tronitor_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Clear the TRONITOR_ variables and point TRONITOR_CONFIG at a file that does not exist.
+
+    An action that loads a config therefore fails, which shows that --migrate loads none.
+    """
+    for name in list(os.environ):
+        if name.startswith("TRONITOR_"):
+            monkeypatch.delenv(name)
+    monkeypatch.setenv("TRONITOR_CONFIG", str(tmp_path / "missing.toml"))
+
+
+def wrote_line(out: Path) -> str:
+    """Return the last line of the migration report for out."""
+    return f"Wrote {out} (readable only by you)" if POSIX else f"Wrote {out}"
+
+
+def test_migrate_writes_the_config(no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """The keys, the server, the webhook and notify_all are carried over; the report shows no key or URL."""
+    script = bash_fixture(
+        tmp_path,
+        hcApiKey="hc-secret-key",
+        healthchecksDomain="hc.example.com",
+        urApiKey="ur-secret-key",
+        webhookUrl=WEBHOOK,
+        notifyAll="TRUE",
+    )
+    assert tronitor.main(["--migrate", str(script)]) == 0
+    out = tmp_path / "tronitor.toml"
+    assert tronitor.load_config(out, {}, []) == tronitor.Config(
+        lock_dir=tronitor.default_lock_dir(),
+        healthchecks=tronitor.HealthchecksConfig("https://hc.example.com", "hc-secret-key"),
+        uptimerobot=tronitor.UptimeRobotConfig("ur-secret-key"),
+        notify=tronitor.NotifyConfig(WEBHOOK, "discord", True),
+    )
+    captured = capsys.readouterr()
+    assert captured.out.splitlines() == [
+        f"Read {script}",
+        "Carried over: Healthchecks API key",
+        "Carried over: Healthchecks server https://hc.example.com",
+        "Carried over: UptimeRobot API key",
+        "Carried over: webhook URL",
+        "Carried over: notify_all = true",
+        (
+            "Note: the lock folder is now /tmp by default (your TEMP folder on Windows); "
+            "the Bash script used $HOME/tronitor/. See docs/cron.md."
+        ),
+        "Note: if HealthChecks-Linux reads its lock files from another folder, set lock_dir in tronitor.toml.",
+        wrote_line(out),
+    ]
+    assert captured.err == ""
+    for secret in ("hc-secret-key", "ur-secret-key", "secret-token"):
+        assert secret not in captured.out + captured.err
+    if POSIX:
+        assert stat.S_IMODE(out.stat().st_mode) == 0o600
+
+
+def test_migrate_reports_dropped_providers(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """StatusCake, Upptime and jq settings are dropped with a line each, and leave no trace in the TOML."""
+    script = bash_fixture(
+        tmp_path,
+        scApiKey="sc-secret-key",
+        scUsername="sc-user",
+        ghToken="gh-secret-token",
+        repoOwner="someone",
+        upptimeRepo="status-page",
+        jq="false",
+    )
+    assert tronitor.main(["--migrate", str(script)]) == 0
+    out = capsys.readouterr().out
+    assert "Dropped: StatusCake API key and username (StatusCake is no longer supported)" in out
+    assert "Dropped: Upptime settings (Upptime is no longer supported)" in out
+    assert "Dropped: the jq setting (no longer used)" in out
+    assert "Carried over: nothing; the script has no API key, webhook URL or other setting to copy" in out
+    assert "sc-secret-key" not in out and "gh-secret-token" not in out
+    toml = (tmp_path / "tronitor.toml").read_text(encoding="utf-8")
+    for trace in ("sc-secret-key", "sc-user", "gh-secret-token", "someone", "status-page", "jq"):
+        assert trace not in toml
+    assert "statuscake" not in toml.lower() and "upptime" not in toml.lower()
+
+
+def test_migrate_does_not_report_the_shipped_values(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A setting left at the value the Bash script shipped with is neither carried over nor dropped."""
+    script = bash_fixture(tmp_path, urApiKey="ur-secret-key")
+    assert tronitor.main(["--migrate", str(script)]) == 0
+    out = capsys.readouterr().out
+    assert "Carried over: UptimeRobot API key" in out
+    assert "Dropped" not in out
+    assert "Healthchecks server" not in out and "notify_all" not in out
+
+
+def test_migrate_notes_the_lock_folder(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The tempDir of the Bash script, below the header, gives the note about the lock folder."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key", tempDir="/tmp/tronitor/")
+    assert tronitor.main(["--migrate", str(script)]) == 0
+    out = capsys.readouterr().out
+    assert (
+        "Note: the lock folder is now /tmp by default (your TEMP folder on Windows); "
+        "the Bash script used /tmp/tronitor/. See docs/cron.md."
+    ) in out
+    assert tronitor.load_config(tmp_path / "tronitor.toml", {}, []).lock_dir == tronitor.default_lock_dir()
+
+
+def test_migrate_without_temp_dir_gives_no_note(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A file without a tempDir line, and so without the marker line, is read whole and gives no note."""
+    script = tmp_path / "tronitor.sh"
+    script.write_text("urApiKey='ur-secret-key'\n", encoding="utf-8")
+    assert tronitor.main(["--migrate", str(script)]) == 0
+    out = capsys.readouterr().out
+    assert "Carried over: UptimeRobot API key" in out
+    assert "Note:" not in out
+
+
+def test_migrate_refuses_to_overwrite(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """An existing tronitor.toml stays as it is without --yes, with exit 2."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key")
+    out = tmp_path / "tronitor.toml"
+    out.write_text("# my settings\n", encoding="utf-8")
+    assert tronitor.main(["--migrate", str(script)]) == 2
+    captured = capsys.readouterr()
+    assert captured.err == f"tronitor: {out} already exists; pass --yes to overwrite it\n"
+    assert captured.out == ""
+    assert out.read_text(encoding="utf-8") == "# my settings\n"
+
+
+def test_migrate_overwrites_with_yes(no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """With --yes, an existing tronitor.toml is replaced."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key")
+    out = tmp_path / "tronitor.toml"
+    out.write_text("# my settings\n", encoding="utf-8")
+    assert tronitor.main(["--migrate", str(script), "--yes"]) == 0
+    assert capsys.readouterr().out.splitlines()[-1] == wrote_line(out)
+    config = tronitor.load_config(out, {}, [])
+    assert config.healthchecks == tronitor.HealthchecksConfig("https://healthchecks.io", "hc-secret-key")
+    if POSIX:
+        assert stat.S_IMODE(out.stat().st_mode) == 0o600
+
+
+def test_migrate_rejects_a_file_that_is_not_tronitor_sh(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A file without a urApiKey or hcApiKey line in its header is refused with exit 2, and nothing is written."""
+    other = tmp_path / "backup.sh"
+    other.write_text("#!/usr/bin/env bash\n# Declare some variables.\nhcApiKey='after-the-header'\n", encoding="utf-8")
+    assert tronitor.main(["--migrate", str(other)]) == 2
+    captured = capsys.readouterr()
+    assert captured.err == f"tronitor: {other} does not look like a tronitor.sh (no urApiKey or hcApiKey line)\n"
+    assert captured.out == ""
+    assert not (tmp_path / "tronitor.toml").exists()
+
+
+def test_migrate_missing_file_is_a_usage_error(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A file that cannot be read is reported with exit 2."""
+    missing = tmp_path / "tronitor.sh"
+    assert tronitor.main(["--migrate", str(missing)]) == 2
+    assert capsys.readouterr().err.startswith(f"tronitor: {missing}: cannot read the file: ")
+    assert not (tmp_path / "tronitor.toml").exists()
+
+
+def test_migrate_invalid_value_leaves_no_file(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A webhook URL with a space fails the check of the written file: exit 2, no file, the old one kept."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key", webhookUrl="https://discord.com/api/webhooks/1/a b")
+    out = tmp_path / "tronitor.toml"
+    assert tronitor.main(["--migrate", str(script)]) == 2
+    captured = capsys.readouterr()
+    assert captured.err == (
+        f"tronitor: the migrated config is not valid: {out}: "
+        "notify.webhook_url contains a space or a control character\n"
+    )
+    assert "a b" not in captured.err and captured.out == ""
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["tronitor.sh"]
+    out.write_text("# my settings\n", encoding="utf-8")
+    assert tronitor.main(["--migrate", str(script), "--yes"]) == 2
+    assert out.read_text(encoding="utf-8") == "# my settings\n"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["tronitor.sh", "tronitor.toml"]
+
+
+def test_migrate_cannot_write_is_reported(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When tronitor.toml cannot be written (here a folder has its name), the error says so and no file is left."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key")
+    out = tmp_path / "tronitor.toml"
+    out.mkdir()
+    assert tronitor.main(["--migrate", str(script), "--yes"]) == 2
+    assert capsys.readouterr().err.startswith(f"tronitor: cannot write {out}: ")
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["tronitor.sh", "tronitor.toml"]
+    assert out.is_dir()
+
+
+def test_migrate_needs_no_provider(no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """--migrate runs without -m, and without loading a config: TRONITOR_CONFIG names a file that does not exist."""
+    script = bash_fixture(tmp_path, urApiKey="ur-secret-key")
+    assert tronitor.main(["--migrate", str(script)]) == 0
+    assert capsys.readouterr().err == ""
+    assert (tmp_path / "tronitor.toml").is_file()
+
+
+@pytest.mark.parametrize(
+    "action",
+    [
+        ["-l"],
+        ["-f"],
+        ["-n"],
+        ["-w"],
+        ["-s"],
+        ["-a"],
+        ["-i", "x"],
+        ["-c", "x.json"],
+        ["-p", "all"],
+        ["-u", "all"],
+        ["-d", "x"],
+        ["-r", "x"],
+    ],
+)
+def test_other_actions_still_need_a_provider(
+    no_tronitor_env: None, action: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Every action but --migrate needs -m: without it, exit 2 with the message that names the providers."""
+    assert tronitor.main(action) == 2
+    captured = capsys.readouterr()
+    assert captured.err == "tronitor: choose a provider with -m: healthchecks (hc) or uptimerobot (ur)\n"
+    assert captured.out == ""
+
+
+def test_migrate_settings_maps_the_values() -> None:
+    """The domain gets https:// unless it has a scheme; notifyAll is true in any case, else false; empty is absent."""
+    header = "hcApiKey='k'\nhealthchecksDomain='http://hc.local:8000/'\nnotifyAll='True'\nwebhookUrl=''\n"
+    migration = tronitor.migrate_settings(header)
+    assert (migration.hc_url, migration.hc_api_key, migration.notify_all) == ("http://hc.local:8000/", "k", True)
+    assert migration.webhook_url == "" and "webhook URL" not in migration.carried
+    assert tronitor.migrate_settings("urApiKey='k'\nhealthchecksDomain=''\nnotifyAll='yes'\n").hc_url == (
+        "https://healthchecks.io"
+    )
+    assert tronitor.migrate_settings("urApiKey='k'\nnotifyAll='yes'\n").notify_all is False
+    assert tronitor.migrate_settings("urApiKey='k'\nhealthchecksDomain='hc.example.com'\n").hc_url == (
+        "https://hc.example.com"
+    )
+
+
+def test_migrate_settings_hides_a_password_in_the_server() -> None:
+    """The carried-over server line shows no user name or password from the address."""
+    migration = tronitor.migrate_settings("hcApiKey='k'\nhealthchecksDomain='https://me:pw@hc.example.com/'\n")
+    assert "Healthchecks server https://hc.example.com" in migration.carried
+    assert not any("pw" in line for line in migration.carried)
+
+
+def test_migrate_settings_refuses_other_files() -> None:
+    """Text without a urApiKey or hcApiKey line in the header raises ValueError."""
+    with pytest.raises(ValueError):
+        tronitor.migrate_settings("webhookUrl='https://x'\n")
+
+
+def test_render_config_matches_the_example() -> None:
+    """With nothing migrated, the TOML is the example file but for its first comment line."""
+    rendered = tronitor.render_config(tronitor.migrate_settings("urApiKey=''\n")).splitlines()
+    example = (ROOT / "tronitor.example.toml").read_text(encoding="utf-8").splitlines()
+    assert rendered[1:] == example[1:]
+    assert rendered[0].startswith("# ") and "--migrate" in rendered[0]
+
+
+def test_render_config_writes_valid_toml_strings(tmp_path: Path) -> None:
+    """Quotes, backslashes and characters outside ASCII survive the round trip through the TOML file."""
+    header = "hcApiKey='a\"b\\\\c'\nurApiKey='café 日本'\n"
+    path = tmp_path / "tronitor.toml"
+    path.write_text(tronitor.render_config(tronitor.migrate_settings(header)), encoding="utf-8")
+    config = tronitor.load_config(path, {}, [])
+    assert config.healthchecks is not None and config.healthchecks.api_key == 'a"b\\\\c'
+    assert config.uptimerobot is not None and config.uptimerobot.api_key == "café 日本"
+
+
+def test_migrate_reports_a_line_it_cannot_read(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A known setting whose line is not name='value' (a comment after it, double quotes) is reported as skipped."""
+    script = bash_fixture(tmp_path)
+    text = script.read_text(encoding="utf-8")
+    text = text.replace("urApiKey=''", "urApiKey='ur-key' # my key").replace("hcApiKey=''", 'hcApiKey="hc-key"')
+    script.write_text(text, encoding="utf-8")
+    assert tronitor.main(["--migrate", str(script)]) == 0
+    out = capsys.readouterr().out
+    assert "Skipped: hcApiKey (not in the form name='value'; check tronitor.toml)" in out
+    assert "Skipped: urApiKey (not in the form name='value'; check tronitor.toml)" in out
+    assert out.index("Skipped: hcApiKey") < out.index("Skipped: urApiKey")
+    assert "ur-key" not in out and "hc-key" not in out
+    toml = (tmp_path / "tronitor.toml").read_text(encoding="utf-8")
+    assert "ur-key" not in toml and "hc-key" not in toml
+    config = tronitor.load_config(tmp_path / "tronitor.toml", {}, [])
+    assert config.uptimerobot is None and config.healthchecks is None
+
+
+def test_migrate_settings_last_line_decides() -> None:
+    """As in Bash, the last line of a name counts: a later line that cannot be read hides an earlier value."""
+    migration = tronitor.migrate_settings("urApiKey='first'\nurApiKey='second' # note\n")
+    assert migration.ur_api_key == "" and migration.skipped == ("urApiKey",)
+    migration = tronitor.migrate_settings("urApiKey='first' # note\nurApiKey='second'\n")
+    assert migration.ur_api_key == "second" and migration.skipped == ()
+
+
+def test_migrate_refuses_config(no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """--config with --migrate is a usage error, with exit 2, and nothing is written."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key")
+    assert tronitor.main(["--migrate", str(script), "--config", str(tmp_path / "other.toml")]) == 2
+    captured = capsys.readouterr()
+    assert captured.err == "tronitor: --migrate writes tronitor.toml next to the Bash script; --config does not apply\n"
+    assert captured.out == ""
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["tronitor.sh"]
+
+
+def test_migrate_treats_a_symlink_as_existing(
+    no_tronitor_env: None, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A tronitor.toml that is a symbolic link, even one to a missing file, is not replaced without --yes."""
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key")
+    out = tmp_path / "tronitor.toml"
+    try:
+        out.symlink_to(tmp_path / "elsewhere.toml")
+    except OSError:
+        pytest.skip("this system does not let the tests create symbolic links")
+    assert tronitor.main(["--migrate", str(script)]) == 2
+    assert capsys.readouterr().err == f"tronitor: {out} already exists; pass --yes to overwrite it\n"
+    assert out.is_symlink() and not (tmp_path / "elsewhere.toml").exists()
+
+
+def test_render_config_escapes_del(tmp_path: Path) -> None:
+    r"""A DEL character in a value is written as \u007f, so the file still loads and keeps the value."""
+    text = tronitor.render_config(tronitor.migrate_settings("hcApiKey='a\x7fb'\n"))
+    assert "\x7f" not in text and '"a\\u007fb"' in text
+    path = tmp_path / "tronitor.toml"
+    path.write_text(text, encoding="utf-8")
+    config = tronitor.load_config(path, {}, [])
+    assert config.healthchecks is not None and config.healthchecks.api_key == "a\x7fb"

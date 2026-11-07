@@ -54,6 +54,16 @@ The repository also has an `examples` folder. It holds sample files for new moni
 
 You can also keep the config file in your user config folder, or give the settings as environment variables. [Configuration](configuration.md) tells you how.
 
+## 🚚 Upgrading
+
+Coming from the Bash script, `tronitor.sh`? tronitor can write `tronitor.toml` for you, from the settings at the top of the script. Then you skip steps 1 to 3 above. Copy `tronitor.py` to the folder of `tronitor.sh`, and run this command there:
+
+```bash
+python3 tronitor.py --migrate tronitor.sh
+```
+
+Then go on with step 4. [Upgrading from the Bash script](usage.md#-upgrading-from-the-bash-script) tells you what tronitor copies, what it drops, and what changed for the lock files.
+
 ## ▶️ Running it
 
 Run the script with Python:

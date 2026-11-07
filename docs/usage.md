@@ -10,7 +10,7 @@ Each command names a provider with `-m` and one action:
 python3 tronitor.py -m hc -l
 ```
 
-The provider is `healthchecks` (short: `hc`) or `uptimerobot` (short: `ur`). Capital letters do not matter. These pages write `tronitor` instead of `python3 tronitor.py`, because it is shorter (see [Running it](installation.md#%EF%B8%8F-running-it) in Installation). On Windows, type `py` instead of `python3`.
+The provider is `healthchecks` (short: `hc`) or `uptimerobot` (short: `ur`). Capital letters do not matter. Only `--migrate` needs no provider (see [Upgrading from the Bash script](#-upgrading-from-the-bash-script)). These pages write `tronitor` instead of `python3 tronitor.py`, because it is shorter (see [Running it](installation.md#%EF%B8%8F-running-it) in Installation). On Windows, type `py` instead of `python3`.
 
 ## 🎯 Naming monitors
 
@@ -37,9 +37,9 @@ In both cases, the exit code is `3` (see [Exit codes](#-exit-codes)).
 
 | Option | What it does |
 | --- | --- |
-| `-m PROVIDER`, `--monitor PROVIDER`, `--provider PROVIDER` | The monitoring service: `healthchecks` (`hc`) or `uptimerobot` (`ur`). Each command needs it |
+| `-m PROVIDER`, `--monitor PROVIDER`, `--provider PROVIDER` | The monitoring service: `healthchecks` (`hc`) or `uptimerobot` (`ur`). Every action but `--migrate` needs it |
 | `--config PATH` | The config file to read. Without it, tronitor looks in the places that [Configuration](configuration.md#-where-tronitor-looks-for-the-file) lists |
-| `--yes` | Delete or reset without asking. Also act on the monitors that were found when some were not (see [Naming monitors](#-naming-monitors)) |
+| `--yes` | Delete or reset without asking. Also act on the monitors that were found when some were not (see [Naming monitors](#-naming-monitors)). With `--migrate`, overwrite `tronitor.toml` |
 | `--json` | Print the provider's records as JSON instead of a table (see [JSON](#-json)) |
 | `--no-color` | Never colour the output |
 | `--verbose` | Show each API request on stderr, the output for errors (see [Errors and stderr](#%EF%B8%8F-errors-and-stderr)) |
@@ -62,15 +62,16 @@ Choose one of these actions:
 | `-u TARGETS`, `--unpause TARGETS` | Unpause monitors |
 | `-d TARGETS`, `--delete TARGETS` | Delete monitors. Asks first |
 | `-r TARGETS`, `--reset TARGETS` | Clear the statistics of monitors. Asks first. UptimeRobot only |
+| `--migrate PATH` | Write `tronitor.toml` from the settings of the old Bash script at `PATH`. Needs no `-m` (see [Upgrading from the Bash script](#-upgrading-from-the-bash-script)) |
 
 <details>
 <summary>The full --help output</summary>
 
 ```text
-usage: tronitor [-h] -m PROVIDER [--config PATH] [--yes] [--json] [--no-color]
-                [--verbose] [--version] (-l | -f | -n | -w | -s | -a |
-                -i TARGET | -c FILE | -p TARGETS | -u TARGETS | -d TARGETS |
-                -r TARGETS)
+usage: tronitor [-h] [-m PROVIDER] [--config PATH] [--yes] [--json]
+                [--no-color] [--verbose] [--version] (-l | -f | -n | -w | -s |
+                -a | -i TARGET | -c FILE | -p TARGETS | -u TARGETS |
+                -d TARGETS | -r TARGETS | --migrate PATH)
 
 Pause and unpause Healthchecks and UptimeRobot monitors, from cron or by hand.
 
@@ -78,11 +79,12 @@ options:
   -h, --help            show this help message and exit
   -m, --monitor, --provider PROVIDER
                         the monitoring service: healthchecks (hc) or
-                        uptimerobot (ur)
+                        uptimerobot (ur); every action but --migrate needs it
   --config PATH         the config file (default: tronitor.toml next to the
                         script, then in your user config folder)
-  --yes                 delete or reset without asking, and act on the
-                        monitors that were found when some were not
+  --yes                 delete or reset without asking, act on the monitors
+                        that were found when some were not, and let --migrate
+                        overwrite tronitor.toml
   --json                print the provider's records as JSON instead of a
                         table
   --no-color            never colour the output
@@ -105,6 +107,8 @@ actions (choose one):
   -d, --delete TARGETS  delete monitors (asks first)
   -r, --reset TARGETS   clear the statistics of monitors (asks first; not
                         Healthchecks)
+  --migrate PATH        write tronitor.toml, next to the old tronitor.sh at
+                        PATH, from the script's settings (no -m needed)
 
 PROVIDER is healthchecks (hc) or uptimerobot (ur).
 
@@ -117,6 +121,7 @@ Examples:
   tronitor -m hc -l
   tronitor -m hc -p all
   tronitor -m ur -u "Plex,Tautulli"
+  tronitor --migrate tronitor.sh
 
 Documentation: https://github.com/tronyx/tronitor/blob/master/docs/usage.md
 ```
@@ -183,6 +188,51 @@ Without a terminal, for example in cron, tronitor cannot ask. Then it refuses wi
 
 > [!WARNING]
 > `-d all --yes` deletes every monitor in the account, and asks nothing. The provider cannot undo it.
+
+### 🚚 Upgrading from the Bash script
+
+The old Bash version, `tronitor.sh`, kept its settings at the top of the script. `--migrate` reads them and writes them to a new `tronitor.toml`, in the same folder as the script. It needs no `-m`, and `-m` and `--json` have no effect on it. It refuses `--config`, because the new file always goes next to the script:
+
+```bash
+tronitor --migrate tronitor.sh
+```
+
+tronitor looks for `tronitor.toml` next to `tronitor.py` (see [Configuration](configuration.md#-where-tronitor-looks-for-the-file)). So put `tronitor.py` in the folder of `tronitor.sh`, or move the new file next to `tronitor.py` afterwards.
+
+Do you update with `git pull`? Then copy `tronitor.sh` to another folder first, because the update removes it. Then run `--migrate` on the copy.
+
+tronitor does not run the script. It reads the lines of the form `name='value'` above the line `# Declare some variables`, and the `tempDir` line below it. Each setting must be on a line of its own, in the form `name='value'`: with single quotes, and with nothing after the closing quote, not even a comment. If the line of a setting has another form, tronitor does not copy it. Instead, it prints `Skipped:` and the name, so that you can fill in the value in `tronitor.toml` yourself. It copies these settings:
+
+| In `tronitor.sh` | In `tronitor.toml` |
+| --- | --- |
+| `hcApiKey` | `[healthchecks] api_key` |
+| `healthchecksDomain` | `[healthchecks] url`. tronitor puts `https://` in front, unless the value starts with `http://` or `https://` |
+| `urApiKey` | `[uptimerobot] api_key` |
+| `webhookUrl` | `[notify] webhook_url` |
+| `notifyAll` | `[notify] notify_all`. `true`, in capital or small letters, gives `true`. Any other value gives `false` |
+
+`[notify] format` is always `"discord"`, because the Bash script sent Discord messages. The other settings get their defaults, as in `tronitor.example.toml`. Then tronitor loads the new file, to make sure that it is valid. On Linux and macOS, the new file is readable only by you.
+
+tronitor drops the settings that it has no use for: the StatusCake key and username, the Upptime settings and the jq setting. tronitor no longer supports StatusCake and Upptime (see the [changelog](../CHANGELOG.md)).
+
+tronitor prints what it did. It names each setting that it carried over, dropped or skipped, but it never shows a key or the webhook address. Only the Healthchecks server address appears, because it is not a secret. A setting that is empty, or that still has the value that the script came with, is not listed. For example:
+
+```text
+Read tronitor.sh
+Carried over: Healthchecks API key
+Carried over: webhook URL
+Dropped: the jq setting (no longer used)
+Note: the lock folder is now /tmp by default (your TEMP folder on Windows); the Bash script used $HOME/tronitor/. See docs/cron.md.
+Note: if HealthChecks-Linux reads its lock files from another folder, set lock_dir in tronitor.toml.
+Wrote tronitor.toml (readable only by you)
+```
+
+> [!IMPORTANT]
+> The lock files moved. The Bash script kept them in its `tempDir` folder, `~/tronitor/` by default. tronitor keeps them in `/tmp` by default. HealthChecks-Linux must read the lock files from the folder that tronitor uses. If it reads another folder, set `lock_dir` in `tronitor.toml` to that folder. See [Lock files](cron.md#-lock-files).
+
+If `tronitor.toml` exists already, tronitor changes nothing and stops with exit code `2`. To overwrite the file, add `--yes`. If the new file is not valid, for example because the webhook address has a space in it, tronitor removes the new file and stops with exit code `2`. An old `tronitor.toml` then stays as it was. [Troubleshooting](troubleshooting.md#-upgrading-from-the-bash-script) explains each message.
+
+tronitor does not need `tronitor.sh` after the migration. The script still holds your keys, so delete it when you no longer need it.
 
 ## 📤 Output
 

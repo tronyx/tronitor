@@ -1045,6 +1045,192 @@ def send_notification(http: Http, config: NotifyConfig, label: str, paused: Sequ
     return True
 
 
+"""Migration: the settings of a tronitor.sh, turned into a tronitor.toml."""
+
+BASH_SETTING_RE = re.compile(r"^([A-Za-z]\w*)='([^']*)'\s*$")
+BASH_TEMP_DIR_RE = re.compile(r"""^tempDir=(?:'([^']*)'|"([^"]*)")\s*$""")
+BASH_HEADER_END = "# Declare some variables"
+BASH_SHIPPED_VALUES = {
+    "healthchecksDomain": "healthchecks.io",
+    "notifyAll": "false",
+    "upptimeRepo": "upptime",
+    "jq": "true",
+}
+"""The values that the Bash script shipped with. A setting left at its shipped value is not reported."""
+BASH_DROPPED = (
+    (("scApiKey", "scUsername"), "StatusCake API key and username (StatusCake is no longer supported)"),
+    (("ghToken", "repoOwner", "gitHubUsername", "upptimeRepo"), "Upptime settings (Upptime is no longer supported)"),
+    (("jq",), "the jq setting (no longer used)"),
+)
+"""The settings that tronitor.py has no use for, in groups, each with the text of its "Dropped:" line."""
+BASH_KNOWN_NAMES = (
+    "hcApiKey",
+    "healthchecksDomain",
+    "urApiKey",
+    "webhookUrl",
+    "notifyAll",
+    *(name for names, _ in BASH_DROPPED for name in names),
+)
+"""The settings that --migrate carries over or drops, in the order of the "Skipped:" lines."""
+CONFIG_TEMPLATE = """\
+# tronitor --migrate wrote this file from the settings of tronitor.sh.
+# Environment variables override these values: TRONITOR_HEALTHCHECKS_URL, TRONITOR_HEALTHCHECKS_API_KEY,
+# TRONITOR_UPTIMEROBOT_API_KEY, TRONITOR_WEBHOOK_URL and TRONITOR_LOCK_DIR.
+
+[general]
+# The folder for the Healthchecks lock files. Leave it out for the default: /tmp on Linux and macOS, your TEMP folder on Windows.
+# Give an absolute path. A ~ at the start stands for your home folder.
+# lock_dir = "/tmp"
+
+[healthchecks]
+# The Healthchecks address. Change it only for a self-hosted server.
+url = {hc_url}
+# Your Healthchecks API key. Leave it empty to turn Healthchecks off.
+api_key = {hc_api_key}
+
+[uptimerobot]
+# Your UptimeRobot API key. Leave it empty to turn UptimeRobot off.
+api_key = {ur_api_key}
+# Only for testing against a mock server. Leave it out otherwise.
+# base_url = "https://api.uptimerobot.com/v3"
+
+[notify]
+# The Discord or Slack webhook address. Leave it empty to send no notifications.
+webhook_url = {webhook_url}
+# The message style: "discord" or "slack".
+format = "discord"
+# Also post a notification when no monitors are paused.
+notify_all = {notify_all}
+"""  # noqa: E501
+"""The text of tronitor.toml: the tables and comments of tronitor.example.toml, with a field for each migrated value."""
+
+
+@dataclass(frozen=True)
+class Migration:
+    """What migrate_settings found: the values for tronitor.toml, and what to report about them.
+
+    carried and dropped hold the text of the "Carried over:" and "Dropped:" lines; they never hold a key or a
+    webhook address. skipped holds the names of known settings whose line is not in the form name='value'.
+    temp_dir is the Bash script's tempDir value, or "" when it has none.
+    """
+
+    hc_url: str = HC_DEFAULT_URL
+    hc_api_key: str = ""
+    ur_api_key: str = ""
+    webhook_url: str = ""
+    notify_all: bool = False
+    carried: tuple[str, ...] = ()
+    dropped: tuple[str, ...] = ()
+    skipped: tuple[str, ...] = ()
+    temp_dir: str = ""
+
+
+def _bash_settings(text: str) -> tuple[dict[str, str], set[str]]:
+    """Return the name='value' lines of the header of a tronitor.sh, with each value stripped, and the unread names.
+
+    The header ends at the line that starts with "# Declare some variables"; without that line, it is the whole text.
+    A name given twice keeps its last line, as in Bash. A known name (see BASH_KNOWN_NAMES) whose last line starts
+    with "name=" but is not in the form name='value', such as one with a comment after the value or with double
+    quotes, has no value and is among the unread names.
+    """
+    settings: dict[str, str] = {}
+    unread: set[str] = set()
+    for line in text.splitlines():
+        if line.startswith(BASH_HEADER_END):
+            break
+        match = BASH_SETTING_RE.match(line)
+        if match:
+            settings[match[1]] = match[2].strip()
+            unread.discard(match[1])
+            continue
+        name = line.partition("=")[0]
+        if name in BASH_KNOWN_NAMES and "=" in line:
+            settings.pop(name, None)
+            unread.add(name)
+    return settings, unread
+
+
+def _bash_temp_dir(text: str) -> str:
+    """Return the value of the first tempDir line, in single or double quotes, anywhere in the text; else "".
+
+    The real script sets tempDir below the header, in double quotes: tempDir="$HOME/tronitor/".
+    """
+    for line in text.splitlines():
+        match = BASH_TEMP_DIR_RE.match(line)
+        if match:
+            return (match[1] if match[1] is not None else match[2]).strip()
+    return ""
+
+
+def _without_password(url: str) -> str:
+    """Return url without a user name or password and without a trailing slash, for the report."""
+    scheme, _, rest = url.partition("://")
+    authority, slash, path = rest.partition("/")
+    return f"{scheme}://{authority.rpartition('@')[2]}{slash}{path}".rstrip("/")
+
+
+def migrate_settings(text: str) -> Migration:
+    """Map the settings in the text of a tronitor.sh to the values of tronitor.toml.
+
+    Only a value that is not empty, and not the value the Bash script shipped with, counts as set. Text without a
+    urApiKey or hcApiKey line in its header, readable or not, raises ValueError.
+    """
+    settings, unread = _bash_settings(text)
+    if not {"urApiKey", "hcApiKey"} & (settings.keys() | unread):
+        raise ValueError("no urApiKey or hcApiKey line")
+
+    def is_set(name: str) -> bool:
+        """Return True if the script gives name a value of its own."""
+        return settings.get(name, "") not in ("", BASH_SHIPPED_VALUES.get(name))
+
+    domain = settings.get("healthchecksDomain", "")
+    hc_url = domain if domain.startswith(("http://", "https://")) else f"https://{domain or 'healthchecks.io'}"
+    notify_all = settings.get("notifyAll", "").lower() == "true"
+    carried = [
+        label
+        for label, present in (
+            ("Healthchecks API key", is_set("hcApiKey")),
+            (f"Healthchecks server {plain_text(_without_password(hc_url))}", is_set("healthchecksDomain")),
+            ("UptimeRobot API key", is_set("urApiKey")),
+            ("webhook URL", is_set("webhookUrl")),
+            ("notify_all = true", notify_all),
+        )
+        if present
+    ]
+    dropped = [label for names, label in BASH_DROPPED if any(is_set(name) for name in names)]
+    return Migration(
+        hc_url=hc_url,
+        hc_api_key=settings.get("hcApiKey", ""),
+        ur_api_key=settings.get("urApiKey", ""),
+        webhook_url=settings.get("webhookUrl", ""),
+        notify_all=notify_all,
+        carried=tuple(carried),
+        dropped=tuple(dropped),
+        skipped=tuple(name for name in BASH_KNOWN_NAMES if name in unread),
+        temp_dir=_bash_temp_dir(text),
+    )
+
+
+def render_config(migration: Migration) -> str:
+    """Return the text of tronitor.toml for migration; json.dumps writes each string as a TOML basic string."""
+
+    def toml_string(value: str) -> str:
+        r"""Return value as a quoted TOML string.
+
+        json.dumps escapes the other control characters, but not DEL, which TOML does not allow in a string; it
+        becomes \u007f.
+        """
+        return json.dumps(value, ensure_ascii=False).replace("\x7f", "\\u007f")
+
+    return CONFIG_TEMPLATE.format(
+        hc_url=toml_string(migration.hc_url),
+        hc_api_key=toml_string(migration.hc_api_key),
+        ur_api_key=toml_string(migration.ur_api_key),
+        webhook_url=toml_string(migration.webhook_url),
+        notify_all="true" if migration.notify_all else "false",
+    )
+
+
 """Command line: options, actions and exit codes."""
 
 DOCS_URL = "https://github.com/tronyx/tronitor/blob/master/docs/usage.md"
@@ -1072,6 +1258,7 @@ Examples:
   tronitor -m hc -l
   tronitor -m hc -p all
   tronitor -m ur -u "Plex,Tautulli"
+  tronitor --migrate tronitor.sh
 
 Documentation: {DOCS_URL}"""
 
@@ -1102,8 +1289,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--provider",
         dest="provider",
         metavar="PROVIDER",
-        required=True,
-        help="the monitoring service: healthchecks (hc) or uptimerobot (ur)",
+        help="the monitoring service: healthchecks (hc) or uptimerobot (ur); every action but --migrate needs it",
     )
     parser.add_argument(
         "--config",
@@ -1114,7 +1300,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--yes",
         action="store_true",
-        help="delete or reset without asking, and act on the monitors that were found when some were not",
+        help="delete or reset without asking, act on the monitors that were found when some were not, "
+        "and let --migrate overwrite tronitor.toml",
     )
     parser.add_argument("--json", action="store_true", help="print the provider's records as JSON instead of a table")
     parser.add_argument("--no-color", action="store_true", help="never colour the output")
@@ -1140,6 +1327,12 @@ def build_parser() -> argparse.ArgumentParser:
     actions.add_argument("-d", "--delete", metavar="TARGETS", help="delete monitors (asks first)")
     actions.add_argument(
         "-r", "--reset", metavar="TARGETS", help="clear the statistics of monitors (asks first; not Healthchecks)"
+    )
+    actions.add_argument(
+        "--migrate",
+        type=Path,
+        metavar="PATH",
+        help="write tronitor.toml, next to the old tronitor.sh at PATH, from the script's settings (no -m needed)",
     )
     return parser
 
@@ -1528,6 +1721,77 @@ def action_reset(ctx: Context, args: argparse.Namespace) -> int:
     )
 
 
+def write_config(out: Path, text: str) -> None:
+    """Write text to out through a new file in the same folder, so out changes only once the text is valid.
+
+    The new file gets a random name and, on Linux and macOS, mode 0o600 from tempfile.mkstemp. It is checked with
+    load_config, without the environment, and then replaces out. A ConfigError from the check is re-raised with the
+    prefix "the migrated config is not valid: " and with out in place of the new file's name; a failure to write
+    raises ConfigError. Either way the new file is removed and out stays as it was.
+    """
+    temp = Path()
+    try:
+        descriptor, name = tempfile.mkstemp(prefix=".tronitor-migrate-", suffix=".toml", dir=out.parent)
+        temp = Path(name)
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+        try:
+            load_config(temp, {}, [])
+        except ConfigError as exc:
+            raise ConfigError(f"the migrated config is not valid: {str(exc).replace(str(temp), str(out))}") from None
+        os.replace(temp, out)
+        if sys.platform != "win32":
+            os.chmod(out, 0o600)
+    except OSError as exc:
+        raise ConfigError(f"cannot write {out}: {exc.strerror or exc}") from exc
+    finally:
+        if temp.name:
+            temp.unlink(missing_ok=True)
+
+
+def action_migrate(args: argparse.Namespace, *, out: TextIO, err: TextIO, env: Mapping[str, str]) -> int:
+    """Write tronitor.toml next to the tronitor.sh at args.migrate, from its settings, and report what was done.
+
+    It needs no provider and reads no config. env is not used: no TRONITOR_ variable changes the file, so the file
+    holds what the script held. err is not used either; errors go up as exceptions to run(). The report names what
+    was carried over, dropped or skipped, never a key or a webhook address. --config is refused, because the file
+    always goes next to the script.
+    """
+    if args.config is not None:
+        raise UsageError("--migrate writes tronitor.toml next to the Bash script; --config does not apply")
+    path = _expand_home(args.migrate)
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as exc:
+        raise UsageError(f"{path}: cannot read the file: {exc.strerror or exc}") from exc
+    try:
+        migration = migrate_settings(text)
+    except ValueError:
+        raise UsageError(f"{path} does not look like a tronitor.sh (no urApiKey or hcApiKey line)") from None
+    target = path.parent / "tronitor.toml"
+    if (target.is_symlink() or target.exists()) and not args.yes:
+        raise UsageError(f"{target} already exists; pass --yes to overwrite it")
+    write_config(target, render_config(migration))
+    lines = [f"Read {path}"]
+    lines += [f"Carried over: {label}" for label in migration.carried]
+    if not migration.carried:
+        lines.append("Carried over: nothing; the script has no API key, webhook URL or other setting to copy")
+    lines += [f"Dropped: {label}" for label in migration.dropped]
+    lines += [f"Skipped: {name} (not in the form name='value'; check tronitor.toml)" for name in migration.skipped]
+    if migration.temp_dir:
+        lines.append(
+            "Note: the lock folder is now /tmp by default (your TEMP folder on Windows); "
+            f"the Bash script used {migration.temp_dir}. See docs/cron.md."
+        )
+        lines.append(
+            "Note: if HealthChecks-Linux reads its lock files from another folder, set lock_dir in tronitor.toml."
+        )
+    lines.append(f"Wrote {target} (readable only by you)" if sys.platform != "win32" else f"Wrote {target}")
+    for line in lines:
+        print(plain_text(line), file=out)
+    return EXIT_OK
+
+
 ACTIONS: dict[str, Callable[[Context, argparse.Namespace], int]] = {
     "list": action_list,
     "find": action_find,
@@ -1600,9 +1864,16 @@ def run(
     env: Mapping[str, str],
     interactive: bool,
 ) -> int:
-    """Run the action args ask for and turn every error into its message and exit code."""
+    """Run the action args ask for and turn every error into its message and exit code.
+
+    --migrate runs first, without a provider or a config. Every other action needs -m.
+    """
     ctx: Context | None = None
     try:
+        if args.migrate is not None:
+            return action_migrate(args, out=stdout, err=stderr, env=env)
+        if args.provider is None:
+            raise UsageError("choose a provider with -m: healthchecks (hc) or uptimerobot (ur)")
         ctx = make_context(args, stdin=stdin, stdout=stdout, stderr=stderr, env=env, interactive=interactive)
         return chosen_action(args)(ctx, args)
     except NothingToDo as exc:
