@@ -1,10 +1,12 @@
 """Tests that run tronitor.py as a subprocess."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 from conftest import (
     HC_UUID_DATABASE,
     HC_UUID_FILESYSTEM,
@@ -29,26 +31,60 @@ def test_version_prints_the_date_and_exits_0() -> None:
     assert result.stdout.strip() == f"tronitor {tronitor.__version__}"
 
 
-def test_old_python_stops_with_one_line() -> None:
-    """On a Python older than 3.11, the script stops with one line on stderr and exit 2, not a traceback.
+def run_without_tomllib(
+    version: tuple[int, int, int], argv: list[str], *, tomli: bool
+) -> subprocess.CompletedProcess[str]:
+    """Run tronitor.py in a Python that pretends to be version, with tomllib hidden, and tomli too unless tomli is True.
 
-    Such a Python has no tomllib. The subprocess makes tomllib unimportable and fakes the version
-    before it runs the script, as the import of tomllib is what fails there.
+    A Python older than 3.11 has no tomllib, so hiding it is what such a Python looks like to the
+    script. The fake sys.version_info has the real one's fields, so the standard library still works.
     """
+    hidden = ["tomllib"] if tomli else ["tomllib", "tomli"]
+    script = str(Path(tronitor.__file__))
     code = "; ".join(
         [
-            "import runpy, sys",
-            "sys.modules['tomllib'] = None",
-            "sys.version_info = (3, 10, 12, 'final', 0)",
-            f"runpy.run_path({str(Path(tronitor.__file__))!r}, run_name='__main__')",
+            "import collections, runpy, sys",
+            *(["import tomli"] if tomli else []),
+            *(f"sys.modules[{name!r}] = None" for name in hidden),
+            "VersionInfo = collections.namedtuple('VersionInfo', 'major minor micro releaselevel serial')",
+            f"sys.version_info = VersionInfo{version + ('final', 0)!r}",
+            f"sys.argv = {[script, *argv]!r}",
+            f"runpy.run_path({script!r}, run_name='__main__')",
         ]
     )
-    result = subprocess.run(
-        [sys.executable, "-c", code], check=False, capture_output=True, text=True, encoding="utf-8"
+    env = {"PATH": os.environ.get("PATH", ""), "SYSTEMROOT": os.environ.get("SYSTEMROOT", "")}
+    return subprocess.run(
+        [sys.executable, "-c", code], check=False, capture_output=True, text=True, encoding="utf-8", env=env
     )
+
+
+def test_old_python_stops_with_one_line() -> None:
+    """On a Python older than 3.10, the script stops with one line on stderr and exit 2, not a traceback."""
+    result = run_without_tomllib((3, 9, 2), ["--version"], tomli=False)
     assert result.returncode == 2
-    assert result.stderr == f"tronitor: Python 3.11 or newer is needed, but {sys.executable} is Python 3.10.12" + "\n"
+    assert result.stderr == f"tronitor: Python 3.10 or newer is needed, but {sys.executable} is Python 3.9.2" + "\n"
     assert result.stdout == ""
+
+
+def test_python_3_10_without_tomli_says_how_to_get_it() -> None:
+    """On Python 3.10 without tomli, the one line says how to install tomli, and the exit code is 2."""
+    result = run_without_tomllib((3, 10, 12), ["--version"], tomli=False)
+    assert result.returncode == 2
+    assert result.stderr == (
+        f"tronitor: {sys.executable} is Python 3.10.12 without the tomli package; install tomli "
+        "(sudo apt install python3-tomli, or python3 -m pip install --user tomli) or use Python 3.11 or newer" + "\n"
+    )
+    assert result.stdout == ""
+
+
+def test_python_3_10_reads_the_config_with_tomli(tmp_path: Path) -> None:
+    """On Python 3.10 with tomli, the script reads TOML through tomli: --migrate validates the file it writes."""
+    pytest.importorskip("tomli")
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key")
+    result = run_without_tomllib((3, 10, 12), ["--migrate", str(script)], tomli=True)
+    assert result.returncode == 0, result.stderr
+    assert f"Wrote {tmp_path / 'tronitor.toml'}" in result.stdout
+    assert tronitor.load_config(tmp_path / "tronitor.toml", {}, []).healthchecks.api_key == "hc-secret-key"
 
 
 def test_no_arguments_prints_usage_and_exits_2() -> None:

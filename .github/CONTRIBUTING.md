@@ -65,8 +65,8 @@ Found a security vulnerability? Please don't open an issue: see the [security po
 
 ## 📏 Code style
 
-- **One file, standard library only.** People install this by copying a single script, so keep it that way: no new modules, and no new required packages.
-- **Python 3.11 and newer.** GitHub tests on 3.11, the newest release, and the next release's pre-release, which may fail without failing the run (a heads-up, not a blocker). Avoid syntax newer than 3.11, such as reusing the same quote inside an f-string (3.12+).
+- **One file, standard library only.** People install this by copying a single script, so keep it that way: no new modules, and no new required packages. The one exception is `tomli` on Python 3.10, which stands in for the standard library's `tomllib`.
+- **Python 3.10 and newer.** GitHub tests on 3.10, the newest release, and the next release's pre-release, which may fail without failing the run (a heads-up, not a blocker). Avoid syntax and library features newer than 3.10, such as reusing the same quote inside an f-string (3.12+); `mypy` checks the script as 3.10, so it catches a newer library feature.
 - **Linux, macOS and Windows.** Use `pathlib` for paths, and don't run other programs: the script talks to the providers over HTTP with the standard library, so it works the same everywhere.
 - **Docstrings, not comments.** Explain code in the docstring of the function or class it belongs to. Each section of the file starts with a docstring that says what it holds, above its module-level settings. Don't add `#` comments. The one exception is a marker for a checker, such as `# nosec B108` for CodeFactor's Bandit scan, with the reason in the docstring next to it.
 - **Keep docstrings short and plain.** Say what something does and, where it isn't obvious, why.

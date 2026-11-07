@@ -32,7 +32,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.11", "3.14"]
+        python-version: ["3.10", "3.14"]
         # Windows decodes subprocess output differently and keeps its lock
         # files in its own temp folder, and macOS has its own file system
         # (APFS) and temp folder layout, so run the tests on both.

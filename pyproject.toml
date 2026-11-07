@@ -2,7 +2,7 @@
 # Only ruff, mypy and pytest read this file; it isn't needed to use the script.
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 line-length = 120
 
 [tool.ruff.lint]
@@ -13,7 +13,7 @@ preview = true
 extend-select = ["E"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.10"
 files = ["tronitor.py"]
 # Strict: every function fully typed, and no value of unknown type passed off
 # as a known one, so a loose type hint fails the check rather than slipping by.
