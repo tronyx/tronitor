@@ -136,6 +136,66 @@ def ur_config_file(tmp_path: Path, fake_server: FakeServer) -> Path:
     return path
 
 
+BASH_HEADER = """\
+#!/usr/bin/env bash
+# shellcheck disable=SC2102 # usage() heredoc contains literal "[OPTION]" display text, not a glob
+#
+# Script to utilize the UptimeRobot, StatusCake, and HealthChecks.io APIs to
+# retrieve information on and work with checks you've created.
+# Tronyx
+set -eo pipefail
+IFS=$'\\n\\t'
+
+# Edit these with your corresponding information to finish setting up the script
+# or just run it and it will prompt you for it.
+# If your provider is StatusCake, specify your username.
+scUsername=''
+# If your provider is Upptime, specify the following.
+repoOwner=''
+gitHubUsername=''
+upptimeRepo='upptime'
+# Specify API key(s).
+urApiKey=''
+scApiKey=''
+hcApiKey=''
+ghToken=''
+# Specify the domain to use for Healthchecks as they allow you to self-host the
+# application. If you're self-hosting it, replace the default domain with the
+# domain you're hosting it on.
+healthchecksDomain='healthchecks.io'
+# Specify the Discord/Slack webhook URL to send notifications to.
+webhookUrl=''
+# Set notifyAll to true for notification to apply for all running state as well.
+notifyAll='false'
+# Set JQ to false to disable its use for displaying output. This works better
+# for using the script with cronjobs, etc.
+jq='true'
+
+# Declare some variables.
+# Temp dir and filenames.
+# Make sure you set this to something your user has write access to.
+tempDir="$HOME/tronitor/"
+apiTestFullFile="${tempDir}api_test_full.txt"
+badMonitorsFile="${tempDir}bad_monitors.txt"
+"""
+"""The first 40 lines of the last tronitor.sh, the Bash script that tronitor.py replaced, with its shipped values."""
+
+
+def bash_fixture(tmp_path: Path, **values: str) -> Path:
+    """Write tmp_path/tronitor.sh: the Bash script's header with values in place of the shipped ones; return its path.
+
+    Each name must be a setting of the header, such as hcApiKey or tempDir. Its line becomes name='value', in the
+    place where the real script has it: tempDir stays below the "# Declare some variables" line.
+    """
+    lines = BASH_HEADER.splitlines()
+    for name, value in values.items():
+        index = next(i for i, line in enumerate(lines) if line.startswith(f"{name}="))
+        lines[index] = f"{name}='{value}'"
+    path = tmp_path / "tronitor.sh"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
 def run_tronitor(*args: str, env: dict[str, str] | None = None, stdin: str = "") -> subprocess.CompletedProcess[str]:
     """Run tronitor.py with args and return the result with text output.
 

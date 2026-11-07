@@ -34,6 +34,8 @@ You need Python 3.11 or newer.
    chmod 600 tronitor.toml
    ```
 
+   Upgrading from `tronitor.sh`? `python3 tronitor.py --migrate tronitor.sh` writes `tronitor.toml` from its settings; see [Upgrading](docs/usage.md#-upgrading-from-the-bash-script).
+
 3. Open `tronitor.toml` and fill in your API key: a read-write project API key for Healthchecks, or the Main API key for UptimeRobot. [Configuration](docs/configuration.md#-api-keys) tells you where to find them.
 
 4. List your monitors, then pause and unpause all of them:
@@ -50,7 +52,7 @@ For UptimeRobot, type `-m ur` instead of `-m hc`. On Windows, type `py` instead 
 
 | Option | What it does |
 | --- | --- |
-| `-m PROVIDER` | The provider: `healthchecks` (`hc`) or `uptimerobot` (`ur`). Each command needs it |
+| `-m PROVIDER` | The provider: `healthchecks` (`hc`) or `uptimerobot` (`ur`). Every command needs it, except `--migrate` |
 | `-l` | List every monitor and its status |
 | `-f` | List the paused monitors. On a terminal, offer to unpause them |
 | `-n` | List the paused monitors, and never ask |

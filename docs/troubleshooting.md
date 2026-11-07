@@ -20,9 +20,9 @@ To keep a check paused, the job that pings it must stop while the check is pause
 
 These errors come after the short usage text, and start with `tronitor: error:`. tronitor does nothing, and the exit code is `2`. Run `python3 tronitor.py --help` to see every option.
 
-### `the following arguments are required: -m/--monitor/--provider`
+### `choose a provider with -m: healthchecks (hc) or uptimerobot (ur)`
 
-Each command needs `-m` and the provider, for example `-m hc` or `-m ur`.
+Each action needs `-m` and the provider, for example `-m hc` or `-m ur`. Only `--migrate` runs without it. Unlike the other errors here, this one comes without the usage text, and starts with `tronitor:` only.
 
 ### `one of the arguments -l/--list -f/--find ... is required`
 
@@ -234,6 +234,34 @@ tronitor could not connect to the webhook's server. The reasons are the same as 
 ### `webhook: unsupported URL for webhook`
 
 The webhook address is not one that tronitor can use: its form is wrong, or it has a character that an address cannot hold. Copy the address again from Discord or Slack. tronitor does not show the address, because it holds a secret. The exit code is `1`.
+
+## 🚚 Upgrading from the Bash script
+
+These messages come from `--migrate`. Apart from the `Skipped:` line, each one stops tronitor before it changes a file, with exit code `2`. See [Upgrading from the Bash script](usage.md#-upgrading-from-the-bash-script).
+
+### `tronitor.sh does not look like a tronitor.sh (no urApiKey or hcApiKey line)`
+
+The file has no `urApiKey='...'` or `hcApiKey='...'` line above the `# Declare some variables` line. So it is not the Bash version of tronitor, or its top part was changed. Check the path that you gave to `--migrate`. If you changed the script, put the two lines back, in the form `urApiKey='your key'`, with single quotes.
+
+### `--migrate writes tronitor.toml next to the Bash script; --config does not apply`
+
+`--migrate` always writes `tronitor.toml` in the folder of `tronitor.sh`, so it refuses `--config`. Run the command without `--config`. Then move the new file where you want it, and give its path to `--config` for the other actions.
+
+### `tronitor.toml already exists; pass --yes to overwrite it`
+
+The folder of `tronitor.sh` has a `tronitor.toml` already. tronitor does not change it. To replace it with the settings from the script, add `--yes`. To keep it, fill in its keys by hand instead.
+
+### `the migrated config is not valid: tronitor.toml: ...`
+
+A value from `tronitor.sh` cannot be used in `tronitor.toml`. The rest of the message names the setting and the problem, as in [Config file errors](#-config-file-errors). For example, `notify.webhook_url contains a space or a control character` means that `webhookUrl` in the script has a space in it. tronitor removed the new file, and an old `tronitor.toml` stays as it was. Correct the value in `tronitor.sh`, then run `--migrate` again.
+
+### `tronitor.sh: cannot read the file: ...` or `cannot write tronitor.toml: ...`
+
+tronitor cannot read the script, or cannot create `tronitor.toml` in the folder of the script. Check the path. Make sure that you can write to the folder, and that `tronitor.toml` is not a folder.
+
+### `Skipped: urApiKey (not in the form name='value'; check tronitor.toml)`
+
+This line is not an error: `--migrate` still writes the file, with exit code `0`. The line of this setting in `tronitor.sh` is not in the form `name='value'`. For example, it has a comment after the closing quote, or double quotes. So tronitor did not copy the value. Fill it in yourself, in the matching key of `tronitor.toml`. [Upgrading from the Bash script](usage.md#-upgrading-from-the-bash-script) lists which key that is.
 
 ## ⌨️ Interrupted
 

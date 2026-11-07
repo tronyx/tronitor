@@ -7,6 +7,7 @@ from conftest import (
     HC_UUID_DATABASE,
     HC_UUID_FILESYSTEM,
     RunCli,
+    bash_fixture,
     hc_fixture_checks,
     run_tronitor,
     serve_checks,
@@ -157,10 +158,25 @@ def test_cli_json_with_a_non_latin_name_does_not_crash(fake_server: FakeServer, 
 
 
 def test_cli_missing_provider_is_a_usage_error() -> None:
-    """An action without -m is rejected by argparse with exit 2."""
+    """An action without -m is rejected with exit 2, with a message that names the providers."""
     result = run("-l")
     assert result.returncode == 2
-    assert "-m/--monitor/--provider" in result.stderr
+    assert result.stderr == "tronitor: choose a provider with -m: healthchecks (hc) or uptimerobot (ur)\n"
+
+
+def test_cli_migrate(tmp_path: Path) -> None:
+    """--migrate, without -m, writes tronitor.toml next to the Bash script and exits 0."""
+    webhook = "https://discord.com/api/webhooks/1/secret-token"
+    script = bash_fixture(tmp_path, hcApiKey="hc-secret-key", webhookUrl=webhook)
+    result = run("--migrate", str(script))
+    assert result.returncode == 0, result.stderr
+    out = tmp_path / "tronitor.toml"
+    assert f"Wrote {out}" in result.stdout
+    assert "hc-secret-key" not in result.stdout + result.stderr
+    assert "secret-token" not in result.stdout + result.stderr
+    config = tronitor.load_config(out, {}, [])
+    assert config.healthchecks == tronitor.HealthchecksConfig("https://healthchecks.io", "hc-secret-key")
+    assert config.notify.webhook_url == webhook
 
 
 def test_cli_two_actions_are_a_usage_error() -> None:
