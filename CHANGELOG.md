@@ -6,7 +6,9 @@ The project doesn't use version numbers. Each entry is one merge into `master`, 
 
 ## Unreleased
 
-Nothing yet.
+### Documentation
+
+- [Setting up HealthChecks-Linux](docs/cron.md#-setting-up-healthchecks-linux) covers both versions of HealthChecks-Linux: the new Python script, which sets its lock folder with `lock_dir` in `healthchecks.toml`, and the Bash script, which uses `tempDir`. It no longer quotes the old `tempDir` comment lines of the Bash script, which HealthChecks-Linux has since corrected.
 
 ## 2026-11-07 · [#71](https://github.com/tronyx/tronitor/pull/71)
 
