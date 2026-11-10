@@ -72,18 +72,16 @@ If you ping your checks some other way, you can make your own job skip a ping wh
 
 ### 🔗 Setting up HealthChecks-Linux
 
-HealthChecks-Linux reads the lock files from the folder that `tempDir` sets in its script, `application_healthchecks_generic.sh`. These are the lines near its top:
+HealthChecks-Linux has two versions. Each one reads the lock files from one folder:
 
-```bash
-tempDir='/tmp/'
-# The below temp dir is for use with the Tronitor script, uncomment the line if you wish to use it
-# https://github.com/christronyxyocum/tronitor
-#tempDir='/tmp/tronitor/'
-```
+| Version | Where you set the folder | Default |
+| --- | --- | --- |
+| The Python script, `healthchecks_linux.py` | `lock_dir` in the `[general]` table of `healthchecks.toml` | `/tmp` |
+| The Bash script, `application_healthchecks_generic.sh` | `tempDir` near the top of the script | `/tmp/` |
 
-Keep `tempDir='/tmp/'`, and leave the `/tmp/tronitor/` line commented out, with the `#` at its start. tronitor's default `lock_dir` is `/tmp`, so the two scripts then use the same folder without any change.
+tronitor's default `lock_dir` is `/tmp` too. So if you keep the defaults, tronitor and HealthChecks-Linux use the same folder without any change.
 
-The README of HealthChecks-Linux tells you to use the `/tmp/tronitor/` line. That was for the old Bash version of tronitor. If you already changed the lines, either change them back to what the example above shows, or set the same folder in `tronitor.toml`:
+Older versions of the HealthChecks-Linux README told you to set `tempDir='/tmp/tronitor/'`. That was for the old Bash version of tronitor. If you made that change, change `tempDir` back to `'/tmp/'`, or set the same folder in `tronitor.toml`:
 
 ```toml
 [general]
@@ -91,9 +89,9 @@ lock_dir = "/tmp/tronitor"
 ```
 
 > [!WARNING]
-> `lock_dir` and `tempDir` must point at the same folder. If you change only one of them, the pinging script never sees the lock files. Then a paused check becomes active again on its next ping. Keep the `/` at the end of `tempDir`, because the script adds the file name directly after it.
+> tronitor and HealthChecks-Linux must use the same folder. If you change the folder in only one of them, the pinging script never sees the lock files. Then a paused check becomes active again on its next ping. In the Bash script, keep the `/` at the end of `tempDir`, because the script adds the file name directly after it.
 
-Every user on the computer can write to `/tmp`. So on a computer that other people use, they can create or delete the lock files. To prevent this, set `lock_dir` and `tempDir` to the same folder, one that only you can write to. The [security policy](../.github/SECURITY.md) has the details.
+Every user on the computer can write to `/tmp`. So on a computer that other people use, they can create or delete the lock files. To prevent this, set tronitor and HealthChecks-Linux to the same folder, one that only you can write to. The [security policy](../.github/SECURITY.md) has the details.
 
 ## 💥 When something fails
 
