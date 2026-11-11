@@ -682,6 +682,34 @@ def test_hc_read_only_key_is_rejected(hc_provider: tronitor.HealthchecksProvider
         hc_provider.list_monitors()
 
 
+def test_hc_list_monitors_reads_the_slug(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
+    """Each check's slug becomes the Monitor's slug."""
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": hc_fixture_checks()})
+    assert [m.slug for m in hc_provider.list_monitors()] == ["filesystem-backup", "database-backup"]
+
+
+def test_hc_check_without_a_slug_has_an_empty_slug(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """A check with no slug field, or an empty slug, gets an empty slug."""
+    checks = hc_fixture_checks()
+    del checks[0]["slug"]
+    checks[1]["slug"] = ""
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": checks})
+    assert [m.slug for m in hc_provider.list_monitors()] == ["", ""]
+
+
+def test_hc_slug_that_is_not_a_string_is_an_unexpected_response(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """A slug that is a list, a number or null is not what the API sends."""
+    checks = hc_fixture_checks()
+    checks[0]["slug"] = ["filesystem-backup"]
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": checks})
+    with pytest.raises(tronitor.ProviderError, match="unexpected response from Healthchecks"):
+        hc_provider.list_monitors()
+
+
 def test_hc_pause_posts_to_pause_url(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
     """pause posts an empty JSON body to the pause path."""
     fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}/pause", 200, {"status": "paused"})
@@ -898,6 +926,58 @@ def test_unmatched_without_a_name_prefix_has_no_hint() -> None:
     assert tronitor.describe_selection_problems(selection, MONS, "ID") == "Not found: Nope"
 
 
+SLUGGED = [
+    tronitor.Monitor("1", "Filesystem Backup", "up", {}, slug="filesystem-backup"),
+    tronitor.Monitor("2", "Radarr, 4K", "up", {}, slug="radarr-4k"),
+    tronitor.Monitor("3", "No Slug", "up", {}),
+]
+
+
+def test_select_by_slug_is_exact_and_case_insensitive() -> None:
+    """A slug matches whole and ignoring case; a part of a slug is unmatched."""
+    assert tronitor.select_monitors(SLUGGED, ["FILESYSTEM-backup"], str.isdigit).matched == [SLUGGED[0]]
+    selection = tronitor.select_monitors(SLUGGED, ["filesystem"], str.isdigit)
+    assert selection.matched == []
+    assert selection.unmatched == ["filesystem"]
+
+
+def test_slug_selects_a_monitor_whose_name_has_a_comma() -> None:
+    """The slug of a name with a comma has no comma, so it can be selected."""
+    items = tronitor.split_selection("radarr-4k,Filesystem Backup")
+    assert tronitor.select_monitors(SLUGGED, items, str.isdigit).matched == [SLUGGED[1], SLUGGED[0]]
+
+
+def test_name_and_slug_of_one_monitor_match_it_once() -> None:
+    """A monitor named by its name and by its slug, or whose name is its slug, is selected once."""
+    selection = tronitor.select_monitors(SLUGGED, ["Filesystem Backup", "filesystem-backup"], str.isdigit)
+    assert selection.matched == [SLUGGED[0]]
+    plex = tronitor.Monitor("1", "plex", "up", {}, slug="plex")
+    selection = tronitor.select_monitors([plex], ["plex"], str.isdigit)
+    assert selection.matched == [plex]
+    assert selection.ok
+
+
+def test_name_of_one_monitor_and_slug_of_another_is_ambiguous() -> None:
+    """An item that is one monitor's name and another monitor's slug selects neither and lists both IDs."""
+    mons = [
+        tronitor.Monitor("1", "backup", "up", {}, slug="backup-old"),
+        tronitor.Monitor("2", "Nightly", "up", {}, slug="backup"),
+    ]
+    selection = tronitor.select_monitors(mons, ["backup"], str.isdigit)
+    assert selection.matched == []
+    assert selection.ambiguous == {"backup": mons}
+    text = tronitor.describe_selection_problems(selection, mons, "UUID")
+    assert text == '"backup" matches 2 monitors; use the UUID instead:\n  backup (UUID 1)\n  Nightly (UUID 2)'
+
+
+def test_comma_hint_suggests_the_slug_when_monitors_have_slugs() -> None:
+    """With slugs, the comma hint offers the slug as well as the ID."""
+    items = tronitor.split_selection('"Radarr, 4K"')
+    selection = tronitor.select_monitors(SLUGGED, items, str.isdigit)
+    text = tronitor.describe_selection_problems(selection, SLUGGED, "UUID")
+    assert text.splitlines()[-1] == "Names with commas cannot be selected; use the slug or the UUID instead."
+
+
 def test_lock_all_and_lock_one_create_empty_files(tmp_path: Path) -> None:
     """lock_all and lock create empty files and return their paths."""
     locks = tronitor.LockFiles(tmp_path)
@@ -1037,6 +1117,22 @@ def test_table_pads_names_and_capitalises_status() -> None:
     assert tronitor.format_monitor_table([], "UUID", True) == ""
 
 
+def test_table_with_slugs_pads_the_slug_column() -> None:
+    """With slugs=True, a slug column comes after the ID, padded to the longest slug; no slug shows (none)."""
+    monitors = [
+        tronitor.Monitor("id1", "web", "paused", {}, slug="web"),
+        tronitor.Monitor("id2", "database", "up", {}),
+    ]
+    text = tronitor.format_monitor_table(monitors, "UUID", False, slugs=True)
+    assert text == "web       UUID: id1  Slug: web     Status: Paused\ndatabase  UUID: id2  Slug: (none)  Status: Up"
+
+
+def test_table_strips_control_characters_from_the_slug() -> None:
+    """Control characters in a slug become "?"."""
+    monitor = tronitor.Monitor("i", "n", "up", {}, slug="s\x1b[2J")
+    assert tronitor.format_monitor_table([monitor], "UUID", False, slugs=True) == "n  UUID: i  Slug: s?[2J  Status: Up"
+
+
 def test_table_colours_only_the_status() -> None:
     """Only the status text carries colour codes."""
     text = tronitor.format_monitor_table(sample_monitors(), "UUID", True)
@@ -1173,8 +1269,8 @@ def test_list_prints_table(hc_env: Path, fake_server: FakeServer, capsys: pytest
     out, err = capsys.readouterr()
     assert out.splitlines() == [
         "The following Healthchecks monitors were found:",
-        f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Status: Up",
-        f"Database Backup    UUID: {HC_UUID_DATABASE}  Status: Paused",
+        f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Slug: filesystem-backup  Status: Up",
+        f"Database Backup    UUID: {HC_UUID_DATABASE}  Slug: database-backup    Status: Paused",
     ]
     assert err == ""
 
@@ -1201,7 +1297,7 @@ def test_find_shows_paused_only_and_does_not_prompt_without_tty(
     assert tronitor.main(["-m", "hc", "-f"]) == 0
     assert capsys.readouterr().out.splitlines() == [
         "The following Healthchecks monitors are paused:",
-        f"Database Backup  UUID: {HC_UUID_DATABASE}  Status: Paused",
+        f"Database Backup  UUID: {HC_UUID_DATABASE}  Slug: database-backup  Status: Paused",
     ]
     assert posts(fake_server) == []
 
@@ -1306,6 +1402,18 @@ def test_pause_named_creates_per_monitor_lock(
     assert tronitor.main(["-m", "hc", "-p", "'filesystem backup'"]) == 0
     assert [p.name for p in locks.iterdir()] == [f"{HC_UUID_FILESYSTEM}.lock"]
     assert posts(fake_server) == [FS_PAUSE]
+
+
+def test_pause_by_slug_creates_that_checks_lock(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--pause SLUG pauses that check and creates its lock file, named by its UUID."""
+    serve_checks(fake_server)
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "filesystem-backup"]) == 0
+    assert [p.name for p in locks.iterdir()] == [f"{HC_UUID_FILESYSTEM}.lock"]
+    assert posts(fake_server) == [FS_PAUSE]
+    assert f"Pausing Filesystem Backup (UUID {HC_UUID_FILESYSTEM})... done" in capsys.readouterr().out
 
 
 def test_pause_unmatched_name_does_nothing_and_exits_3(
@@ -1861,6 +1969,7 @@ def test_ur_list_maps_fields_and_statuses(ur_provider: tronitor.UptimeRobotProvi
         ("1003", "Radarr", "seems down"),
     ]
     assert monitors[0].raw == ur_fixture_monitors()[0]
+    assert all(m.slug == "" for m in monitors)
     assert fake_server.requests[0].headers["Authorization"] == "Bearer ur-test-key"
     assert fake_server.requests[0].query == {"limit": ["200"]}
 

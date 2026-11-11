@@ -6,7 +6,10 @@ The project doesn't use version numbers. Each entry is one merge into `master`, 
 
 ## Unreleased
 
-Nothing yet.
+### Added
+
+- On Healthchecks, a check's slug selects it, like its name or its UUID, for example `-p filesystem-backup`. A slug has no spaces, capital letters or commas, so it needs no quotes. It also selects a check whose name has a comma, which no name could do. If an item is the name of one check and the slug of another, tronitor does nothing and lists both UUIDs. UptimeRobot has no slugs. See [Naming monitors](docs/usage.md#-naming-monitors).
+- The Healthchecks table from `-l`, `-f`, `-n` and `-w` has a `Slug:` column between the UUID and the status.
 
 ## 2026-11-10 · [#72](https://github.com/tronyx/tronitor/pull/72)
 

@@ -106,8 +106,8 @@ def test_cli_list_against_fake_server(fake_server: FakeServer, hc_config_file: P
     result = run_cli("-m", "hc", "-l")
     assert result.returncode == 0, result.stderr
     assert "The following Healthchecks monitors were found:" in result.stdout
-    assert f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Status: Up" in result.stdout
-    assert f"Database Backup    UUID: {HC_UUID_DATABASE}  Status: Paused" in result.stdout
+    assert f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Slug: filesystem-backup  Status: Up" in result.stdout
+    assert f"Database Backup    UUID: {HC_UUID_DATABASE}  Slug: database-backup    Status: Paused" in result.stdout
     assert result.stderr == ""
 
 

@@ -160,25 +160,25 @@ This happens on UptimeRobot. UptimeRobot keeps a copy of the list of monitors fo
 
 ### `Not found: Plex Backup`
 
-No monitor has this name or ID. tronitor does nothing, and the exit code is `3`.
+No monitor has this name, slug or ID. tronitor does nothing, and the exit code is `3`.
 
 - A name must match the whole monitor name. `plex` does not match `Plex Backup`. Capital letters do not matter.
-- Run `-l` to see the exact names and IDs.
+- Run `-l` to see the exact names and IDs, and on Healthchecks the slugs.
 - Put the list in quotes if a name has a space in it.
 
 With `--yes`, tronitor still prints this line, but it acts on the monitors that it found. See [Naming monitors](usage.md#-naming-monitors).
 
 ### `"Plex" matches 2 monitors; use the ID instead:`
 
-Two or more monitors have this name. On Healthchecks, the line says `use the UUID instead`. tronitor lists the monitors with their IDs, and does nothing, also with `--yes`. Give the ID of the monitor that you want instead of the name. The exit code is `3`.
+Two or more monitors have this name. On Healthchecks, this also happens when the item is the name of one check and the slug of another, and the line says `use the UUID instead`. tronitor lists the monitors with their IDs, and does nothing, also with `--yes`. Give the ID of the monitor that you want instead of the name. The exit code is `3`.
 
 ### `Names with commas cannot be selected; use the ID instead.`
 
-A comma splits the list of monitors, so a name with a comma in it cannot be given. tronitor adds this line when an item that it did not find is the start of such a name. Give the monitor's ID instead. On Healthchecks, the line says `use the UUID instead`.
+A comma splits the list of monitors, so a name with a comma in it cannot be given. tronitor adds this line when an item that it did not find is the start of such a name. Give the monitor's ID instead, or on Healthchecks its slug. On Healthchecks, the line says `use the slug or the UUID instead`.
 
 ### `--info takes one monitor`
 
-`-i` takes one name or ID, not `all` and not a list.
+`-i` takes one name, slug or ID, not `all` and not a list.
 
 ### `--pause needs "all" or a comma-separated list of monitors`
 

@@ -18,7 +18,7 @@ The logic tests are in [tests/test_tronitor.py](../tests/test_tronitor.py). They
 
 - Loading the configuration: the search order, the environment variables, and each error, with its hint.
 - Each provider's requests and how it reads the answers, also answers that are wrong or incomplete.
-- Matching names and IDs: whole names, capital letters, quotes, commas, `all`, names that several monitors share, and names that match nothing.
+- Matching names, slugs and IDs: whole names, capital letters, quotes, commas, `all`, names that several monitors share, an item that is one check's name and another check's slug, and names that match nothing.
 - The lock files: when tronitor creates and removes each one, and what happens when the folder cannot be used.
 - The output: the table, the colours, JSON, and control characters in names.
 - The questions, `--yes`, and what happens without a terminal.

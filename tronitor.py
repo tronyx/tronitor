@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pause and unpause Healthchecks and UptimeRobot monitors from the command line or cron.
 
-tronitor lists the monitors in an account, finds the paused ones, pauses and unpauses them by name or ID,
+tronitor lists the monitors in an account, finds the paused ones, pauses and unpauses them by name, slug or ID,
 and can post a summary to a Discord or Slack webhook. Credentials come from a TOML config file or
 environment variables.
 """
@@ -497,15 +497,18 @@ UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 
 @dataclass(frozen=True)
 class Monitor:
-    """One monitor: its ID, name, status and the provider's raw record.
+    """One monitor: its ID, name, status, the provider's raw record and its slug.
 
-    The status is one of "up", "down", "paused", "grace", "new", "started", "pending" or "seems down".
+    The status is one of "up", "down", "paused", "grace", "new", "started", "pending" or "seems down". The slug is
+    the short name that Healthchecks gives a check, such as "filesystem-backup"; it is "" for an UptimeRobot monitor
+    and for a check without one.
     """
 
     id: str
     name: str
     status: str
     raw: dict[str, Any]
+    slug: str = ""
 
 
 class Unsupported(ProviderError):
@@ -548,6 +551,8 @@ class Provider(abc.ABC):
 
     label = ""
     id_kind = ""
+    has_slugs = False
+    """True if the provider gives each monitor a slug, which -l shows and which selects a monitor like its name."""
     supports_lock_files = False
     supports_reset = False
     unpause_only_paused = True
@@ -604,6 +609,7 @@ class HealthchecksProvider(Provider):
 
     label = "Healthchecks"
     id_kind = "UUID"
+    has_slugs = True
     supports_lock_files = True
 
     def __init__(self, http: Http, config: HealthchecksConfig) -> None:
@@ -614,18 +620,23 @@ class HealthchecksProvider(Provider):
     def list_monitors(self) -> list[Monitor]:
         """Return every check; a read-only API key (checks without a uuid) raises ProviderError.
 
-        A name or status that is not a string, or a uuid that is not a UUID, is an unexpected response. The uuid
-        becomes the name of a lock file, so this keeps a hostile server from naming a file in another folder.
+        A name or status that is not a string, a slug that is there but not a string, or a uuid that is not a UUID,
+        is an unexpected response. The uuid becomes the name of a lock file, so this keeps a hostile server from
+        naming a file in another folder. A check without a slug gets "".
         """
         body = _expect_dict(self._http.request("GET", f"{self._api}/checks/", headers=self._headers).json, self.label)
         checks = [_expect_dict(check, self.label) for check in _expect_list(body.get("checks"), self.label)]
         if any(not isinstance(c.get("name"), str) or not isinstance(c.get("status"), str) for c in checks):
             raise ProviderError(f"unexpected response from {self.label}")
+        if any(not isinstance(c.get("slug", ""), str) for c in checks):
+            raise ProviderError(f"unexpected response from {self.label}")
         if any("uuid" not in check for check in checks):
             raise ProviderError("the Healthchecks API key is read-only; tronitor needs a read-write key")
         if any(not isinstance(c["uuid"], str) or not self.is_id(c["uuid"]) for c in checks):
             raise ProviderError(f"unexpected response from {self.label}")
-        return [Monitor(id=c["uuid"], name=c["name"], status=c["status"], raw=c) for c in checks]
+        return [
+            Monitor(id=c["uuid"], name=c["name"], status=c["status"], raw=c, slug=c.get("slug", "")) for c in checks
+        ]
 
     def pause(self, monitor: Monitor) -> None:
         """Pause a check."""
@@ -797,7 +808,10 @@ class Selection:
 
 
 def select_monitors(monitors: Sequence[Monitor], items: Sequence[str], is_id: Callable[[str], bool]) -> Selection:
-    """Match items against monitors by ID or by exact, case-insensitive name."""
+    """Match items against monitors by ID, or by exact, case-insensitive name or slug.
+
+    An item that is one monitor's name and another monitor's slug matches both, so it is ambiguous.
+    """
     if list(items) == ["all"]:
         return Selection(matched=list(monitors), unmatched=[], ambiguous={})
     selection = Selection(matched=[], unmatched=[], ambiguous={})
@@ -806,7 +820,7 @@ def select_monitors(monitors: Sequence[Monitor], items: Sequence[str], is_id: Ca
         if is_id(item):
             found = [m for m in monitors if m.id.casefold() == wanted]
         else:
-            found = [m for m in monitors if m.name.casefold() == wanted]
+            found = [m for m in monitors if wanted in (m.name.casefold(), m.slug.casefold())]
         if not found:
             selection.unmatched.append(item)
         elif len(found) > 1:
@@ -824,7 +838,8 @@ def describe_selection_problems(selection: Selection, monitors: Sequence[Monitor
         lines.extend(f"  {m.name} ({id_kind} {m.id})" for m in found)
     names = [m.name.casefold() for m in monitors]
     if any(name.startswith(item.casefold() + ",") for item in selection.unmatched for name in names):
-        lines.append(f"Names with commas cannot be selected; use the {id_kind} instead.")
+        instead = f"the slug or the {id_kind}" if any(m.slug for m in monitors) else f"the {id_kind}"
+        lines.append(f"Names with commas cannot be selected; use {instead} instead.")
     return "\n".join(lines)
 
 
@@ -964,19 +979,25 @@ def plain_text(text: str) -> str:
     return re.sub(r"[\x00-\x1f\x7f-\x9f]", "?", text)
 
 
-def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool) -> str:
-    """Return one line per monitor: the padded name, the ID and the status, coloured if color is true."""
+def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool, slugs: bool = False) -> str:
+    """Return one line per monitor: the padded name, the ID and the status, coloured if color is true.
+
+    With slugs, a padded slug column comes before the status; a monitor without a slug shows "(none)".
+    """
     if not monitors:
         return ""
     names = [plain_text(monitor.name) for monitor in monitors]
     width = max(len(name) for name in names)
+    slug_texts = [plain_text(monitor.slug) or "(none)" for monitor in monitors]
+    slug_width = max(len(text) for text in slug_texts)
     lines = []
-    for monitor, name in zip(monitors, names, strict=True):
+    for monitor, name, slug_text in zip(monitors, names, slug_texts, strict=True):
         status_text = plain_text(monitor.status).capitalize()
         code = STATUS_COLORS.get(monitor.status)
         if color and code:
             status_text = f"{code}{status_text}{RESET}"
-        lines.append(f"{name:<{width}}  {id_kind}: {plain_text(monitor.id)}  Status: {status_text}")
+        slug_column = f"Slug: {slug_text:<{slug_width}}  " if slugs else ""
+        lines.append(f"{name:<{width}}  {id_kind}: {plain_text(monitor.id)}  {slug_column}Status: {status_text}")
     return "\n".join(lines)
 
 
@@ -1275,7 +1296,8 @@ PROVIDER is healthchecks (hc) or uptimerobot (ur).
 TARGETS is "all", or a comma-separated list of monitor names and IDs. Put names
 in quotes, for example: -p "Filesystem Backup,Database Backup". A name must
 match the whole monitor name, but capital letters do not matter. A Healthchecks
-ID is the check's UUID; an UptimeRobot ID is the monitor's number.
+ID is the check's UUID; an UptimeRobot ID is the monitor's number. Healthchecks
+also takes a check's slug, which -l shows, for example: -p filesystem-backup.
 
 Examples:
   tronitor -m hc -l
@@ -1564,7 +1586,7 @@ def show_monitors(ctx: Context, monitors: Sequence[Monitor], header: str, empty:
         ctx.say(format_json([m.raw for m in monitors]))
     elif monitors:
         ctx.say(header)
-        ctx.say(format_monitor_table(monitors, ctx.provider.id_kind, ctx.color))
+        ctx.say(format_monitor_table(monitors, ctx.provider.id_kind, ctx.color, slugs=ctx.provider.has_slugs))
     else:
         ctx.say(empty)
 
