@@ -77,6 +77,7 @@ def _hc_check(uuid: str, name: str, slug: str, status: str) -> dict[str, Any]:
         "channels": "",
         "n_pings": 12,
         "last_ping": "2026-11-05T02:00:00+00:00",
+        "manual_resume": False,
         "status": status,
         "uuid": uuid,
     }

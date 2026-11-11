@@ -1393,6 +1393,69 @@ def test_pause_all_creates_lock_and_posts_each(
     assert out.rstrip().endswith(REMINDER)
 
 
+def checks_with_manual_resume(filesystem: object, database: object) -> list[dict[str, object]]:
+    """Return the fixture checks with their manual_resume set; None removes the field, as on an old server."""
+    checks: list[dict[str, object]] = list(hc_fixture_checks())
+    for check, value in zip(checks, (filesystem, database), strict=True):
+        if value is None:
+            del check["manual_resume"]
+        else:
+            check["manual_resume"] = value
+    return checks
+
+
+def test_pause_reminder_names_only_the_checks_that_resume_on_a_ping(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When some paused checks ignore pings, the reminder names the ones that do not."""
+    serve_checks(fake_server, checks_with_manual_resume(True, False))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    assert capsys.readouterr().out.rstrip().endswith(
+        "Note: these paused Healthchecks checks become active again when they next receive a ping: "
+        "Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+    )
+
+
+def test_pause_has_no_reminder_when_every_paused_check_ignores_pings(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Checks set to ignore pings while paused stay paused, so there is nothing to remind."""
+    serve_checks(fake_server, checks_with_manual_resume(True, True))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    out = capsys.readouterr().out
+    assert "Note:" not in out
+    assert out.endswith(f"Pausing Database Backup (UUID {HC_UUID_DATABASE})... done\n")
+
+
+def test_pause_reminder_leaves_out_a_check_that_failed_to_pause(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Only the checks that were paused count: one that failed is not paused, so it is not named."""
+    serve_checks(fake_server, checks_with_manual_resume(True, False))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 500, {"error": "boom"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 3
+    assert "Note:" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("value", [None, "true", 1], ids=["no field", "a string", "a number"])
+def test_pause_reminder_counts_a_check_without_a_true_manual_resume_as_resuming(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], value: object
+) -> None:
+    """Only manual_resume true means "ignores pings"; a missing field (an old server) or another value does not."""
+    serve_checks(fake_server, checks_with_manual_resume(True, value))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    assert capsys.readouterr().out.rstrip().endswith(
+        "ping: Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+    )
+
+
 def test_pause_named_creates_per_monitor_lock(
     hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
 ) -> None:

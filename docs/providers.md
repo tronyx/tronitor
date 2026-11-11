@@ -31,7 +31,7 @@ Healthchecks watches jobs that report to it. Each check expects a ping (a signal
 - **Alert contacts:** Healthchecks calls them integrations. `-a` lists them, with their IDs.
 
 > [!IMPORTANT]
-> A paused Healthchecks check becomes active again when it next receives a ping. So a job that pings every few minutes ends the pause soon. The lock files exist for this reason: HealthChecks-Linux does not ping a check while its lock file exists. See [Lock files](cron.md#-lock-files).
+> By default, a paused Healthchecks check becomes active again when it next receives a ping. So a job that pings every few minutes ends the pause soon. To prevent this, set the check's "Pinging a Paused Check" setting to "Ignore the ping, stay in the paused state". Or use the lock files: HealthChecks-Linux does not ping a check while its lock file exists. See [Lock files](cron.md#-lock-files).
 
 ## 🤖 UptimeRobot
 

@@ -1285,10 +1285,8 @@ PROVIDER_NAMES = {
     "ur": "uptimerobot",
     "uptimerobot": "uptimerobot",
 }
-HC_REMINDER = (
-    "Note: a paused Healthchecks check becomes active again when it next receives a ping. "
-    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
-)
+HC_LOCK_NOTE = "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+HC_REMINDER = f"Note: a paused Healthchecks check becomes active again when it next receives a ping. {HC_LOCK_NOTE}"
 DESCRIPTION = "Pause and unpause Healthchecks and UptimeRobot monitors, from cron or by hand."
 EPILOG = f"""\
 PROVIDER is healthchecks (hc) or uptimerobot (ur).
@@ -1640,6 +1638,32 @@ def action_find(ctx: Context, args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def resumes_on_ping(monitor: Monitor) -> bool:
+    """Return True unless the check's manual_resume is true, which makes a paused check ignore pings.
+
+    A check without the field, as on an old Healthchecks server, resumes on a ping: that is the default.
+    """
+    return monitor.raw.get("manual_resume") is not True
+
+
+def pause_reminder(paused: Sequence[Monitor]) -> str:
+    """Return the note after a Healthchecks pause about the checks that a ping would make active again.
+
+    It is the general note when every paused check resumes on a ping, names the ones that do when only some do,
+    and is "" when none do.
+    """
+    resuming = [m for m in paused if resumes_on_ping(m)]
+    if not resuming:
+        return ""
+    if len(resuming) == len(paused):
+        return HC_REMINDER
+    names = ", ".join(plain_text(m.name) for m in resuming)
+    return (
+        f"Note: these paused Healthchecks checks become active again when they next receive a ping: {names}. "
+        f"{HC_LOCK_NOTE}"
+    )
+
+
 def action_pause(ctx: Context, args: argparse.Namespace) -> int:
     """Pause monitors, creating their lock files first when the provider uses them."""
     items = parse_targets("--pause", args.pause)
@@ -1657,9 +1681,10 @@ def action_pause(ctx: Context, args: argparse.Namespace) -> int:
         ctx.provider.pause(monitor)
 
     outcome = act_on_each(ctx, "Pausing", targets.chosen, pause)
-    if outcome.done and ctx.provider.supports_lock_files:
+    reminder = pause_reminder(outcome.done) if ctx.provider.supports_lock_files else ""
+    if reminder:
         ctx.say("")
-        ctx.say(HC_REMINDER)
+        ctx.say(reminder)
     return outcome.exit_code(targets.incomplete)
 
 

@@ -307,6 +307,8 @@ Unpausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
 Unpausing Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41)... done
 ```
 
+If some of the checks ignore pings while they are paused, the note names only the others. If all of them do, tronitor prints no note. See [Lock files](cron.md#-lock-files).
+
 </details>
 
 <details>

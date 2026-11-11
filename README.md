@@ -78,7 +78,7 @@ To pause every Healthchecks check during a nightly backup, add lines like these 
 0 8 * * * /usr/bin/python3 /opt/tronitor/tronitor.py -m hc -w > /dev/null
 ```
 
-`> /dev/null` discards the normal output, but errors still reach you through cron's mail, when your system sends it. A paused Healthchecks check becomes active again at its next ping, so point HealthChecks-Linux at tronitor's lock folder. [Running from cron](docs/cron.md) tells you how.
+`> /dev/null` discards the normal output, but errors still reach you through cron's mail, when your system sends it. By default, a paused Healthchecks check becomes active again at its next ping. So point HealthChecks-Linux at tronitor's lock folder, or set each check to ignore pings while it is paused. [Running from cron](docs/cron.md) tells you how.
 
 ## 📖 Documentation
 

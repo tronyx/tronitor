@@ -39,9 +39,14 @@ An older copy of tronitor stopped on such a Python with a traceback that ended i
 
 ## 🤔 My paused Healthchecks check came back by itself
 
-A paused Healthchecks check becomes active again when it next receives a ping. A ping is the signal that a job sends to Healthchecks to say that it ran. So if a job pings the check every few minutes, the pause ends at the next ping. Healthchecks works this way on purpose, and tronitor cannot change it.
+By default, a paused Healthchecks check becomes active again when it next receives a ping. A ping is the signal that a job sends to Healthchecks to say that it ran. So if a job pings the check every few minutes, the pause ends at the next ping.
 
-To keep a check paused, the job that pings it must stop while the check is paused. [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) does this when it finds tronitor's lock files. If the check still comes back:
+There are two ways to keep a check paused:
+
+- In Healthchecks, set the check's "Pinging a Paused Check" setting to "Ignore the ping, stay in the paused state". Then a ping does not end the pause. The check stays paused until you run `-u`, or until you resume it in the Healthchecks dashboard.
+- Stop the job that pings the check while the check is paused. [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) does this when it finds tronitor's lock files.
+
+If you use the lock files and the check still comes back:
 
 - Make sure that `lock_dir` in `tronitor.toml` and `tempDir` in HealthChecks-Linux point at the same folder. The defaults, `/tmp` and `/tmp/`, match. See [Setting up HealthChecks-Linux](cron.md#-setting-up-healthchecks-linux).
 - Make sure that tronitor and HealthChecks-Linux run on the same computer.
