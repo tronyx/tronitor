@@ -682,6 +682,64 @@ def test_hc_read_only_key_is_rejected(hc_provider: tronitor.HealthchecksProvider
         hc_provider.list_monitors()
 
 
+def test_hc_list_monitors_reads_the_slug(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
+    """Each check's slug becomes the Monitor's slug."""
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": hc_fixture_checks()})
+    assert [m.slug for m in hc_provider.list_monitors()] == ["filesystem-backup", "database-backup"]
+
+
+def test_hc_check_without_a_slug_has_an_empty_slug(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """A check with no slug field, or an empty slug, gets an empty slug."""
+    checks = hc_fixture_checks()
+    del checks[0]["slug"]
+    checks[1]["slug"] = ""
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": checks})
+    assert [m.slug for m in hc_provider.list_monitors()] == ["", ""]
+
+
+def test_hc_slug_that_is_not_a_string_is_an_unexpected_response(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """A slug that is a list, a number or null is not what the API sends."""
+    checks = hc_fixture_checks()
+    checks[0]["slug"] = ["filesystem-backup"]
+    fake_server.add("GET", "/api/v3/checks/", 200, {"checks": checks})
+    with pytest.raises(tronitor.ProviderError, match="unexpected response from Healthchecks"):
+        hc_provider.list_monitors()
+
+
+def test_hc_set_manual_resume_posts_the_setting(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """set_manual_resume posts manual_resume to the check's update path, with the API key."""
+    path = f"/api/v3/checks/{HC_UUID_FILESYSTEM}"
+    for value in (True, False):
+        fake_server.add("POST", path, 200, {**hc_fixture_checks()[0], "manual_resume": value}, once=True)
+        hc_provider.set_manual_resume(tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {}), value)
+        request = fake_server.requests[-1]
+        assert (request.method, request.path, request.body) == ("POST", path, {"manual_resume": value})
+        assert request.headers["X-Api-Key"] == "hc-test-key"
+
+
+@pytest.mark.parametrize("answer", [{"manual_resume": False}, {}], ids=["the old value", "no field"])
+def test_hc_set_manual_resume_fails_when_the_server_does_not_keep_it(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer, answer: dict[str, object]
+) -> None:
+    """A server that answers without the new value does not know the setting, so the change is a failure."""
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}", 200, {"name": "Filesystem Backup", **answer})
+    monitor = tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {})
+    with pytest.raises(tronitor.ProviderError, match="this Healthchecks server does not support the setting"):
+        hc_provider.set_manual_resume(monitor, True)
+
+
+def test_ur_set_manual_resume_is_unsupported(ur_provider: tronitor.UptimeRobotProvider) -> None:
+    """UptimeRobot has no setting for pings to a paused monitor."""
+    with pytest.raises(tronitor.Unsupported):
+        ur_provider.set_manual_resume(tronitor.Monitor("1001", "Plex", "up", {}), True)
+
+
 def test_hc_pause_posts_to_pause_url(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
     """pause posts an empty JSON body to the pause path."""
     fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}/pause", 200, {"status": "paused"})
@@ -898,6 +956,58 @@ def test_unmatched_without_a_name_prefix_has_no_hint() -> None:
     assert tronitor.describe_selection_problems(selection, MONS, "ID") == "Not found: Nope"
 
 
+SLUGGED = [
+    tronitor.Monitor("1", "Filesystem Backup", "up", {}, slug="filesystem-backup"),
+    tronitor.Monitor("2", "Radarr, 4K", "up", {}, slug="radarr-4k"),
+    tronitor.Monitor("3", "No Slug", "up", {}),
+]
+
+
+def test_select_by_slug_is_exact_and_case_insensitive() -> None:
+    """A slug matches whole and ignoring case; a part of a slug is unmatched."""
+    assert tronitor.select_monitors(SLUGGED, ["FILESYSTEM-backup"], str.isdigit).matched == [SLUGGED[0]]
+    selection = tronitor.select_monitors(SLUGGED, ["filesystem"], str.isdigit)
+    assert selection.matched == []
+    assert selection.unmatched == ["filesystem"]
+
+
+def test_slug_selects_a_monitor_whose_name_has_a_comma() -> None:
+    """The slug of a name with a comma has no comma, so it can be selected."""
+    items = tronitor.split_selection("radarr-4k,Filesystem Backup")
+    assert tronitor.select_monitors(SLUGGED, items, str.isdigit).matched == [SLUGGED[1], SLUGGED[0]]
+
+
+def test_name_and_slug_of_one_monitor_match_it_once() -> None:
+    """A monitor named by its name and by its slug, or whose name is its slug, is selected once."""
+    selection = tronitor.select_monitors(SLUGGED, ["Filesystem Backup", "filesystem-backup"], str.isdigit)
+    assert selection.matched == [SLUGGED[0]]
+    plex = tronitor.Monitor("1", "plex", "up", {}, slug="plex")
+    selection = tronitor.select_monitors([plex], ["plex"], str.isdigit)
+    assert selection.matched == [plex]
+    assert selection.ok
+
+
+def test_name_of_one_monitor_and_slug_of_another_is_ambiguous() -> None:
+    """An item that is one monitor's name and another monitor's slug selects neither and lists both IDs."""
+    mons = [
+        tronitor.Monitor("1", "backup", "up", {}, slug="backup-old"),
+        tronitor.Monitor("2", "Nightly", "up", {}, slug="backup"),
+    ]
+    selection = tronitor.select_monitors(mons, ["backup"], str.isdigit)
+    assert selection.matched == []
+    assert selection.ambiguous == {"backup": mons}
+    text = tronitor.describe_selection_problems(selection, mons, "UUID")
+    assert text == '"backup" matches 2 monitors; use the UUID instead:\n  backup (UUID 1)\n  Nightly (UUID 2)'
+
+
+def test_comma_hint_suggests_the_slug_when_monitors_have_slugs() -> None:
+    """With slugs, the comma hint offers the slug as well as the ID."""
+    items = tronitor.split_selection('"Radarr, 4K"')
+    selection = tronitor.select_monitors(SLUGGED, items, str.isdigit)
+    text = tronitor.describe_selection_problems(selection, SLUGGED, "UUID")
+    assert text.splitlines()[-1] == "Names with commas cannot be selected; use the slug or the UUID instead."
+
+
 def test_lock_all_and_lock_one_create_empty_files(tmp_path: Path) -> None:
     """lock_all and lock create empty files and return their paths."""
     locks = tronitor.LockFiles(tmp_path)
@@ -1037,15 +1147,59 @@ def test_table_pads_names_and_capitalises_status() -> None:
     assert tronitor.format_monitor_table([], "UUID", True) == ""
 
 
-def test_table_colours_only_the_status() -> None:
-    """Only the status text carries colour codes."""
+def test_table_with_slugs_pads_the_slug_column() -> None:
+    """With slugs=True, a slug column comes after the ID, padded to the longest slug; no slug shows (none)."""
+    monitors = [
+        tronitor.Monitor("id1", "web", "paused", {}, slug="web"),
+        tronitor.Monitor("id2", "database", "up", {}),
+    ]
+    text = tronitor.format_monitor_table(monitors, "UUID", False, slugs=True)
+    assert text == "web       UUID: id1  Slug: web     Status: Paused\ndatabase  UUID: id2  Slug: (none)  Status: Up"
+
+
+def test_table_strips_control_characters_from_the_slug() -> None:
+    """Control characters in a slug become "?"."""
+    monitor = tronitor.Monitor("i", "n", "up", {}, slug="s\x1b[2J")
+    assert tronitor.format_monitor_table([monitor], "UUID", False, slugs=True) == "n  UUID: i  Slug: s?[2J  Status: Up"
+
+
+NAME = "\x1b[38;5;208m"
+"""The colour of a monitor's name in the table."""
+
+
+def test_table_colours_the_name_the_id_label_and_the_status() -> None:
+    """The name is orange (208), the ID label bold cyan and the status has its colour; the padding after the name,
+    the ID and the Status label stay plain."""
     text = tronitor.format_monitor_table(sample_monitors(), "UUID", True)
     first, second = text.split("\n")
-    assert first.startswith("web       UUID: id1  Status: ")
-    assert "\x1b[33mPaused\x1b[0m" in first
-    assert "\x1b[38;5;202mSeems down\x1b[0m" in second
+    assert first == f"{NAME}web\x1b[0m       \x1b[1;36mUUID:\x1b[0m id1  Status: \x1b[33mPaused\x1b[0m"
+    assert second == f"{NAME}database\x1b[0m  \x1b[1;36mUUID:\x1b[0m id2  Status: \x1b[38;5;202mSeems down\x1b[0m"
     unknown = tronitor.Monitor("i", "n", "odd", {})
-    assert tronitor.format_monitor_table([unknown], "ID", True) == "n  ID: i  Status: Odd"
+    line = tronitor.format_monitor_table([unknown], "ID", True)
+    assert line == f"{NAME}n\x1b[0m  \x1b[1;36mID:\x1b[0m i  Status: Odd"
+
+
+def test_table_colours_the_slug_label_bold_bright_blue() -> None:
+    """With slugs, the Slug label is bold bright blue and the padding stays outside the colour codes."""
+    monitors = [
+        tronitor.Monitor("id1", "web", "up", {}, slug="web"),
+        tronitor.Monitor("id2", "database", "up", {}, slug="database-backup"),
+    ]
+    first, second = tronitor.format_monitor_table(monitors, "UUID", True, slugs=True).split("\n")
+    assert first == (
+        f"{NAME}web\x1b[0m       \x1b[1;36mUUID:\x1b[0m id1  \x1b[1;94mSlug:\x1b[0m web              "
+        "Status: \x1b[32mUp\x1b[0m"
+    )
+    assert second == (
+        f"{NAME}database\x1b[0m  \x1b[1;36mUUID:\x1b[0m id2  \x1b[1;94mSlug:\x1b[0m database-backup  "
+        "Status: \x1b[32mUp\x1b[0m"
+    )
+
+
+def test_table_without_colour_has_no_colour_codes() -> None:
+    """Without colour, neither the labels nor the status carry codes."""
+    monitors = [tronitor.Monitor("id1", "web", "up", {}, slug="web")]
+    assert "\x1b" not in tronitor.format_monitor_table(monitors, "UUID", False, slugs=True)
 
 
 def test_format_json_is_sorted_indented_and_unescaped() -> None:
@@ -1110,8 +1264,8 @@ def test_status_colors_cover_every_status() -> None:
 def test_table_strips_control_characters_from_the_status() -> None:
     """A status from the provider with a control character is shown with "?" in its place."""
     line = tronitor.format_monitor_table([tronitor.Monitor("i", "n", "up\x1b[2J", {})], "ID", True)
-    assert "\x1b" not in line
-    assert line == "n  ID: i  Status: Up?[2j"
+    assert "\x1b[2J" not in line
+    assert line == f"{NAME}n\x1b[0m  \x1b[1;36mID:\x1b[0m i  Status: Up?[2j"
 
 
 def test_format_json_escapes_del_and_c1_control_characters() -> None:
@@ -1129,7 +1283,8 @@ DB_PAUSE = f"/api/v3/checks/{HC_UUID_DATABASE}/pause"
 DB_RESUME = f"/api/v3/checks/{HC_UUID_DATABASE}/resume"
 REMINDER = (
     "Note: a paused Healthchecks check becomes active again when it next receives a ping. "
-    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs). "
+    "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
 )
 
 
@@ -1173,8 +1328,8 @@ def test_list_prints_table(hc_env: Path, fake_server: FakeServer, capsys: pytest
     out, err = capsys.readouterr()
     assert out.splitlines() == [
         "The following Healthchecks monitors were found:",
-        f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Status: Up",
-        f"Database Backup    UUID: {HC_UUID_DATABASE}  Status: Paused",
+        f"Filesystem Backup  UUID: {HC_UUID_FILESYSTEM}  Slug: filesystem-backup  Status: Up",
+        f"Database Backup    UUID: {HC_UUID_DATABASE}  Slug: database-backup    Status: Paused",
     ]
     assert err == ""
 
@@ -1201,7 +1356,7 @@ def test_find_shows_paused_only_and_does_not_prompt_without_tty(
     assert tronitor.main(["-m", "hc", "-f"]) == 0
     assert capsys.readouterr().out.splitlines() == [
         "The following Healthchecks monitors are paused:",
-        f"Database Backup  UUID: {HC_UUID_DATABASE}  Status: Paused",
+        f"Database Backup  UUID: {HC_UUID_DATABASE}  Slug: database-backup  Status: Paused",
     ]
     assert posts(fake_server) == []
 
@@ -1297,6 +1452,161 @@ def test_pause_all_creates_lock_and_posts_each(
     assert out.rstrip().endswith(REMINDER)
 
 
+def checks_with_manual_resume(filesystem: object, database: object) -> list[dict[str, object]]:
+    """Return the fixture checks with their manual_resume set; None removes the field, as on an old server."""
+    checks: list[dict[str, object]] = list(hc_fixture_checks())
+    for check, value in zip(checks, (filesystem, database), strict=True):
+        if value is None:
+            del check["manual_resume"]
+        else:
+            check["manual_resume"] = value
+    return checks
+
+
+def test_pause_reminder_names_only_the_checks_that_resume_on_a_ping(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When some paused checks ignore pings, the reminder names the ones that do not."""
+    serve_checks(fake_server, checks_with_manual_resume(True, False))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    assert capsys.readouterr().out.rstrip().endswith(
+        "Note: these paused Healthchecks checks become active again when they next receive a ping: "
+        "Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). "
+        "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
+    )
+
+
+def test_pause_has_no_reminder_when_every_paused_check_ignores_pings(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Checks set to ignore pings while paused stay paused, so there is nothing to remind."""
+    serve_checks(fake_server, checks_with_manual_resume(True, True))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    out = capsys.readouterr().out
+    assert "Note:" not in out
+    assert out.endswith(f"Pausing Database Backup (UUID {HC_UUID_DATABASE})... done\n")
+
+
+def test_pause_reminder_leaves_out_a_check_that_failed_to_pause(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Only the checks that were paused count: one that failed is not paused, so it is not named."""
+    serve_checks(fake_server, checks_with_manual_resume(True, False))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 500, {"error": "boom"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 3
+    assert "Note:" not in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("value", [None, "true", 1], ids=["no field", "a string", "a number"])
+def test_pause_reminder_counts_a_check_without_a_true_manual_resume_as_resuming(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], value: object
+) -> None:
+    """Only manual_resume true means "ignores pings"; a missing field (an old server) or another value does not."""
+    serve_checks(fake_server, checks_with_manual_resume(True, value))
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
+    assert capsys.readouterr().out.rstrip().endswith(
+        "ping: Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). "
+        "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
+    )
+
+
+FS_UPDATE = f"/api/v3/checks/{HC_UUID_FILESYSTEM}"
+DB_UPDATE = f"/api/v3/checks/{HC_UUID_DATABASE}"
+
+
+def test_ignore_paused_pings_changes_only_the_checks_without_the_setting(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--ignore-paused-pings all skips a check that has the setting, sets the other one and touches no lock file."""
+    checks = checks_with_manual_resume(True, False)
+    serve_checks(fake_server, checks)
+    fake_server.add("POST", DB_UPDATE, 200, {**checks[1], "manual_resume": True})
+    assert tronitor.main(["-m", "hc", "--ignore-paused-pings", "all"]) == 0
+    out, err = capsys.readouterr()
+    assert out.splitlines() == [
+        f"Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) already ignores pings while paused",
+        f"Setting Database Backup (UUID {HC_UUID_DATABASE}) to ignore pings while paused... done",
+    ]
+    assert err == ""
+    assert [(r.path, r.body) for r in fake_server.requests if r.method == "POST"] == [
+        (DB_UPDATE, {"manual_resume": True})
+    ]
+    assert not locks.exists() or list(locks.iterdir()) == []
+
+
+def test_resume_on_ping_sets_a_check_back(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--resume-on-ping posts manual_resume false for a check that ignores pings, selected by its slug."""
+    checks = checks_with_manual_resume(True, True)
+    serve_checks(fake_server, checks)
+    fake_server.add("POST", FS_UPDATE, 200, {**checks[0], "manual_resume": False})
+    assert tronitor.main(["-m", "hc", "--resume-on-ping", "filesystem-backup"]) == 0
+    assert capsys.readouterr().out == (
+        f"Setting Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) to resume on a ping... done\n"
+    )
+    assert [(r.path, r.body) for r in fake_server.requests if r.method == "POST"] == [
+        (FS_UPDATE, {"manual_resume": False})
+    ]
+
+
+def test_resume_on_ping_skips_checks_that_already_resume(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A check without manual_resume true already resumes on a ping, so nothing is sent."""
+    serve_checks(fake_server, checks_with_manual_resume(False, None))
+    assert tronitor.main(["-m", "hc", "--resume-on-ping", "all"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        f"Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) already resumes on a ping",
+        f"Database Backup (UUID {HC_UUID_DATABASE}) already resumes on a ping",
+    ]
+    assert posts(fake_server) == []
+
+
+def test_ignore_paused_pings_reports_a_server_that_does_not_keep_the_setting(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When one change fails and another works, the failure goes to stderr and the exit code is 3."""
+    checks = hc_fixture_checks()
+    serve_checks(fake_server, checks)
+    fake_server.add("POST", FS_UPDATE, 200, {**checks[0], "manual_resume": True})
+    fake_server.add("POST", DB_UPDATE, 200, checks[1])
+    assert tronitor.main(["-m", "hc", "--ignore-paused-pings", "all"]) == 3
+    out, err = capsys.readouterr()
+    assert out == f"Setting Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) to ignore pings while paused... done\n"
+    assert err == (
+        f"tronitor: Setting Database Backup (UUID {HC_UUID_DATABASE}) to ignore pings while paused... failed: "
+        "this Healthchecks server does not support the setting\n"
+    )
+
+
+def test_ignore_paused_pings_with_an_unmatched_name_changes_nothing(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The selection works as for --pause: a name that matches nothing stops everything with exit code 3."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "--ignore-paused-pings", "Filesystem Backup,Tautulli"]) == 3
+    assert capsys.readouterr().err == "tronitor: Not found: Tautulli\n"
+    assert posts(fake_server) == []
+
+
+@pytest.mark.parametrize("option", ["--ignore-paused-pings", "--resume-on-ping"])
+def test_paused_ping_options_are_unsupported_for_uptimerobot(
+    ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], option: str
+) -> None:
+    """On UptimeRobot, both options are a usage error before any request."""
+    assert tronitor.main(["-m", "ur", option, "all"]) == 2
+    assert capsys.readouterr().err == f"tronitor: UptimeRobot does not support {option}\n"
+    assert fake_server.requests == []
+
+
 def test_pause_named_creates_per_monitor_lock(
     hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1306,6 +1616,18 @@ def test_pause_named_creates_per_monitor_lock(
     assert tronitor.main(["-m", "hc", "-p", "'filesystem backup'"]) == 0
     assert [p.name for p in locks.iterdir()] == [f"{HC_UUID_FILESYSTEM}.lock"]
     assert posts(fake_server) == [FS_PAUSE]
+
+
+def test_pause_by_slug_creates_that_checks_lock(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--pause SLUG pauses that check and creates its lock file, named by its UUID."""
+    serve_checks(fake_server)
+    fake_server.add("POST", FS_PAUSE, 200, {"status": "paused"})
+    assert tronitor.main(["-m", "hc", "-p", "filesystem-backup"]) == 0
+    assert [p.name for p in locks.iterdir()] == [f"{HC_UUID_FILESYSTEM}.lock"]
+    assert posts(fake_server) == [FS_PAUSE]
+    assert f"Pausing Filesystem Backup (UUID {HC_UUID_FILESYSTEM})... done" in capsys.readouterr().out
 
 
 def test_pause_unmatched_name_does_nothing_and_exits_3(
@@ -1861,6 +2183,7 @@ def test_ur_list_maps_fields_and_statuses(ur_provider: tronitor.UptimeRobotProvi
         ("1003", "Radarr", "seems down"),
     ]
     assert monitors[0].raw == ur_fixture_monitors()[0]
+    assert all(m.slug == "" for m in monitors)
     assert fake_server.requests[0].headers["Authorization"] == "Bearer ur-test-key"
     assert fake_server.requests[0].query == {"limit": ["200"]}
 

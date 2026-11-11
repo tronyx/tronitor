@@ -21,17 +21,18 @@ The actions that pause, unpause, delete or reset monitors take a list of monitor
 - Put the list in quotes when a name has a space in it: `-p "Filesystem Backup,Database Backup"`. Quotes around one item in the list also work: `-p "'Plex','Sonarr'"`.
 - A name must match the whole monitor name. Capital letters do not matter. So `plex` matches `Plex`, but not `Plex Backup`.
 - An ID is the check's UUID on Healthchecks: a long code that Healthchecks gives each check, for example `31365bce-8da9-4729-8ff3-aaa71d56b712`. On UptimeRobot, it is the monitor's number, for example `1002`. `-l` shows the IDs. tronitor takes an item that looks like an ID as an ID, not as a name.
-- A name with a comma in it cannot be given, because the comma splits the list. Use the monitor's ID instead. If an item that tronitor did not find is the start of such a name, the message says so.
+- On Healthchecks, a check's slug also works, for example `-p filesystem-backup`. The slug is a short form of the name that Healthchecks gives each check, in lowercase and with hyphens instead of spaces. `-l` shows it. A slug needs no quotes. Like a name, it must match whole, and capital letters do not matter. UptimeRobot has no slugs.
+- A name with a comma in it cannot be given, because the comma splits the list. Use the monitor's ID instead, or on Healthchecks its slug. If an item that tronitor did not find is the start of such a name, the message says so.
 - A monitor named twice in the list gets the action once.
 
 Before tronitor changes anything, it checks the whole list:
 
-- **A name that two or more monitors share.** tronitor lists the monitors with that name and their IDs, and does nothing. Use the ID of the one that you want. `--yes` does not change this.
-- **A name or ID that matches no monitor.** tronitor prints `Not found:` and the item, and does nothing. With `--yes`, it reports the missing items and acts on the monitors that it found.
+- **A name that two or more monitors share.** tronitor lists the monitors with that name and their IDs, and does nothing. On Healthchecks, the same happens when an item is the name of one check and the slug of another. Use the ID of the one that you want. `--yes` does not change this.
+- **A name, slug or ID that matches no monitor.** tronitor prints `Not found:` and the item, and does nothing. With `--yes`, it reports the missing items and acts on the monitors that it found.
 
 In both cases, the exit code is `3` (see [Exit codes](#-exit-codes)).
 
-`-i` takes a single monitor, by name or by ID, in the same way.
+`-i` takes a single monitor, by name, slug or ID, in the same way.
 
 ## 🧰 All options
 
@@ -62,6 +63,8 @@ Choose one of these actions:
 | `-u TARGETS`, `--unpause TARGETS` | Unpause monitors |
 | `-d TARGETS`, `--delete TARGETS` | Delete monitors. Asks first |
 | `-r TARGETS`, `--reset TARGETS` | Clear the statistics of monitors. Asks first. UptimeRobot only |
+| `--ignore-paused-pings TARGETS` | Make checks stay paused when they get a ping (see [Lock files](cron.md#-lock-files)). Healthchecks only |
+| `--resume-on-ping TARGETS` | Make checks leave the paused state when they get a ping, which is the default. Healthchecks only |
 | `--migrate PATH` | Write `tronitor.toml` from the settings of the old Bash script at `PATH`. Needs no `-m` (see [Upgrading from the Bash script](#-upgrading-from-the-bash-script)) |
 
 <details>
@@ -71,7 +74,8 @@ Choose one of these actions:
 usage: tronitor [-h] [-m PROVIDER] [--config PATH] [--yes] [--json]
                 [--no-color] [--verbose] [--version] (-l | -f | -n | -w | -s |
                 -a | -i TARGET | -c FILE | -p TARGETS | -u TARGETS |
-                -d TARGETS | -r TARGETS | --migrate PATH)
+                -d TARGETS | -r TARGETS | --ignore-paused-pings TARGETS |
+                --resume-on-ping TARGETS | --migrate PATH)
 
 Pause and unpause Healthchecks and UptimeRobot monitors, from cron or by hand.
 
@@ -107,6 +111,12 @@ actions (choose one):
   -d, --delete TARGETS  delete monitors (asks first)
   -r, --reset TARGETS   clear the statistics of monitors (asks first; not
                         Healthchecks)
+  --ignore-paused-pings TARGETS
+                        make paused checks ignore pings and stay paused
+                        (Healthchecks only)
+  --resume-on-ping TARGETS
+                        make paused checks leave the paused state on a ping,
+                        the default (Healthchecks only)
   --migrate PATH        write tronitor.toml, next to the old tronitor.sh at
                         PATH, from the script's settings (no -m needed)
 
@@ -115,7 +125,8 @@ PROVIDER is healthchecks (hc) or uptimerobot (ur).
 TARGETS is "all", or a comma-separated list of monitor names and IDs. Put names
 in quotes, for example: -p "Filesystem Backup,Database Backup". A name must
 match the whole monitor name, but capital letters do not matter. A Healthchecks
-ID is the check's UUID; an UptimeRobot ID is the monitor's number.
+ID is the check's UUID; an UptimeRobot ID is the monitor's number. Healthchecks
+also takes a check's slug, which -l shows, for example: -p filesystem-backup.
 
 Examples:
   tronitor -m hc -l
@@ -242,13 +253,15 @@ tronitor does not need `tronitor.sh` after the migration. The script still holds
 
 ```text
 The following Healthchecks monitors were found:
-Filesystem Backup  UUID: 31365bce-8da9-4729-8ff3-aaa71d56b712  Status: Up
-Database Backup    UUID: 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41  Status: Paused
+Filesystem Backup  UUID: 31365bce-8da9-4729-8ff3-aaa71d56b712  Slug: filesystem-backup  Status: Up
+Database Backup    UUID: 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41  Slug: database-backup    Status: Paused
 ```
 
-On a terminal, the status has a colour: green for up, red for down, yellow for paused, orange for grace and seems down, and magenta for new, started and pending. tronitor uses no colour when the output goes to a file or a pipe, when you give `--no-color`, or when the `NO_COLOR` environment variable is set, to any value.
+On Healthchecks, the table also shows each check's slug, or `(none)` for a check without one. UptimeRobot monitors have no slug column.
 
-If a monitor's name or ID holds a control character (an invisible character that gives commands to the terminal), tronitor shows a `?` instead.
+On a terminal, the status has a colour: green for up, red for down, yellow for paused, orange for grace and seems down, and magenta for new, started and pending. The monitor's name is a lighter orange than the grace status, the `UUID:` label (`ID:` on UptimeRobot) is bold cyan, and the `Slug:` label is bold bright blue. tronitor uses no colour when the output goes to a file or a pipe, when you give `--no-color`, or when the `NO_COLOR` environment variable is set, to any value.
+
+If a monitor's name, slug or ID holds a control character (an invisible character that gives commands to the terminal), tronitor shows a `?` instead.
 
 ### 🧾 JSON
 
@@ -296,12 +309,27 @@ $ tronitor -m hc -p all
 Pausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
 Pausing Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41)... done
 
-Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs).
+Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). Running --ignore-paused-pings on a check keeps it paused when it gets a ping.
 
 $ tronitor -m hc -u all
 Unpausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
 Unpausing Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41)... done
 ```
+
+If some of the checks ignore pings while they are paused, the note names only the others. If all of them do, tronitor prints no note. See [Lock files](cron.md#-lock-files).
+
+</details>
+
+<details>
+<summary>Make every Healthchecks check ignore pings while paused</summary>
+
+```text
+$ tronitor -m hc --ignore-paused-pings all
+Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712) already ignores pings while paused
+Setting Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41) to ignore pings while paused... done
+```
+
+Run the command again after you add checks. It changes only the checks that do not have the setting yet.
 
 </details>
 
@@ -330,7 +358,7 @@ $ tronitor -m hc -p "Filesystem Backup,Nope" --yes
 tronitor: Not found: Nope
 Pausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
 
-Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs).
+Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). Running --ignore-paused-pings on a check keeps it paused when it gets a ping.
 ```
 
 Both commands end with exit code `3`.

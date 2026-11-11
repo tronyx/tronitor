@@ -39,9 +39,14 @@ An older copy of tronitor stopped on such a Python with a traceback that ended i
 
 ## 🤔 My paused Healthchecks check came back by itself
 
-A paused Healthchecks check becomes active again when it next receives a ping. A ping is the signal that a job sends to Healthchecks to say that it ran. So if a job pings the check every few minutes, the pause ends at the next ping. Healthchecks works this way on purpose, and tronitor cannot change it.
+By default, a paused Healthchecks check becomes active again when it next receives a ping. A ping is the signal that a job sends to Healthchecks to say that it ran. So if a job pings the check every few minutes, the pause ends at the next ping.
 
-To keep a check paused, the job that pings it must stop while the check is paused. [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) does this when it finds tronitor's lock files. If the check still comes back:
+There are two ways to keep a check paused:
+
+- In Healthchecks, set the check's "Pinging a Paused Check" setting to "Ignore the ping, stay in the paused state". Then a ping does not end the pause. The check stays paused until you run `-u`, or until you resume it in the Healthchecks dashboard. `tronitor -m hc --ignore-paused-pings all` sets it on every check.
+- Stop the job that pings the check while the check is paused. [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) does this when it finds tronitor's lock files.
+
+If you use the lock files and the check still comes back:
 
 - Make sure that `lock_dir` in `tronitor.toml` and `tempDir` in HealthChecks-Linux point at the same folder. The defaults, `/tmp` and `/tmp/`, match. See [Setting up HealthChecks-Linux](cron.md#-setting-up-healthchecks-linux).
 - Make sure that tronitor and HealthChecks-Linux run on the same computer.
@@ -160,25 +165,25 @@ This happens on UptimeRobot. UptimeRobot keeps a copy of the list of monitors fo
 
 ### `Not found: Plex Backup`
 
-No monitor has this name or ID. tronitor does nothing, and the exit code is `3`.
+No monitor has this name, slug or ID. tronitor does nothing, and the exit code is `3`.
 
 - A name must match the whole monitor name. `plex` does not match `Plex Backup`. Capital letters do not matter.
-- Run `-l` to see the exact names and IDs.
+- Run `-l` to see the exact names and IDs, and on Healthchecks the slugs.
 - Put the list in quotes if a name has a space in it.
 
 With `--yes`, tronitor still prints this line, but it acts on the monitors that it found. See [Naming monitors](usage.md#-naming-monitors).
 
 ### `"Plex" matches 2 monitors; use the ID instead:`
 
-Two or more monitors have this name. On Healthchecks, the line says `use the UUID instead`. tronitor lists the monitors with their IDs, and does nothing, also with `--yes`. Give the ID of the monitor that you want instead of the name. The exit code is `3`.
+Two or more monitors have this name. On Healthchecks, this also happens when the item is the name of one check and the slug of another, and the line says `use the UUID instead`. tronitor lists the monitors with their IDs, and does nothing, also with `--yes`. Give the ID of the monitor that you want instead of the name. The exit code is `3`.
 
 ### `Names with commas cannot be selected; use the ID instead.`
 
-A comma splits the list of monitors, so a name with a comma in it cannot be given. tronitor adds this line when an item that it did not find is the start of such a name. Give the monitor's ID instead. On Healthchecks, the line says `use the UUID instead`.
+A comma splits the list of monitors, so a name with a comma in it cannot be given. tronitor adds this line when an item that it did not find is the start of such a name. Give the monitor's ID instead, or on Healthchecks its slug. On Healthchecks, the line says `use the slug or the UUID instead`.
 
 ### `--info takes one monitor`
 
-`-i` takes one name or ID, not `all` and not a list.
+`-i` takes one name, slug or ID, not `all` and not a list.
 
 ### `--pause needs "all" or a comma-separated list of monitors`
 
@@ -190,7 +195,11 @@ The list after `-p`, `-u`, `-d` or `-r` is empty, for example `-p ""`.
 
 The action failed for this monitor. tronitor continues with the other monitors. The text after `failed:` gives the reason, for example `HTTP 429: ...` (see the next section). If other monitors worked, the exit code is `3`. If none worked, it is `1`.
 
-The same line exists for `Unpausing`, `Deleting` and `Resetting`. The `Deleting` and `Resetting` lines show only the name, without the ID.
+The same line exists for `Unpausing`, `Deleting`, `Resetting` and `Setting`. The `Deleting` and `Resetting` lines show only the name, without the ID.
+
+### `this Healthchecks server does not support the setting`
+
+`--ignore-paused-pings` or `--resume-on-ping` sent the change, but the server answered without it. A Healthchecks server that is too old to know the "Pinging a Paused Check" setting ignores the change. Update the server, or keep the checks paused with the lock files. See [Lock files](cron.md#-lock-files). If other checks changed, the exit code is `3`. If none did, it is `1`.
 
 ### `HTTP 429: ...`
 
@@ -200,7 +209,7 @@ On a `429` from UptimeRobot, tronitor waits for the time that UptimeRobot asks f
 
 ### `Healthchecks does not support stats`
 
-The provider does not offer this action. Healthchecks has no account statistics (`-s`) and no reset (`-r`). See [What each provider supports](providers.md#-what-each-provider-supports). The exit code is `2`.
+The provider does not offer this action. Healthchecks has no account statistics (`-s`) and no reset (`-r`). UptimeRobot has no `--ignore-paused-pings` and no `--resume-on-ping`, because a ping never ends its pause. See [What each provider supports](providers.md#-what-each-provider-supports). The exit code is `2`.
 
 ### `Refusing to delete without a terminal; pass --yes to confirm.`
 

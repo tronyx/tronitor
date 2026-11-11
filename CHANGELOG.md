@@ -8,6 +8,19 @@ The project doesn't use version numbers. Each entry is one merge into `master`, 
 
 Nothing yet.
 
+## 2026-11-11 · [#73](https://github.com/tronyx/tronitor/pull/73)
+
+### Added
+
+- On Healthchecks, a check's slug selects it, like its name or its UUID, for example `-p filesystem-backup`. A slug has no spaces, capital letters or commas, so it needs no quotes. It also selects a check whose name has a comma, which no name could do. If an item is the name of one check and the slug of another, tronitor does nothing and lists both UUIDs. UptimeRobot has no slugs. See [Naming monitors](docs/usage.md#-naming-monitors).
+- The Healthchecks table from `-l`, `-f`, `-n` and `-w` has a `Slug:` column between the UUID and the status.
+- `--ignore-paused-pings TARGETS` sets Healthchecks checks to stay paused when they get a ping, and `--resume-on-ping TARGETS` sets them back. They take the same list as `-p`, change only the checks that do not have the setting yet, and do not touch the lock files. So you can run `tronitor -m hc --ignore-paused-pings all` again after you add checks. A Healthchecks server that is too old to know the setting gives an error. The example file for a Healthchecks check sets `manual_resume`. See [Lock files](docs/cron.md#-lock-files).
+
+### Changed
+
+- A Healthchecks check whose "Pinging a Paused Check" setting is "Ignore the ping, stay in the paused state" (`manual_resume` in the API) stays paused when it gets a ping. After `-p`, tronitor's note now names only the paused checks that a ping makes active again. When there are none, tronitor prints no note. When every paused check resumes on a ping, the note is the same as before. Each note now ends with a pointer to `--ignore-paused-pings`. [Lock files](docs/cron.md#-lock-files) explains the setting.
+- On a terminal, the table shows each monitor's name in orange, a lighter shade than the grace status. Its `UUID:` label (`ID:` on UptimeRobot) is bold cyan and its `Slug:` label bold bright blue, so the columns are easier to tell apart.
+
 ## 2026-11-10 · [#72](https://github.com/tronyx/tronitor/pull/72)
 
 ### Documentation

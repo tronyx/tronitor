@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pause and unpause Healthchecks and UptimeRobot monitors from the command line or cron.
 
-tronitor lists the monitors in an account, finds the paused ones, pauses and unpauses them by name or ID,
+tronitor lists the monitors in an account, finds the paused ones, pauses and unpauses them by name, slug or ID,
 and can post a summary to a Discord or Slack webhook. Credentials come from a TOML config file or
 environment variables.
 """
@@ -45,7 +45,7 @@ else:
             print(f"tronitor: Python 3.10 or newer is needed, but {_python} is Python {_version}", file=sys.stderr)
         sys.exit(2)
 
-__version__ = "2026-11-10"
+__version__ = "2026-11-11"
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -497,15 +497,18 @@ UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 
 @dataclass(frozen=True)
 class Monitor:
-    """One monitor: its ID, name, status and the provider's raw record.
+    """One monitor: its ID, name, status, the provider's raw record and its slug.
 
-    The status is one of "up", "down", "paused", "grace", "new", "started", "pending" or "seems down".
+    The status is one of "up", "down", "paused", "grace", "new", "started", "pending" or "seems down". The slug is
+    the short name that Healthchecks gives a check, such as "filesystem-backup"; it is "" for an UptimeRobot monitor
+    and for a check without one.
     """
 
     id: str
     name: str
     status: str
     raw: dict[str, Any]
+    slug: str = ""
 
 
 class Unsupported(ProviderError):
@@ -548,8 +551,12 @@ class Provider(abc.ABC):
 
     label = ""
     id_kind = ""
+    has_slugs = False
+    """True if the provider gives each monitor a slug, which -l shows and which selects a monitor like its name."""
     supports_lock_files = False
     supports_reset = False
+    supports_manual_resume = False
+    """True if a paused monitor can be set to ignore pings (--ignore-paused-pings and --resume-on-ping)."""
     unpause_only_paused = True
     """True: -u sends an unpause only for monitors whose listed status is paused, and says the others run.
 
@@ -593,6 +600,10 @@ class Provider(abc.ABC):
         """Reset a monitor's statistics; most providers do not offer this."""
         raise Unsupported(f"{self.label} does not support reset")
 
+    def set_manual_resume(self, monitor: Monitor, value: bool) -> None:
+        """Set whether a paused monitor ignores pings (True) or resumes on one (False); most providers lack this."""
+        raise Unsupported(f"{self.label} does not support manual_resume")
+
     @staticmethod
     @abc.abstractmethod
     def is_id(text: str) -> bool:
@@ -604,7 +615,9 @@ class HealthchecksProvider(Provider):
 
     label = "Healthchecks"
     id_kind = "UUID"
+    has_slugs = True
     supports_lock_files = True
+    supports_manual_resume = True
 
     def __init__(self, http: Http, config: HealthchecksConfig) -> None:
         self._http = http
@@ -614,18 +627,23 @@ class HealthchecksProvider(Provider):
     def list_monitors(self) -> list[Monitor]:
         """Return every check; a read-only API key (checks without a uuid) raises ProviderError.
 
-        A name or status that is not a string, or a uuid that is not a UUID, is an unexpected response. The uuid
-        becomes the name of a lock file, so this keeps a hostile server from naming a file in another folder.
+        A name or status that is not a string, a slug that is there but not a string, or a uuid that is not a UUID,
+        is an unexpected response. The uuid becomes the name of a lock file, so this keeps a hostile server from
+        naming a file in another folder. A check without a slug gets "".
         """
         body = _expect_dict(self._http.request("GET", f"{self._api}/checks/", headers=self._headers).json, self.label)
         checks = [_expect_dict(check, self.label) for check in _expect_list(body.get("checks"), self.label)]
         if any(not isinstance(c.get("name"), str) or not isinstance(c.get("status"), str) for c in checks):
             raise ProviderError(f"unexpected response from {self.label}")
+        if any(not isinstance(c.get("slug", ""), str) for c in checks):
+            raise ProviderError(f"unexpected response from {self.label}")
         if any("uuid" not in check for check in checks):
             raise ProviderError("the Healthchecks API key is read-only; tronitor needs a read-write key")
         if any(not isinstance(c["uuid"], str) or not self.is_id(c["uuid"]) for c in checks):
             raise ProviderError(f"unexpected response from {self.label}")
-        return [Monitor(id=c["uuid"], name=c["name"], status=c["status"], raw=c) for c in checks]
+        return [
+            Monitor(id=c["uuid"], name=c["name"], status=c["status"], raw=c, slug=c.get("slug", "")) for c in checks
+        ]
 
     def pause(self, monitor: Monitor) -> None:
         """Pause a check."""
@@ -659,6 +677,18 @@ class HealthchecksProvider(Provider):
     def delete(self, monitor: Monitor) -> None:
         """Delete a check."""
         self._http.request("DELETE", f"{self._api}/checks/{monitor.id}", headers=self._headers)
+
+    def set_manual_resume(self, monitor: Monitor, value: bool) -> None:
+        """Set the check's "Pinging a Paused Check" setting: True ignores pings while paused, False resumes on one.
+
+        A server that does not know manual_resume ignores the field, so an answer without the new value raises
+        ProviderError rather than letting the change look done.
+        """
+        response = self._http.request(
+            "POST", f"{self._api}/checks/{monitor.id}", headers=self._headers, json_body={"manual_resume": value}
+        )
+        if _expect_dict(response.json, self.label).get("manual_resume") is not value:
+            raise ProviderError(f"this {self.label} server does not support the setting")
 
     @staticmethod
     def is_id(text: str) -> bool:
@@ -797,7 +827,10 @@ class Selection:
 
 
 def select_monitors(monitors: Sequence[Monitor], items: Sequence[str], is_id: Callable[[str], bool]) -> Selection:
-    """Match items against monitors by ID or by exact, case-insensitive name."""
+    """Match items against monitors by ID, or by exact, case-insensitive name or slug.
+
+    An item that is one monitor's name and another monitor's slug matches both, so it is ambiguous.
+    """
     if list(items) == ["all"]:
         return Selection(matched=list(monitors), unmatched=[], ambiguous={})
     selection = Selection(matched=[], unmatched=[], ambiguous={})
@@ -806,7 +839,7 @@ def select_monitors(monitors: Sequence[Monitor], items: Sequence[str], is_id: Ca
         if is_id(item):
             found = [m for m in monitors if m.id.casefold() == wanted]
         else:
-            found = [m for m in monitors if m.name.casefold() == wanted]
+            found = [m for m in monitors if wanted in (m.name.casefold(), m.slug.casefold())]
         if not found:
             selection.unmatched.append(item)
         elif len(found) > 1:
@@ -824,7 +857,8 @@ def describe_selection_problems(selection: Selection, monitors: Sequence[Monitor
         lines.extend(f"  {m.name} ({id_kind} {m.id})" for m in found)
     names = [m.name.casefold() for m in monitors]
     if any(name.startswith(item.casefold() + ",") for item in selection.unmatched for name in names):
-        lines.append(f"Names with commas cannot be selected; use the {id_kind} instead.")
+        instead = f"the slug or the {id_kind}" if any(m.slug for m in monitors) else f"the {id_kind}"
+        lines.append(f"Names with commas cannot be selected; use {instead} instead.")
     return "\n".join(lines)
 
 
@@ -937,6 +971,14 @@ STATUS_COLORS: dict[str, str] = {
     "started": "\x1b[35m",
     "pending": "\x1b[35m",
 }
+LABEL_COLORS: dict[str, str] = {
+    "name": "\x1b[38;5;208m",
+    "id": "\x1b[1;36m",
+    "slug": "\x1b[1;94m",
+}
+"""The table's colours apart from the status: the monitor's name in orange (208), the ID label (UUID: or ID:) in
+bold cyan and Slug: in bold bright blue. None is a status colour: 208 is a lighter orange than the 202 of grace and
+seems down, so a name never looks like a status."""
 
 
 class NeedsTerminal(Exception):
@@ -964,19 +1006,33 @@ def plain_text(text: str) -> str:
     return re.sub(r"[\x00-\x1f\x7f-\x9f]", "?", text)
 
 
-def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool) -> str:
-    """Return one line per monitor: the padded name, the ID and the status, coloured if color is true."""
+def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool, slugs: bool = False) -> str:
+    """Return one line per monitor: the padded name, the ID and the status, coloured if color is true.
+
+    With slugs, a padded slug column comes before the status; a monitor without a slug shows "(none)". With color,
+    the name is orange, the ID label bold cyan and the Slug label bold bright blue (see LABEL_COLORS), apart from the
+    status colours. The padding after the name stays outside its colour codes, so the columns still line up.
+    """
     if not monitors:
         return ""
     names = [plain_text(monitor.name) for monitor in monitors]
     width = max(len(name) for name in names)
+    slug_texts = [plain_text(monitor.slug) or "(none)" for monitor in monitors]
+    slug_width = max(len(text) for text in slug_texts)
+    id_label, slug_label = f"{id_kind}:", "Slug:"
+    if color:
+        id_label = f"{LABEL_COLORS['id']}{id_label}{RESET}"
+        slug_label = f"{LABEL_COLORS['slug']}{slug_label}{RESET}"
     lines = []
-    for monitor, name in zip(monitors, names, strict=True):
+    for monitor, name, slug_text in zip(monitors, names, slug_texts, strict=True):
         status_text = plain_text(monitor.status).capitalize()
         code = STATUS_COLORS.get(monitor.status)
         if color and code:
             status_text = f"{code}{status_text}{RESET}"
-        lines.append(f"{name:<{width}}  {id_kind}: {plain_text(monitor.id)}  Status: {status_text}")
+        slug_column = f"{slug_label} {slug_text:<{slug_width}}  " if slugs else ""
+        name_text = f"{LABEL_COLORS['name']}{name}{RESET}" if color else name
+        padding = " " * (width - len(name))
+        lines.append(f"{name_text}{padding}  {id_label} {plain_text(monitor.id)}  {slug_column}Status: {status_text}")
     return "\n".join(lines)
 
 
@@ -1264,9 +1320,11 @@ PROVIDER_NAMES = {
     "ur": "uptimerobot",
     "uptimerobot": "uptimerobot",
 }
+HC_LOCK_NOTE = "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+HC_IGNORE_HINT = "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
 HC_REMINDER = (
-    "Note: a paused Healthchecks check becomes active again when it next receives a ping. "
-    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+    f"Note: a paused Healthchecks check becomes active again when it next receives a ping. {HC_LOCK_NOTE} "
+    f"{HC_IGNORE_HINT}"
 )
 DESCRIPTION = "Pause and unpause Healthchecks and UptimeRobot monitors, from cron or by hand."
 EPILOG = f"""\
@@ -1275,7 +1333,8 @@ PROVIDER is healthchecks (hc) or uptimerobot (ur).
 TARGETS is "all", or a comma-separated list of monitor names and IDs. Put names
 in quotes, for example: -p "Filesystem Backup,Database Backup". A name must
 match the whole monitor name, but capital letters do not matter. A Healthchecks
-ID is the check's UUID; an UptimeRobot ID is the monitor's number.
+ID is the check's UUID; an UptimeRobot ID is the monitor's number. Healthchecks
+also takes a check's slug, which -l shows, for example: -p filesystem-backup.
 
 Examples:
   tronitor -m hc -l
@@ -1350,6 +1409,16 @@ def build_parser() -> argparse.ArgumentParser:
     actions.add_argument("-d", "--delete", metavar="TARGETS", help="delete monitors (asks first)")
     actions.add_argument(
         "-r", "--reset", metavar="TARGETS", help="clear the statistics of monitors (asks first; not Healthchecks)"
+    )
+    actions.add_argument(
+        "--ignore-paused-pings",
+        metavar="TARGETS",
+        help="make paused checks ignore pings and stay paused (Healthchecks only)",
+    )
+    actions.add_argument(
+        "--resume-on-ping",
+        metavar="TARGETS",
+        help="make paused checks leave the paused state on a ping, the default (Healthchecks only)",
     )
     actions.add_argument(
         "--migrate",
@@ -1482,17 +1551,25 @@ def select_targets(ctx: Context, items: list[str]) -> Targets:
 
 
 def act_on_each(
-    ctx: Context, verb: str, monitors: Sequence[Monitor], step: Callable[[Monitor], object], *, show_id: bool = True
+    ctx: Context,
+    verb: str,
+    monitors: Sequence[Monitor],
+    step: Callable[[Monitor], object],
+    *,
+    show_id: bool = True,
+    after: str = "",
 ) -> Outcome:
     """Run step on each monitor and never stop early.
 
-    Prints "<verb> <name>... done" on stdout, or "<verb> <name>... failed: <reason>" as an error on stderr.
+    Prints "<verb> <name><after>... done" on stdout, or "<verb> <name><after>... failed: <reason>" as an error on
+    stderr. The name is followed by the ID when show_id is true.
     """
     outcome = Outcome()
     for monitor in monitors:
         what = f"{verb} {plain_text(monitor.name)}"
         if show_id:
             what += f" ({ctx.provider.id_kind} {plain_text(monitor.id)})"
+        what += after
         try:
             step(monitor)
         except Unsupported:
@@ -1564,7 +1641,7 @@ def show_monitors(ctx: Context, monitors: Sequence[Monitor], header: str, empty:
         ctx.say(format_json([m.raw for m in monitors]))
     elif monitors:
         ctx.say(header)
-        ctx.say(format_monitor_table(monitors, ctx.provider.id_kind, ctx.color))
+        ctx.say(format_monitor_table(monitors, ctx.provider.id_kind, ctx.color, slugs=ctx.provider.has_slugs))
     else:
         ctx.say(empty)
 
@@ -1618,6 +1695,32 @@ def action_find(ctx: Context, args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def resumes_on_ping(monitor: Monitor) -> bool:
+    """Return True unless the check's manual_resume is true, which makes a paused check ignore pings.
+
+    A check without the field, as on an old Healthchecks server, resumes on a ping: that is the default.
+    """
+    return monitor.raw.get("manual_resume") is not True
+
+
+def pause_reminder(paused: Sequence[Monitor]) -> str:
+    """Return the note after a Healthchecks pause about the checks that a ping would make active again.
+
+    It is the general note when every paused check resumes on a ping, names the ones that do when only some do,
+    and is "" when none do.
+    """
+    resuming = [m for m in paused if resumes_on_ping(m)]
+    if not resuming:
+        return ""
+    if len(resuming) == len(paused):
+        return HC_REMINDER
+    names = ", ".join(plain_text(m.name) for m in resuming)
+    return (
+        f"Note: these paused Healthchecks checks become active again when they next receive a ping: {names}. "
+        f"{HC_LOCK_NOTE} {HC_IGNORE_HINT}"
+    )
+
+
 def action_pause(ctx: Context, args: argparse.Namespace) -> int:
     """Pause monitors, creating their lock files first when the provider uses them."""
     items = parse_targets("--pause", args.pause)
@@ -1635,9 +1738,10 @@ def action_pause(ctx: Context, args: argparse.Namespace) -> int:
         ctx.provider.pause(monitor)
 
     outcome = act_on_each(ctx, "Pausing", targets.chosen, pause)
-    if outcome.done and ctx.provider.supports_lock_files:
+    reminder = pause_reminder(outcome.done) if ctx.provider.supports_lock_files else ""
+    if reminder:
         ctx.say("")
-        ctx.say(HC_REMINDER)
+        ctx.say(reminder)
     return outcome.exit_code(targets.incomplete)
 
 
@@ -1715,6 +1819,42 @@ def confirm_and_act(
         ctx.say("Cancelled.")
         return EXIT_OK
     return act_on_each(ctx, verb, targets.chosen, step, show_id=False).exit_code(targets.incomplete)
+
+
+def set_paused_pings(ctx: Context, option: str, text: str, *, ignore: bool) -> int:
+    """Set "Pinging a Paused Check" on the selected checks: ignore pings while paused, or resume on a ping.
+
+    A check that has the setting already gets a line on stdout and no request. Lock files are not touched.
+    """
+    items = parse_targets(option, text)
+    if not ctx.provider.supports_manual_resume:
+        raise Unsupported(f"{ctx.provider.label} does not support {option}")
+    targets = select_targets(ctx, items)
+    state = "ignores pings while paused" if ignore else "resumes on a ping"
+    to_change = []
+    for monitor in targets.chosen:
+        if resumes_on_ping(monitor) != ignore:
+            ctx.say(f"{plain_text(monitor.name)} ({ctx.provider.id_kind} {plain_text(monitor.id)}) already {state}")
+        else:
+            to_change.append(monitor)
+    outcome = act_on_each(
+        ctx,
+        "Setting",
+        to_change,
+        lambda monitor: ctx.provider.set_manual_resume(monitor, ignore),
+        after=" to ignore pings while paused" if ignore else " to resume on a ping",
+    )
+    return outcome.exit_code(targets.incomplete)
+
+
+def action_ignore_paused_pings(ctx: Context, args: argparse.Namespace) -> int:
+    """Make checks stay paused when they get a ping."""
+    return set_paused_pings(ctx, "--ignore-paused-pings", args.ignore_paused_pings, ignore=True)
+
+
+def action_resume_on_ping(ctx: Context, args: argparse.Namespace) -> int:
+    """Make checks leave the paused state when they get a ping, the Healthchecks default."""
+    return set_paused_pings(ctx, "--resume-on-ping", args.resume_on_ping, ignore=False)
 
 
 def action_delete(ctx: Context, args: argparse.Namespace) -> int:
@@ -1828,6 +1968,8 @@ ACTIONS: dict[str, Callable[[Context, argparse.Namespace], int]] = {
     "unpause": action_unpause,
     "delete": action_delete,
     "reset": action_reset,
+    "ignore_paused_pings": action_ignore_paused_pings,
+    "resume_on_ping": action_resume_on_ping,
 }
 
 

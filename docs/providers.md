@@ -17,6 +17,7 @@ A provider is the monitoring service that tronitor talks to. tronitor works with
 | `-d` delete monitors | ✅ | ✅ |
 | `-s` account statistics | ❌ | ✅ |
 | `-r` reset statistics | ❌ | ✅ |
+| `--ignore-paused-pings`, `--resume-on-ping` what a ping does to a paused monitor | ✅ | ❌ |
 | Lock files for HealthChecks-Linux | ✅ | ❌ |
 
 An action that a provider does not offer stops with a message, for example `Healthchecks does not support stats`, and exit code `2`.
@@ -31,7 +32,7 @@ Healthchecks watches jobs that report to it. Each check expects a ping (a signal
 - **Alert contacts:** Healthchecks calls them integrations. `-a` lists them, with their IDs.
 
 > [!IMPORTANT]
-> A paused Healthchecks check becomes active again when it next receives a ping. So a job that pings every few minutes ends the pause soon. The lock files exist for this reason: HealthChecks-Linux does not ping a check while its lock file exists. See [Lock files](cron.md#-lock-files).
+> By default, a paused Healthchecks check becomes active again when it next receives a ping. So a job that pings every few minutes ends the pause soon. To prevent this, set the check's "Pinging a Paused Check" setting to "Ignore the ping, stay in the paused state". `--ignore-paused-pings` does this for you. Or use the lock files: HealthChecks-Linux does not ping a check while its lock file exists. See [Lock files](cron.md#-lock-files).
 
 ## 🤖 UptimeRobot
 
@@ -116,7 +117,8 @@ tronitor sends the file to `POST /api/v3/checks/`. This is the example file:
   "name": "Backups",
   "tags": "prod backup",
   "timeout": 3600,
-  "grace": 60
+  "grace": 60,
+  "manual_resume": true
 }
 ```
 
@@ -130,6 +132,7 @@ These are the common fields:
 | `grace` | The grace time, in seconds: how long Healthchecks waits after a late ping before the check is down |
 | `schedule` | A cron expression, such as `"0 2 * * *"`, to use instead of `timeout` |
 | `tz` | The time zone of `schedule`, such as `"Europe/Berlin"` |
+| `manual_resume` | `true` keeps a paused check paused when it gets a ping. `false`, the default, ends the pause at the next ping. See [Lock files](cron.md#-lock-files) |
 | `channels` | The integrations that get the alerts: their IDs from `-a`, separated by commas, or `"*"` for all of them |
 
 The [Healthchecks API documentation](https://healthchecks.io/docs/api/) lists every field.

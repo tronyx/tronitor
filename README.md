@@ -9,7 +9,7 @@ tronitor pauses and unpauses your [Healthchecks](https://healthchecks.io) and [U
 
 ## ✨ Features
 
-- ⏸️ It pauses and unpauses monitors by name, by ID, or all at once.
+- ⏸️ It pauses and unpauses monitors by name, by ID, by Healthchecks slug, or all at once.
 - 🔍 It finds the paused monitors, and can post them to a Discord or Slack channel, so that a forgotten pause does not go unseen.
 - 🔒 For Healthchecks, it writes lock files that the [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) pinging script reads, so that a paused check stays paused.
 - ⏰ It is made for cron. It never waits for an answer without a terminal, it reports each failure on stderr, and its exit codes tell a script what happened.
@@ -58,12 +58,13 @@ For UptimeRobot, type `-m ur` instead of `-m hc`. On Windows, type `py` instead 
 | `-f` | List the paused monitors. On a terminal, offer to unpause them |
 | `-n` | List the paused monitors, and never ask |
 | `-w` | List the paused monitors and post them to the Discord or Slack webhook |
-| `-p TARGETS` | Pause monitors: `all`, or names and IDs separated by commas, such as `-p "Filesystem Backup,Database Backup"` |
+| `-p TARGETS` | Pause monitors: `all`, or names, slugs and IDs separated by commas, such as `-p "Filesystem Backup,Database Backup"` |
 | `-u TARGETS` | Unpause monitors, in the same way |
+| `--ignore-paused-pings TARGETS` | Make Healthchecks checks stay paused when they get a ping. `--resume-on-ping` sets them back |
 | `--yes` | Delete or reset without asking. Also act on the monitors that were found when some were not |
 | `--json` | Print the provider's records as JSON instead of a table |
 
-A name must match the whole monitor name, but capital letters do not matter. [Usage](docs/usage.md#-all-options) describes all the options. The `--help` option also lists them.
+A name must match the whole monitor name, but capital letters do not matter. On Healthchecks, a check's slug, such as `filesystem-backup`, also works, and it needs no quotes. [Usage](docs/usage.md#-all-options) describes all the options. The `--help` option also lists them.
 
 ## ⏰ From cron
 
@@ -78,7 +79,7 @@ To pause every Healthchecks check during a nightly backup, add lines like these 
 0 8 * * * /usr/bin/python3 /opt/tronitor/tronitor.py -m hc -w > /dev/null
 ```
 
-`> /dev/null` discards the normal output, but errors still reach you through cron's mail, when your system sends it. A paused Healthchecks check becomes active again at its next ping, so point HealthChecks-Linux at tronitor's lock folder. [Running from cron](docs/cron.md) tells you how.
+`> /dev/null` discards the normal output, but errors still reach you through cron's mail, when your system sends it. By default, a paused Healthchecks check becomes active again at its next ping. So point HealthChecks-Linux at tronitor's lock folder, or set each check to ignore pings while it is paused. [Running from cron](docs/cron.md) tells you how.
 
 ## 📖 Documentation
 

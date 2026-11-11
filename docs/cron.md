@@ -49,6 +49,12 @@ This section is only for Healthchecks.
 
 A paused Healthchecks check becomes active again when it next receives a ping. A ping is the signal that a job sends to Healthchecks to say that it ran. So if a job pings the check every few minutes, the next ping ends the pause, and the maintenance window with it.
 
+Healthchecks can also keep a paused check paused. In the check's settings, set "Pinging a Paused Check" to "Ignore the ping, stay in the paused state". Then a ping does not end the pause. Only `-u` or the Healthchecks dashboard does. The default is "Leave the paused state". The Healthchecks API calls this setting `manual_resume`. After `-p`, tronitor names the paused checks that a ping makes active again. When there are none, it prints no note.
+
+To change the setting on many checks at once, run `tronitor -m hc --ignore-paused-pings all`. It changes only the checks that do not have the setting yet, so you can run it again after you add checks. `--resume-on-ping` sets checks back to the default.
+
+The lock files also work with this setting. While a check's lock file exists, HealthChecks-Linux skips the check and sends no ping at all.
+
 [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) is a script that tests your applications from cron and pings Healthchecks for each one. It skips a check while a lock file for the check exists. A lock file is an empty file whose presence means "do not ping". tronitor creates and removes these files:
 
 | Command | Lock file |
