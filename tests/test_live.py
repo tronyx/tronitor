@@ -194,8 +194,12 @@ def test_hc_round_trip(hc_live: tronitor.HealthchecksProvider) -> None:
 
 
 def send_ping(monitor: tronitor.Monitor) -> None:
-    """Ping a check at the ping_url from its record, as a job would."""
-    with urllib.request.urlopen(str(monitor.raw["ping_url"]), timeout=30) as response:
+    """Ping a check at the ping_url from its record, as a job would.
+
+    Bandit warns that urlopen also opens file: and custom schemes. The URL is the check's own ping_url, from the
+    Healthchecks server that the live tests use. The nosec marker tells Bandit (via CodeFactor) that this is safe.
+    """
+    with urllib.request.urlopen(str(monitor.raw["ping_url"]), timeout=30) as response:  # nosec B310
         assert response.status == 200, f"the ping answered {response.status}"
 
 
