@@ -259,7 +259,7 @@ Database Backup    UUID: 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41  Slug: database-ba
 
 On Healthchecks, the table also shows each check's slug, or `(none)` for a check without one. UptimeRobot monitors have no slug column.
 
-On a terminal, the status has a colour: green for up, red for down, yellow for paused, orange for grace and seems down, and magenta for new, started and pending. tronitor uses no colour when the output goes to a file or a pipe, when you give `--no-color`, or when the `NO_COLOR` environment variable is set, to any value.
+On a terminal, the status has a colour: green for up, red for down, yellow for paused, orange for grace and seems down, and magenta for new, started and pending. The `UUID:` label (`ID:` on UptimeRobot) is bold cyan, and the `Slug:` label is bold bright blue. tronitor uses no colour when the output goes to a file or a pipe, when you give `--no-color`, or when the `NO_COLOR` environment variable is set, to any value.
 
 If a monitor's name, slug or ID holds a control character (an invisible character that gives commands to the terminal), tronitor shows a `?` instead.
 

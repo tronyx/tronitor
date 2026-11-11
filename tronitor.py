@@ -971,6 +971,12 @@ STATUS_COLORS: dict[str, str] = {
     "started": "\x1b[35m",
     "pending": "\x1b[35m",
 }
+LABEL_COLORS: dict[str, str] = {
+    "id": "\x1b[1;36m",
+    "slug": "\x1b[1;94m",
+}
+"""The table's column labels: the ID label (UUID: or ID:) in bold cyan, Slug: in bold bright blue. Neither is a
+status colour, so a label never looks like a status."""
 
 
 class NeedsTerminal(Exception):
@@ -1001,7 +1007,8 @@ def plain_text(text: str) -> str:
 def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool, slugs: bool = False) -> str:
     """Return one line per monitor: the padded name, the ID and the status, coloured if color is true.
 
-    With slugs, a padded slug column comes before the status; a monitor without a slug shows "(none)".
+    With slugs, a padded slug column comes before the status; a monitor without a slug shows "(none)". With color,
+    the ID label is bold cyan and the Slug label bold bright blue (see LABEL_COLORS), apart from the status colours.
     """
     if not monitors:
         return ""
@@ -1009,14 +1016,18 @@ def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool,
     width = max(len(name) for name in names)
     slug_texts = [plain_text(monitor.slug) or "(none)" for monitor in monitors]
     slug_width = max(len(text) for text in slug_texts)
+    id_label, slug_label = f"{id_kind}:", "Slug:"
+    if color:
+        id_label = f"{LABEL_COLORS['id']}{id_label}{RESET}"
+        slug_label = f"{LABEL_COLORS['slug']}{slug_label}{RESET}"
     lines = []
     for monitor, name, slug_text in zip(monitors, names, slug_texts, strict=True):
         status_text = plain_text(monitor.status).capitalize()
         code = STATUS_COLORS.get(monitor.status)
         if color and code:
             status_text = f"{code}{status_text}{RESET}"
-        slug_column = f"Slug: {slug_text:<{slug_width}}  " if slugs else ""
-        lines.append(f"{name:<{width}}  {id_kind}: {plain_text(monitor.id)}  {slug_column}Status: {status_text}")
+        slug_column = f"{slug_label} {slug_text:<{slug_width}}  " if slugs else ""
+        lines.append(f"{name:<{width}}  {id_label} {plain_text(monitor.id)}  {slug_column}Status: {status_text}")
     return "\n".join(lines)
 
 

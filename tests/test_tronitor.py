@@ -1163,15 +1163,35 @@ def test_table_strips_control_characters_from_the_slug() -> None:
     assert tronitor.format_monitor_table([monitor], "UUID", False, slugs=True) == "n  UUID: i  Slug: s?[2J  Status: Up"
 
 
-def test_table_colours_only_the_status() -> None:
-    """Only the status text carries colour codes."""
+def test_table_colours_the_id_label_and_the_status() -> None:
+    """The ID label is bold cyan and the status has its colour; names, IDs and the Status label stay plain."""
     text = tronitor.format_monitor_table(sample_monitors(), "UUID", True)
     first, second = text.split("\n")
-    assert first.startswith("web       UUID: id1  Status: ")
-    assert "\x1b[33mPaused\x1b[0m" in first
-    assert "\x1b[38;5;202mSeems down\x1b[0m" in second
+    assert first == "web       \x1b[1;36mUUID:\x1b[0m id1  Status: \x1b[33mPaused\x1b[0m"
+    assert second == "database  \x1b[1;36mUUID:\x1b[0m id2  Status: \x1b[38;5;202mSeems down\x1b[0m"
     unknown = tronitor.Monitor("i", "n", "odd", {})
-    assert tronitor.format_monitor_table([unknown], "ID", True) == "n  ID: i  Status: Odd"
+    assert tronitor.format_monitor_table([unknown], "ID", True) == "n  \x1b[1;36mID:\x1b[0m i  Status: Odd"
+
+
+def test_table_colours_the_slug_label_bold_bright_blue() -> None:
+    """With slugs, the Slug label is bold bright blue and the padding stays outside the colour codes."""
+    monitors = [
+        tronitor.Monitor("id1", "web", "up", {}, slug="web"),
+        tronitor.Monitor("id2", "database", "up", {}, slug="database-backup"),
+    ]
+    first, second = tronitor.format_monitor_table(monitors, "UUID", True, slugs=True).split("\n")
+    assert first == (
+        "web       \x1b[1;36mUUID:\x1b[0m id1  \x1b[1;94mSlug:\x1b[0m web              Status: \x1b[32mUp\x1b[0m"
+    )
+    assert second == (
+        "database  \x1b[1;36mUUID:\x1b[0m id2  \x1b[1;94mSlug:\x1b[0m database-backup  Status: \x1b[32mUp\x1b[0m"
+    )
+
+
+def test_table_without_colour_has_no_colour_codes() -> None:
+    """Without colour, neither the labels nor the status carry codes."""
+    monitors = [tronitor.Monitor("id1", "web", "up", {}, slug="web")]
+    assert "\x1b" not in tronitor.format_monitor_table(monitors, "UUID", False, slugs=True)
 
 
 def test_format_json_is_sorted_indented_and_unescaped() -> None:
@@ -1236,8 +1256,8 @@ def test_status_colors_cover_every_status() -> None:
 def test_table_strips_control_characters_from_the_status() -> None:
     """A status from the provider with a control character is shown with "?" in its place."""
     line = tronitor.format_monitor_table([tronitor.Monitor("i", "n", "up\x1b[2J", {})], "ID", True)
-    assert "\x1b" not in line
-    assert line == "n  ID: i  Status: Up?[2j"
+    assert "\x1b[2J" not in line
+    assert line == "n  \x1b[1;36mID:\x1b[0m i  Status: Up?[2j"
 
 
 def test_format_json_escapes_del_and_c1_control_characters() -> None:
