@@ -1163,14 +1163,20 @@ def test_table_strips_control_characters_from_the_slug() -> None:
     assert tronitor.format_monitor_table([monitor], "UUID", False, slugs=True) == "n  UUID: i  Slug: s?[2J  Status: Up"
 
 
-def test_table_colours_the_id_label_and_the_status() -> None:
-    """The ID label is bold cyan and the status has its colour; names, IDs and the Status label stay plain."""
+NAME = "\x1b[38;5;208m"
+"""The colour of a monitor's name in the table."""
+
+
+def test_table_colours_the_name_the_id_label_and_the_status() -> None:
+    """The name is orange (208), the ID label bold cyan and the status has its colour; the padding after the name,
+    the ID and the Status label stay plain."""
     text = tronitor.format_monitor_table(sample_monitors(), "UUID", True)
     first, second = text.split("\n")
-    assert first == "web       \x1b[1;36mUUID:\x1b[0m id1  Status: \x1b[33mPaused\x1b[0m"
-    assert second == "database  \x1b[1;36mUUID:\x1b[0m id2  Status: \x1b[38;5;202mSeems down\x1b[0m"
+    assert first == f"{NAME}web\x1b[0m       \x1b[1;36mUUID:\x1b[0m id1  Status: \x1b[33mPaused\x1b[0m"
+    assert second == f"{NAME}database\x1b[0m  \x1b[1;36mUUID:\x1b[0m id2  Status: \x1b[38;5;202mSeems down\x1b[0m"
     unknown = tronitor.Monitor("i", "n", "odd", {})
-    assert tronitor.format_monitor_table([unknown], "ID", True) == "n  \x1b[1;36mID:\x1b[0m i  Status: Odd"
+    line = tronitor.format_monitor_table([unknown], "ID", True)
+    assert line == f"{NAME}n\x1b[0m  \x1b[1;36mID:\x1b[0m i  Status: Odd"
 
 
 def test_table_colours_the_slug_label_bold_bright_blue() -> None:
@@ -1181,10 +1187,12 @@ def test_table_colours_the_slug_label_bold_bright_blue() -> None:
     ]
     first, second = tronitor.format_monitor_table(monitors, "UUID", True, slugs=True).split("\n")
     assert first == (
-        "web       \x1b[1;36mUUID:\x1b[0m id1  \x1b[1;94mSlug:\x1b[0m web              Status: \x1b[32mUp\x1b[0m"
+        f"{NAME}web\x1b[0m       \x1b[1;36mUUID:\x1b[0m id1  \x1b[1;94mSlug:\x1b[0m web              "
+        "Status: \x1b[32mUp\x1b[0m"
     )
     assert second == (
-        "database  \x1b[1;36mUUID:\x1b[0m id2  \x1b[1;94mSlug:\x1b[0m database-backup  Status: \x1b[32mUp\x1b[0m"
+        f"{NAME}database\x1b[0m  \x1b[1;36mUUID:\x1b[0m id2  \x1b[1;94mSlug:\x1b[0m database-backup  "
+        "Status: \x1b[32mUp\x1b[0m"
     )
 
 
@@ -1257,7 +1265,7 @@ def test_table_strips_control_characters_from_the_status() -> None:
     """A status from the provider with a control character is shown with "?" in its place."""
     line = tronitor.format_monitor_table([tronitor.Monitor("i", "n", "up\x1b[2J", {})], "ID", True)
     assert "\x1b[2J" not in line
-    assert line == "n  \x1b[1;36mID:\x1b[0m i  Status: Up?[2j"
+    assert line == f"{NAME}n\x1b[0m  \x1b[1;36mID:\x1b[0m i  Status: Up?[2j"
 
 
 def test_format_json_escapes_del_and_c1_control_characters() -> None:

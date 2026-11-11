@@ -972,11 +972,13 @@ STATUS_COLORS: dict[str, str] = {
     "pending": "\x1b[35m",
 }
 LABEL_COLORS: dict[str, str] = {
+    "name": "\x1b[38;5;208m",
     "id": "\x1b[1;36m",
     "slug": "\x1b[1;94m",
 }
-"""The table's column labels: the ID label (UUID: or ID:) in bold cyan, Slug: in bold bright blue. Neither is a
-status colour, so a label never looks like a status."""
+"""The table's colours apart from the status: the monitor's name in orange (208), the ID label (UUID: or ID:) in
+bold cyan and Slug: in bold bright blue. None is a status colour: 208 is a lighter orange than the 202 of grace and
+seems down, so a name never looks like a status."""
 
 
 class NeedsTerminal(Exception):
@@ -1008,7 +1010,8 @@ def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool,
     """Return one line per monitor: the padded name, the ID and the status, coloured if color is true.
 
     With slugs, a padded slug column comes before the status; a monitor without a slug shows "(none)". With color,
-    the ID label is bold cyan and the Slug label bold bright blue (see LABEL_COLORS), apart from the status colours.
+    the name is orange, the ID label bold cyan and the Slug label bold bright blue (see LABEL_COLORS), apart from the
+    status colours. The padding after the name stays outside its colour codes, so the columns still line up.
     """
     if not monitors:
         return ""
@@ -1027,7 +1030,9 @@ def format_monitor_table(monitors: Sequence[Monitor], id_kind: str, color: bool,
         if color and code:
             status_text = f"{code}{status_text}{RESET}"
         slug_column = f"{slug_label} {slug_text:<{slug_width}}  " if slugs else ""
-        lines.append(f"{name:<{width}}  {id_label} {plain_text(monitor.id)}  {slug_column}Status: {status_text}")
+        name_text = f"{LABEL_COLORS['name']}{name}{RESET}" if color else name
+        padding = " " * (width - len(name))
+        lines.append(f"{name_text}{padding}  {id_label} {plain_text(monitor.id)}  {slug_column}Status: {status_text}")
     return "\n".join(lines)
 
 

@@ -15,7 +15,7 @@ The project doesn't use version numbers. Each entry is one merge into `master`, 
 ### Changed
 
 - A Healthchecks check whose "Pinging a Paused Check" setting is "Ignore the ping, stay in the paused state" (`manual_resume` in the API) stays paused when it gets a ping. After `-p`, tronitor's note now names only the paused checks that a ping makes active again. When there are none, tronitor prints no note. When every paused check resumes on a ping, the note is the same as before. Each note now ends with a pointer to `--ignore-paused-pings`. [Lock files](docs/cron.md#-lock-files) explains the setting.
-- On a terminal, the table's `UUID:` label (`ID:` on UptimeRobot) is bold cyan and its `Slug:` label bold bright blue, so the columns are easier to tell apart.
+- On a terminal, the table shows each monitor's name in orange, a lighter shade than the grace status. Its `UUID:` label (`ID:` on UptimeRobot) is bold cyan and its `Slug:` label bold bright blue, so the columns are easier to tell apart.
 
 ## 2026-11-10 · [#72](https://github.com/tronyx/tronitor/pull/72)
 
