@@ -31,7 +31,7 @@ The command-line tests are in [tests/test_cli.py](../tests/test_cli.py). They ru
 
 ### 🌐 Live tests
 
-The live tests are in [tests/test_live.py](../tests/test_live.py). They use real Healthchecks and UptimeRobot accounts instead of the fake server. They create a monitor, pause it, unpause it, read it and delete it, and they read the alert contacts. For UptimeRobot, they also reset the monitor and read the account statistics. So they find a change in a provider's API, which the fake server cannot show.
+The live tests are in [tests/test_live.py](../tests/test_live.py). They use real Healthchecks and UptimeRobot accounts instead of the fake server. They create a monitor, pause it, unpause it, read it and delete it, and they read the alert contacts. For Healthchecks, they also set a check to ignore pings while paused, ping it, and make sure that it stays paused. For UptimeRobot, they also reset the monitor and read the account statistics. So they find a change in a provider's API, which the fake server cannot show.
 
 They run only when you set these environment variables:
 

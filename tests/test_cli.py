@@ -111,6 +111,20 @@ def test_cli_list_against_fake_server(fake_server: FakeServer, hc_config_file: P
     assert result.stderr == ""
 
 
+def test_cli_ignore_paused_pings_against_fake_server(
+    fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli
+) -> None:
+    """--ignore-paused-pings all sets the setting on each check, from a separate program."""
+    serve_checks(fake_server)
+    for uuid, check in zip((HC_UUID_FILESYSTEM, HC_UUID_DATABASE), hc_fixture_checks(), strict=True):
+        fake_server.add("POST", f"/api/v3/checks/{uuid}", 200, {**check, "manual_resume": True})
+    result = run_cli("-m", "hc", "--ignore-paused-pings", "all")
+    assert result.returncode == 0, result.stderr
+    for name, uuid in (("Filesystem Backup", HC_UUID_FILESYSTEM), ("Database Backup", HC_UUID_DATABASE)):
+        assert f"Setting {name} (UUID {uuid}) to ignore pings while paused... done" in result.stdout
+    assert result.stderr == ""
+
+
 def test_cli_pause_all_without_tty_needs_no_input(
     fake_server: FakeServer, hc_config_file: Path, run_cli: RunCli, tmp_path: Path
 ) -> None:

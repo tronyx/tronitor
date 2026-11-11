@@ -63,6 +63,8 @@ Choose one of these actions:
 | `-u TARGETS`, `--unpause TARGETS` | Unpause monitors |
 | `-d TARGETS`, `--delete TARGETS` | Delete monitors. Asks first |
 | `-r TARGETS`, `--reset TARGETS` | Clear the statistics of monitors. Asks first. UptimeRobot only |
+| `--ignore-paused-pings TARGETS` | Make checks stay paused when they get a ping (see [Lock files](cron.md#-lock-files)). Healthchecks only |
+| `--resume-on-ping TARGETS` | Make checks leave the paused state when they get a ping, which is the default. Healthchecks only |
 | `--migrate PATH` | Write `tronitor.toml` from the settings of the old Bash script at `PATH`. Needs no `-m` (see [Upgrading from the Bash script](#-upgrading-from-the-bash-script)) |
 
 <details>
@@ -72,7 +74,8 @@ Choose one of these actions:
 usage: tronitor [-h] [-m PROVIDER] [--config PATH] [--yes] [--json]
                 [--no-color] [--verbose] [--version] (-l | -f | -n | -w | -s |
                 -a | -i TARGET | -c FILE | -p TARGETS | -u TARGETS |
-                -d TARGETS | -r TARGETS | --migrate PATH)
+                -d TARGETS | -r TARGETS | --ignore-paused-pings TARGETS |
+                --resume-on-ping TARGETS | --migrate PATH)
 
 Pause and unpause Healthchecks and UptimeRobot monitors, from cron or by hand.
 
@@ -108,6 +111,12 @@ actions (choose one):
   -d, --delete TARGETS  delete monitors (asks first)
   -r, --reset TARGETS   clear the statistics of monitors (asks first; not
                         Healthchecks)
+  --ignore-paused-pings TARGETS
+                        make paused checks ignore pings and stay paused
+                        (Healthchecks only)
+  --resume-on-ping TARGETS
+                        make paused checks leave the paused state on a ping,
+                        the default (Healthchecks only)
   --migrate PATH        write tronitor.toml, next to the old tronitor.sh at
                         PATH, from the script's settings (no -m needed)
 
@@ -300,7 +309,7 @@ $ tronitor -m hc -p all
 Pausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
 Pausing Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41)... done
 
-Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs).
+Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). Running --ignore-paused-pings on a check keeps it paused when it gets a ping.
 
 $ tronitor -m hc -u all
 Unpausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
@@ -308,6 +317,19 @@ Unpausing Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41)... done
 ```
 
 If some of the checks ignore pings while they are paused, the note names only the others. If all of them do, tronitor prints no note. See [Lock files](cron.md#-lock-files).
+
+</details>
+
+<details>
+<summary>Make every Healthchecks check ignore pings while paused</summary>
+
+```text
+$ tronitor -m hc --ignore-paused-pings all
+Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712) already ignores pings while paused
+Setting Database Backup (UUID 4b1d9a2e-6c3f-4e8a-9b7d-2f1e0c5a8d41) to ignore pings while paused... done
+```
+
+Run the command again after you add checks. It changes only the checks that do not have the setting yet.
 
 </details>
 
@@ -336,7 +358,7 @@ $ tronitor -m hc -p "Filesystem Backup,Nope" --yes
 tronitor: Not found: Nope
 Pausing Filesystem Backup (UUID 31365bce-8da9-4729-8ff3-aaa71d56b712)... done
 
-Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs).
+Note: a paused Healthchecks check becomes active again when it next receives a ping. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). Running --ignore-paused-pings on a check keeps it paused when it gets a ping.
 ```
 
 Both commands end with exit code `3`.

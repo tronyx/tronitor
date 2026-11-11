@@ -555,6 +555,8 @@ class Provider(abc.ABC):
     """True if the provider gives each monitor a slug, which -l shows and which selects a monitor like its name."""
     supports_lock_files = False
     supports_reset = False
+    supports_manual_resume = False
+    """True if a paused monitor can be set to ignore pings (--ignore-paused-pings and --resume-on-ping)."""
     unpause_only_paused = True
     """True: -u sends an unpause only for monitors whose listed status is paused, and says the others run.
 
@@ -598,6 +600,10 @@ class Provider(abc.ABC):
         """Reset a monitor's statistics; most providers do not offer this."""
         raise Unsupported(f"{self.label} does not support reset")
 
+    def set_manual_resume(self, monitor: Monitor, value: bool) -> None:
+        """Set whether a paused monitor ignores pings (True) or resumes on one (False); most providers lack this."""
+        raise Unsupported(f"{self.label} does not support manual_resume")
+
     @staticmethod
     @abc.abstractmethod
     def is_id(text: str) -> bool:
@@ -611,6 +617,7 @@ class HealthchecksProvider(Provider):
     id_kind = "UUID"
     has_slugs = True
     supports_lock_files = True
+    supports_manual_resume = True
 
     def __init__(self, http: Http, config: HealthchecksConfig) -> None:
         self._http = http
@@ -670,6 +677,18 @@ class HealthchecksProvider(Provider):
     def delete(self, monitor: Monitor) -> None:
         """Delete a check."""
         self._http.request("DELETE", f"{self._api}/checks/{monitor.id}", headers=self._headers)
+
+    def set_manual_resume(self, monitor: Monitor, value: bool) -> None:
+        """Set the check's "Pinging a Paused Check" setting: True ignores pings while paused, False resumes on one.
+
+        A server that does not know manual_resume ignores the field, so an answer without the new value raises
+        ProviderError rather than letting the change look done.
+        """
+        response = self._http.request(
+            "POST", f"{self._api}/checks/{monitor.id}", headers=self._headers, json_body={"manual_resume": value}
+        )
+        if _expect_dict(response.json, self.label).get("manual_resume") is not value:
+            raise ProviderError(f"this {self.label} server does not support the setting")
 
     @staticmethod
     def is_id(text: str) -> bool:
@@ -1286,7 +1305,11 @@ PROVIDER_NAMES = {
     "uptimerobot": "uptimerobot",
 }
 HC_LOCK_NOTE = "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
-HC_REMINDER = f"Note: a paused Healthchecks check becomes active again when it next receives a ping. {HC_LOCK_NOTE}"
+HC_IGNORE_HINT = "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
+HC_REMINDER = (
+    f"Note: a paused Healthchecks check becomes active again when it next receives a ping. {HC_LOCK_NOTE} "
+    f"{HC_IGNORE_HINT}"
+)
 DESCRIPTION = "Pause and unpause Healthchecks and UptimeRobot monitors, from cron or by hand."
 EPILOG = f"""\
 PROVIDER is healthchecks (hc) or uptimerobot (ur).
@@ -1370,6 +1393,16 @@ def build_parser() -> argparse.ArgumentParser:
     actions.add_argument("-d", "--delete", metavar="TARGETS", help="delete monitors (asks first)")
     actions.add_argument(
         "-r", "--reset", metavar="TARGETS", help="clear the statistics of monitors (asks first; not Healthchecks)"
+    )
+    actions.add_argument(
+        "--ignore-paused-pings",
+        metavar="TARGETS",
+        help="make paused checks ignore pings and stay paused (Healthchecks only)",
+    )
+    actions.add_argument(
+        "--resume-on-ping",
+        metavar="TARGETS",
+        help="make paused checks leave the paused state on a ping, the default (Healthchecks only)",
     )
     actions.add_argument(
         "--migrate",
@@ -1502,17 +1535,25 @@ def select_targets(ctx: Context, items: list[str]) -> Targets:
 
 
 def act_on_each(
-    ctx: Context, verb: str, monitors: Sequence[Monitor], step: Callable[[Monitor], object], *, show_id: bool = True
+    ctx: Context,
+    verb: str,
+    monitors: Sequence[Monitor],
+    step: Callable[[Monitor], object],
+    *,
+    show_id: bool = True,
+    after: str = "",
 ) -> Outcome:
     """Run step on each monitor and never stop early.
 
-    Prints "<verb> <name>... done" on stdout, or "<verb> <name>... failed: <reason>" as an error on stderr.
+    Prints "<verb> <name><after>... done" on stdout, or "<verb> <name><after>... failed: <reason>" as an error on
+    stderr. The name is followed by the ID when show_id is true.
     """
     outcome = Outcome()
     for monitor in monitors:
         what = f"{verb} {plain_text(monitor.name)}"
         if show_id:
             what += f" ({ctx.provider.id_kind} {plain_text(monitor.id)})"
+        what += after
         try:
             step(monitor)
         except Unsupported:
@@ -1660,7 +1701,7 @@ def pause_reminder(paused: Sequence[Monitor]) -> str:
     names = ", ".join(plain_text(m.name) for m in resuming)
     return (
         f"Note: these paused Healthchecks checks become active again when they next receive a ping: {names}. "
-        f"{HC_LOCK_NOTE}"
+        f"{HC_LOCK_NOTE} {HC_IGNORE_HINT}"
     )
 
 
@@ -1762,6 +1803,42 @@ def confirm_and_act(
         ctx.say("Cancelled.")
         return EXIT_OK
     return act_on_each(ctx, verb, targets.chosen, step, show_id=False).exit_code(targets.incomplete)
+
+
+def set_paused_pings(ctx: Context, option: str, text: str, *, ignore: bool) -> int:
+    """Set "Pinging a Paused Check" on the selected checks: ignore pings while paused, or resume on a ping.
+
+    A check that has the setting already gets a line on stdout and no request. Lock files are not touched.
+    """
+    items = parse_targets(option, text)
+    if not ctx.provider.supports_manual_resume:
+        raise Unsupported(f"{ctx.provider.label} does not support {option}")
+    targets = select_targets(ctx, items)
+    state = "ignores pings while paused" if ignore else "resumes on a ping"
+    to_change = []
+    for monitor in targets.chosen:
+        if resumes_on_ping(monitor) != ignore:
+            ctx.say(f"{plain_text(monitor.name)} ({ctx.provider.id_kind} {plain_text(monitor.id)}) already {state}")
+        else:
+            to_change.append(monitor)
+    outcome = act_on_each(
+        ctx,
+        "Setting",
+        to_change,
+        lambda monitor: ctx.provider.set_manual_resume(monitor, ignore),
+        after=" to ignore pings while paused" if ignore else " to resume on a ping",
+    )
+    return outcome.exit_code(targets.incomplete)
+
+
+def action_ignore_paused_pings(ctx: Context, args: argparse.Namespace) -> int:
+    """Make checks stay paused when they get a ping."""
+    return set_paused_pings(ctx, "--ignore-paused-pings", args.ignore_paused_pings, ignore=True)
+
+
+def action_resume_on_ping(ctx: Context, args: argparse.Namespace) -> int:
+    """Make checks leave the paused state when they get a ping, the Healthchecks default."""
+    return set_paused_pings(ctx, "--resume-on-ping", args.resume_on_ping, ignore=False)
 
 
 def action_delete(ctx: Context, args: argparse.Namespace) -> int:
@@ -1875,6 +1952,8 @@ ACTIONS: dict[str, Callable[[Context, argparse.Namespace], int]] = {
     "unpause": action_unpause,
     "delete": action_delete,
     "reset": action_reset,
+    "ignore_paused_pings": action_ignore_paused_pings,
+    "resume_on_ping": action_resume_on_ping,
 }
 
 

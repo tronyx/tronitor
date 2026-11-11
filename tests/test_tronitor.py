@@ -710,6 +710,36 @@ def test_hc_slug_that_is_not_a_string_is_an_unexpected_response(
         hc_provider.list_monitors()
 
 
+def test_hc_set_manual_resume_posts_the_setting(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer
+) -> None:
+    """set_manual_resume posts manual_resume to the check's update path, with the API key."""
+    path = f"/api/v3/checks/{HC_UUID_FILESYSTEM}"
+    for value in (True, False):
+        fake_server.add("POST", path, 200, {**hc_fixture_checks()[0], "manual_resume": value}, once=True)
+        hc_provider.set_manual_resume(tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {}), value)
+        request = fake_server.requests[-1]
+        assert (request.method, request.path, request.body) == ("POST", path, {"manual_resume": value})
+        assert request.headers["X-Api-Key"] == "hc-test-key"
+
+
+@pytest.mark.parametrize("answer", [{"manual_resume": False}, {}], ids=["the old value", "no field"])
+def test_hc_set_manual_resume_fails_when_the_server_does_not_keep_it(
+    hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer, answer: dict[str, object]
+) -> None:
+    """A server that answers without the new value does not know the setting, so the change is a failure."""
+    fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}", 200, {"name": "Filesystem Backup", **answer})
+    monitor = tronitor.Monitor(HC_UUID_FILESYSTEM, "Filesystem Backup", "up", {})
+    with pytest.raises(tronitor.ProviderError, match="this Healthchecks server does not support the setting"):
+        hc_provider.set_manual_resume(monitor, True)
+
+
+def test_ur_set_manual_resume_is_unsupported(ur_provider: tronitor.UptimeRobotProvider) -> None:
+    """UptimeRobot has no setting for pings to a paused monitor."""
+    with pytest.raises(tronitor.Unsupported):
+        ur_provider.set_manual_resume(tronitor.Monitor("1001", "Plex", "up", {}), True)
+
+
 def test_hc_pause_posts_to_pause_url(hc_provider: tronitor.HealthchecksProvider, fake_server: FakeServer) -> None:
     """pause posts an empty JSON body to the pause path."""
     fake_server.add("POST", f"/api/v3/checks/{HC_UUID_FILESYSTEM}/pause", 200, {"status": "paused"})
@@ -1225,7 +1255,8 @@ DB_PAUSE = f"/api/v3/checks/{HC_UUID_DATABASE}/pause"
 DB_RESUME = f"/api/v3/checks/{HC_UUID_DATABASE}/resume"
 REMINDER = (
     "Note: a paused Healthchecks check becomes active again when it next receives a ping. "
-    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+    "The HealthChecks-Linux script skips a check while its lock file exists (see the docs). "
+    "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
 )
 
 
@@ -1414,7 +1445,8 @@ def test_pause_reminder_names_only_the_checks_that_resume_on_a_ping(
     assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
     assert capsys.readouterr().out.rstrip().endswith(
         "Note: these paused Healthchecks checks become active again when they next receive a ping: "
-        "Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+        "Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). "
+        "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
     )
 
 
@@ -1452,8 +1484,99 @@ def test_pause_reminder_counts_a_check_without_a_true_manual_resume_as_resuming(
     fake_server.add("POST", DB_PAUSE, 200, {"status": "paused"})
     assert tronitor.main(["-m", "hc", "-p", "all"]) == 0
     assert capsys.readouterr().out.rstrip().endswith(
-        "ping: Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs)."
+        "ping: Database Backup. The HealthChecks-Linux script skips a check while its lock file exists (see the docs). "
+        "Running --ignore-paused-pings on a check keeps it paused when it gets a ping."
     )
+
+
+FS_UPDATE = f"/api/v3/checks/{HC_UUID_FILESYSTEM}"
+DB_UPDATE = f"/api/v3/checks/{HC_UUID_DATABASE}"
+
+
+def test_ignore_paused_pings_changes_only_the_checks_without_the_setting(
+    hc_env: Path, locks: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--ignore-paused-pings all skips a check that has the setting, sets the other one and touches no lock file."""
+    checks = checks_with_manual_resume(True, False)
+    serve_checks(fake_server, checks)
+    fake_server.add("POST", DB_UPDATE, 200, {**checks[1], "manual_resume": True})
+    assert tronitor.main(["-m", "hc", "--ignore-paused-pings", "all"]) == 0
+    out, err = capsys.readouterr()
+    assert out.splitlines() == [
+        f"Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) already ignores pings while paused",
+        f"Setting Database Backup (UUID {HC_UUID_DATABASE}) to ignore pings while paused... done",
+    ]
+    assert err == ""
+    assert [(r.path, r.body) for r in fake_server.requests if r.method == "POST"] == [
+        (DB_UPDATE, {"manual_resume": True})
+    ]
+    assert not locks.exists() or list(locks.iterdir()) == []
+
+
+def test_resume_on_ping_sets_a_check_back(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--resume-on-ping posts manual_resume false for a check that ignores pings, selected by its slug."""
+    checks = checks_with_manual_resume(True, True)
+    serve_checks(fake_server, checks)
+    fake_server.add("POST", FS_UPDATE, 200, {**checks[0], "manual_resume": False})
+    assert tronitor.main(["-m", "hc", "--resume-on-ping", "filesystem-backup"]) == 0
+    assert capsys.readouterr().out == (
+        f"Setting Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) to resume on a ping... done\n"
+    )
+    assert [(r.path, r.body) for r in fake_server.requests if r.method == "POST"] == [
+        (FS_UPDATE, {"manual_resume": False})
+    ]
+
+
+def test_resume_on_ping_skips_checks_that_already_resume(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A check without manual_resume true already resumes on a ping, so nothing is sent."""
+    serve_checks(fake_server, checks_with_manual_resume(False, None))
+    assert tronitor.main(["-m", "hc", "--resume-on-ping", "all"]) == 0
+    assert capsys.readouterr().out.splitlines() == [
+        f"Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) already resumes on a ping",
+        f"Database Backup (UUID {HC_UUID_DATABASE}) already resumes on a ping",
+    ]
+    assert posts(fake_server) == []
+
+
+def test_ignore_paused_pings_reports_a_server_that_does_not_keep_the_setting(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When one change fails and another works, the failure goes to stderr and the exit code is 3."""
+    checks = hc_fixture_checks()
+    serve_checks(fake_server, checks)
+    fake_server.add("POST", FS_UPDATE, 200, {**checks[0], "manual_resume": True})
+    fake_server.add("POST", DB_UPDATE, 200, checks[1])
+    assert tronitor.main(["-m", "hc", "--ignore-paused-pings", "all"]) == 3
+    out, err = capsys.readouterr()
+    assert out == f"Setting Filesystem Backup (UUID {HC_UUID_FILESYSTEM}) to ignore pings while paused... done\n"
+    assert err == (
+        f"tronitor: Setting Database Backup (UUID {HC_UUID_DATABASE}) to ignore pings while paused... failed: "
+        "this Healthchecks server does not support the setting\n"
+    )
+
+
+def test_ignore_paused_pings_with_an_unmatched_name_changes_nothing(
+    hc_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The selection works as for --pause: a name that matches nothing stops everything with exit code 3."""
+    serve_checks(fake_server)
+    assert tronitor.main(["-m", "hc", "--ignore-paused-pings", "Filesystem Backup,Tautulli"]) == 3
+    assert capsys.readouterr().err == "tronitor: Not found: Tautulli\n"
+    assert posts(fake_server) == []
+
+
+@pytest.mark.parametrize("option", ["--ignore-paused-pings", "--resume-on-ping"])
+def test_paused_ping_options_are_unsupported_for_uptimerobot(
+    ur_env: Path, fake_server: FakeServer, capsys: pytest.CaptureFixture[str], option: str
+) -> None:
+    """On UptimeRobot, both options are a usage error before any request."""
+    assert tronitor.main(["-m", "ur", option, "all"]) == 2
+    assert capsys.readouterr().err == f"tronitor: UptimeRobot does not support {option}\n"
+    assert fake_server.requests == []
 
 
 def test_pause_named_creates_per_monitor_lock(

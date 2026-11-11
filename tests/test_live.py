@@ -31,6 +31,7 @@ import os
 import secrets
 import sys
 import time
+import urllib.request
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager, suppress
 from pathlib import Path
@@ -190,6 +191,39 @@ def test_hc_round_trip(hc_live: tronitor.HealthchecksProvider) -> None:
 
     delete_test_monitor(hc_live, resumed)
     assert find(hc_live, uuid) is None
+
+
+def send_ping(monitor: tronitor.Monitor) -> None:
+    """Ping a check at the ping_url from its record, as a job would."""
+    with urllib.request.urlopen(str(monitor.raw["ping_url"]), timeout=30) as response:
+        assert response.status == 200, f"the ping answered {response.status}"
+
+
+@needs_hc
+def test_hc_paused_pings_round_trip(hc_live: tronitor.HealthchecksProvider) -> None:
+    """With manual_resume set, a ping leaves a paused check paused; set back, the next ping resumes it."""
+    uuid = create_test_monitor(hc_live, {"name": make_name(), "tags": "tronitor-test", "timeout": 3600}).id
+
+    monitor = find(hc_live, uuid)
+    assert monitor is not None
+    assert monitor.raw.get("manual_resume") is False, "a new check does not resume on a ping by default"
+
+    hc_live.set_manual_resume(monitor, True)
+    hc_live.pause(monitor)
+    send_ping(monitor)
+    ignored = find(hc_live, uuid)
+    assert ignored is not None
+    assert ignored.raw.get("manual_resume") is True, "the list does not show the new setting"
+    assert ignored.status == tronitor.PAUSED, "a ping resumed a check that ignores pings while paused"
+
+    hc_live.set_manual_resume(ignored, False)
+    send_ping(ignored)
+    resumed = find(hc_live, uuid)
+    assert resumed is not None
+    assert resumed.raw.get("manual_resume") is False
+    assert resumed.status == "up", "a ping did not resume a check that resumes on a ping"
+
+    delete_test_monitor(hc_live, resumed)
 
 
 @needs_hc

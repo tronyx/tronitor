@@ -43,7 +43,7 @@ By default, a paused Healthchecks check becomes active again when it next receiv
 
 There are two ways to keep a check paused:
 
-- In Healthchecks, set the check's "Pinging a Paused Check" setting to "Ignore the ping, stay in the paused state". Then a ping does not end the pause. The check stays paused until you run `-u`, or until you resume it in the Healthchecks dashboard.
+- In Healthchecks, set the check's "Pinging a Paused Check" setting to "Ignore the ping, stay in the paused state". Then a ping does not end the pause. The check stays paused until you run `-u`, or until you resume it in the Healthchecks dashboard. `tronitor -m hc --ignore-paused-pings all` sets it on every check.
 - Stop the job that pings the check while the check is paused. [HealthChecks-Linux](https://github.com/tronyx/HealthChecks-Linux) does this when it finds tronitor's lock files.
 
 If you use the lock files and the check still comes back:
@@ -195,7 +195,11 @@ The list after `-p`, `-u`, `-d` or `-r` is empty, for example `-p ""`.
 
 The action failed for this monitor. tronitor continues with the other monitors. The text after `failed:` gives the reason, for example `HTTP 429: ...` (see the next section). If other monitors worked, the exit code is `3`. If none worked, it is `1`.
 
-The same line exists for `Unpausing`, `Deleting` and `Resetting`. The `Deleting` and `Resetting` lines show only the name, without the ID.
+The same line exists for `Unpausing`, `Deleting`, `Resetting` and `Setting`. The `Deleting` and `Resetting` lines show only the name, without the ID.
+
+### `this Healthchecks server does not support the setting`
+
+`--ignore-paused-pings` or `--resume-on-ping` sent the change, but the server answered without it. A Healthchecks server that is too old to know the "Pinging a Paused Check" setting ignores the change. Update the server, or keep the checks paused with the lock files. See [Lock files](cron.md#-lock-files). If other checks changed, the exit code is `3`. If none did, it is `1`.
 
 ### `HTTP 429: ...`
 
@@ -205,7 +209,7 @@ On a `429` from UptimeRobot, tronitor waits for the time that UptimeRobot asks f
 
 ### `Healthchecks does not support stats`
 
-The provider does not offer this action. Healthchecks has no account statistics (`-s`) and no reset (`-r`). See [What each provider supports](providers.md#-what-each-provider-supports). The exit code is `2`.
+The provider does not offer this action. Healthchecks has no account statistics (`-s`) and no reset (`-r`). UptimeRobot has no `--ignore-paused-pings` and no `--resume-on-ping`, because a ping never ends its pause. See [What each provider supports](providers.md#-what-each-provider-supports). The exit code is `2`.
 
 ### `Refusing to delete without a terminal; pass --yes to confirm.`
 

@@ -60,6 +60,7 @@ For UptimeRobot, type `-m ur` instead of `-m hc`. On Windows, type `py` instead 
 | `-w` | List the paused monitors and post them to the Discord or Slack webhook |
 | `-p TARGETS` | Pause monitors: `all`, or names, slugs and IDs separated by commas, such as `-p "Filesystem Backup,Database Backup"` |
 | `-u TARGETS` | Unpause monitors, in the same way |
+| `--ignore-paused-pings TARGETS` | Make Healthchecks checks stay paused when they get a ping. `--resume-on-ping` sets them back |
 | `--yes` | Delete or reset without asking. Also act on the monitors that were found when some were not |
 | `--json` | Print the provider's records as JSON instead of a table |
 

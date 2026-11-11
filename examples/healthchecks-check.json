@@ -2,5 +2,6 @@
   "name": "Backups",
   "tags": "prod backup",
   "timeout": 3600,
-  "grace": 60
+  "grace": 60,
+  "manual_resume": true
 }
